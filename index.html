@@ -165,12 +165,27 @@
         async function getSTToken() {
             if (!config.token) return null;
             try {
-                const res = await fetch(`https://cloud.seatable.io/api/v2.1/dtable-server/temp-api-token/`, {
-                    headers: { 'Authorization': `Token ${config.token.trim()}` }
+                // Cambiamos a la URL de acceso de app que es más estándar para tokens de base
+                const res = await fetch(`https://cloud.seatable.io/api/v2.1/dtable/app-access-token/`, {
+                    headers: { 
+                        'Accept': 'application/json',
+                        'Authorization': `Token ${config.token.trim()}` 
+                    }
                 });
+                
+                if (res.status === 404) {
+                    // Si falla, intentamos la ruta alternativa de servidor
+                    const backupRes = await fetch(`https://cloud.seatable.io/api/v2.1/dtable-server/temp-api-token/`, {
+                        headers: { 'Authorization': `Token ${config.token.trim()}` }
+                    });
+                    if (!backupRes.ok) throw new Error("404 en ambas rutas de API");
+                    const backupData = await backupRes.json();
+                    return backupData.dtable_token;
+                }
+
                 if (!res.ok) throw new Error(`Status: ${res.status}`);
                 const data = await res.json();
-                return data.dtable_token;
+                return data.access_token || data.dtable_token;
             } catch (e) {
                 console.error("Error SeaTable Token:", e);
                 return null;
@@ -179,7 +194,9 @@
 
         async function stFetch(table) {
             const dtoken = await getSTToken();
-            if (!dtoken) return { rows: [] };
+            if (!dtoken) {
+                return { error: "auth", rows: [] };
+            }
             try {
                 const url = `https://cloud.seatable.io/dtable-server/api/v1/dtables/${config.uuid.trim()}/rows/?table_name=${encodeURIComponent(table)}`;
                 const res = await fetch(url, {
@@ -195,6 +212,18 @@
             
             const table = currentTab === 'empresas' ? 'Empresas' : 'Contactos';
             const data = await stFetch(table);
+            
+            if (data.error === "auth") {
+                container.innerHTML = `
+                    <div class="text-center py-20 bg-red-500/10 rounded-2xl border border-red-500/20">
+                        <p class="text-red-400 font-bold">Error de Conexión con SeaTable</p>
+                        <p class="text-xs text-slate-400 mt-2">El Token o el UUID no son válidos. Revisa la configuración (⚙️).</p>
+                        <button onclick="toggleModal('config-modal', true)" class="mt-4 text-xs bg-red-500/20 px-4 py-2 rounded-lg hover:bg-red-500/40 transition-all">Abrir Configuración</button>
+                    </div>
+                `;
+                return;
+            }
+
             const rows = data.rows || [];
 
             if (currentTab === 'agenda') {
