@@ -4,13 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MTTE · CRM Comercial Frío Industrial</title>
+    <!-- Google Identity Service -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
-        body { font-family: 'Outfit', sans-serif; background-color: #050a15; color: #e2e8f0; }
+        body { font-family: 'Outfit', sans-serif; background-color: #050a15; color: #e2e8f0; overflow-x: hidden; }
         .glass-card { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1.5rem; }
-        .input-dark { background: #0f172a !important; border: 1px solid #1e293b !important; color: white !important; border-radius: 0.75rem !important; }
+        .input-dark { background: #0f172a !important; border: 1px solid #3b82f6 !important; color: white !important; border-radius: 0.75rem !important; }
         .btn-primary { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); transition: all 0.3s ease; }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4); }
         .loading { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
@@ -30,8 +31,8 @@
             </div>
         </div>
         <div class="flex gap-4">
-            <button onclick="handleAuthClick()" class="bg-white text-slate-900 px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg hover:bg-slate-200">Google Contacts</button>
-            <button onclick="toggleModal('config-modal', true)" class="p-2.5 bg-slate-800 rounded-xl border border-slate-700 hover:bg-slate-700 transition-all">⚙️</button>
+            <button id="auth-btn" onclick="handleAuthClick()" class="bg-white text-slate-900 px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg hover:bg-slate-200 transition-colors">Google Contacts</button>
+            <button onclick="toggleModal('config-modal', true)" class="p-2.5 bg-slate-800 rounded-xl border border-slate-700 hover:bg-slate-700 transition-all border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]">⚙️</button>
         </div>
     </header>
 
@@ -43,7 +44,9 @@
                     Contactos de Google
                 </h2>
                 <div id="google-list" class="space-y-3 overflow-y-auto max-h-[600px] pr-2">
-                    <div class="text-center py-10 opacity-40 italic text-sm">Conecta con Google para importar comerciales.</div>
+                    <div id="google-status-msg" class="text-center py-10 opacity-40 italic text-sm">
+                        Carga tu Client ID en el panel de configuración (⚙️).
+                    </div>
                 </div>
             </div>
         </aside>
@@ -59,74 +62,131 @@
     </main>
 
     <!-- MODAL CONFIG -->
-    <div id="config-modal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center z-50 p-4">
-        <div class="glass-card max-w-sm w-full p-8 shadow-2xl">
-            <h3 class="text-xl font-bold mb-6 text-center">Configurar SeaTable</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="text-[10px] text-slate-400 uppercase ml-1">API Token (App Token)</label>
-                    <input type="password" id="st-token" placeholder="Token de 40+ caracteres" class="w-full input-dark px-4 py-3 mt-1 text-sm">
+    <div id="config-modal" class="fixed inset-0 bg-black/90 hidden flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="glass-card max-w-md w-full p-8 shadow-2xl border-blue-500/20">
+            <h3 class="text-xl font-bold mb-2 text-center">Panel de Control</h3>
+            <p class="text-center text-slate-400 text-xs mb-8 uppercase tracking-widest">Configuración de Conexiones</p>
+            
+            <div class="space-y-6">
+                <!-- SEATABLE SECTION -->
+                <div class="space-y-3">
+                    <p class="text-[10px] font-bold text-blue-400 uppercase">SeaTable (Base de Datos)</p>
+                    <div>
+                        <input type="password" id="st-token" placeholder="App Token de la Base" class="w-full input-dark px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <input type="text" id="st-uuid" placeholder="UUID de la Base (de la URL)" class="w-full input-dark px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
                 </div>
-                <div>
-                    <label class="text-[10px] text-slate-400 uppercase ml-1">Base UUID</label>
-                    <input type="text" id="st-uuid" placeholder="UUID de la base" class="w-full input-dark px-4 py-3 mt-1 text-sm">
+
+                <!-- GOOGLE SECTION -->
+                <div class="space-y-3 pt-4 border-t border-slate-800">
+                    <p class="text-[10px] font-bold text-blue-400 uppercase">Google Cloud (Contactos)</p>
+                    <div>
+                        <input type="text" id="google-id" placeholder="Google Client ID (termina en .apps.googleusercontent.com)" class="w-full input-dark px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
                 </div>
-                <button onclick="saveConfig()" class="w-full btn-primary py-4 rounded-xl font-bold mt-4">Guardar y Probar</button>
-                <button onclick="toggleModal('config-modal', false)" class="w-full text-slate-500 text-sm mt-2">Cancelar</button>
+
+                <div class="pt-4">
+                    <button onclick="saveConfig()" class="w-full btn-primary py-4 rounded-xl font-bold shadow-lg shadow-blue-600/20">Guardar y Conectar Todo</button>
+                    <button onclick="toggleModal('config-modal', false)" class="w-full text-slate-500 text-xs mt-4 hover:text-white transition-colors">Cerrar sin guardar</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        let config = JSON.parse(localStorage.getItem('mtte_crm_v1')) || { token: '', uuid: '' };
+        let config = JSON.parse(localStorage.getItem('mtte_crm_v1')) || { token: '', uuid: '', googleId: '' };
         let currentTab = 'agenda';
         let googleToken = null;
         let tokenClient = null;
 
-        // CORRECCIÓN DE RUTAS SEATABLE
+        // --- GOOGLE AUTH LOGIC ---
+        function initGoogle() {
+            if (typeof google !== 'undefined' && config.googleId) {
+                try {
+                    tokenClient = google.accounts.oauth2.initTokenClient({
+                        client_id: config.googleId.trim(),
+                        scope: 'https://www.googleapis.com/auth/contacts.readonly',
+                        callback: (tokenResponse) => {
+                            if (tokenResponse.access_token) {
+                                googleToken = tokenResponse.access_token;
+                                fetchGoogleContacts();
+                            }
+                        },
+                    });
+                    console.log("Google Client Initialized");
+                    document.getElementById('google-status-msg').innerText = "Google listo. Pulsa el botón blanco arriba.";
+                } catch (e) { 
+                    console.error("Error init Google:", e); 
+                    document.getElementById('google-status-msg').innerText = "Error en Client ID de Google.";
+                }
+            }
+        }
+
+        function handleAuthClick() {
+            if (!config.googleId) {
+                alert("Error: No has pegado el Google Client ID en el panel de configuración.");
+                toggleModal('config-modal', true);
+                return;
+            }
+            if (!tokenClient) initGoogle();
+            if (tokenClient) {
+                tokenClient.requestAccessToken({prompt: 'consent'});
+            } else {
+                alert("El servicio de Google aún está cargando. Espera 2 segundos.");
+            }
+        }
+
+        async function fetchGoogleContacts() {
+            const list = document.getElementById('google-list');
+            list.innerHTML = '<div class="flex justify-center py-10"><div class="loading"></div></div>';
+            try {
+                const res = await fetch('https://people.googleapis.com/v1/people/me/connections?personFields=names,organizations', {
+                    headers: { 'Authorization': `Bearer ${googleToken}` }
+                });
+                const data = await res.json();
+                if (!data.connections) {
+                    list.innerHTML = '<div class="text-center py-10 opacity-40">No se encontraron contactos en tu cuenta de Google.</div>';
+                    return;
+                }
+                list.innerHTML = data.connections.map(p => `
+                    <div class="bg-slate-800/40 p-4 rounded-xl border border-white/5 hover:border-blue-500/50 transition-all">
+                        <div class="font-bold text-sm">${p.names?.[0]?.displayName || 'Sin nombre'}</div>
+                        <div class="text-[10px] text-slate-500 uppercase">${p.organizations?.[0]?.name || 'Empresa no detectada'}</div>
+                    </div>
+                `).join('');
+            } catch (e) { 
+                list.innerHTML = '<div class="text-red-400 text-xs text-center p-4">Error de permisos. Revisa la consola de Google.</div>';
+            }
+        }
+
+        // --- SEATABLE API LOGIC ---
         async function getSTToken() {
             if (!config.token) return null;
             try {
-                // Ruta corregida para evitar el 404
                 const res = await fetch(`https://cloud.seatable.io/api/v2.1/dtable-server/temp-api-token/`, {
-                    method: 'GET',
-                    headers: { 
-                        'Authorization': `Token ${config.token.trim()}`,
-                        'Accept': 'application/json'
-                    }
+                    headers: { 'Authorization': `Token ${config.token.trim()}` }
                 });
                 if (!res.ok) throw new Error(`Status: ${res.status}`);
                 const data = await res.json();
                 return data.dtable_token;
             } catch (e) {
-                console.error("Error obteniendo dtable_token:", e);
+                console.error("Error SeaTable Token:", e);
                 return null;
             }
         }
 
-        async function stFetch(table, method = 'GET', body = null) {
+        async function stFetch(table) {
             const dtoken = await getSTToken();
-            if (!dtoken) {
-                document.getElementById('st-content').innerHTML = '<div class="text-red-400 text-center py-10">Error de conexión. Verifica el API Token.</div>';
-                return { rows: [] };
-            }
+            if (!dtoken) return { rows: [] };
             try {
                 const url = `https://cloud.seatable.io/dtable-server/api/v1/dtables/${config.uuid.trim()}/rows/?table_name=${encodeURIComponent(table)}`;
-                const options = {
-                    method,
-                    headers: { 
-                        'Authorization': `Token ${dtoken}`,
-                        'Content-Type': 'application/json'
-                    }
-                };
-                if (body) options.body = JSON.stringify({ table_name: table, ...body });
-                
-                const res = await fetch(url, options);
+                const res = await fetch(url, {
+                    headers: { 'Authorization': `Token ${dtoken}` }
+                });
                 return await res.json();
-            } catch (e) {
-                console.error("Fetch error:", e);
-                return { rows: [] };
-            }
+            } catch (e) { return { rows: [] }; }
         }
 
         async function loadData() {
@@ -142,25 +202,25 @@
                     <div class="glass-card p-6 flex justify-between items-center border-l-4 border-l-blue-500 hover:bg-white/5 transition-all mb-4">
                         <div>
                             <div class="text-[10px] text-blue-400 font-bold uppercase mb-1">${r.Estado || 'NUEVO'}</div>
-                            <h3 class="text-xl font-bold">${r['Nombre Apellido1'] || 'Sin Nombre'}</h3>
+                            <h3 class="text-xl font-bold">${r['Nombre Apellido1'] || r.Nombre || 'Sin Nombre'}</h3>
                             <p class="text-sm text-slate-400">${r['Nombre Empresa'] || 'Particular'} · <span class="italic">${r.Cargo || 'Contacto'}</span></p>
                         </div>
-                        <a href="mailto:${r.email}" class="bg-blue-600/20 text-blue-400 px-6 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition-all">Email</a>
+                        <a href="mailto:${r.email || ''}" class="bg-blue-600/20 text-blue-400 px-6 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition-all">Email</a>
                     </div>
-                `).join('') : '<div class="text-center py-20 opacity-40">No hay datos.</div>';
+                `).join('') : '<div class="text-center py-20 opacity-40 italic">No hay datos en SeaTable. Asegúrate de que las tablas se llamen "Contactos" o "Empresas".</div>';
             } else {
                 renderTable(rows);
             }
         }
 
         function renderTable(rows) {
-            if (!rows || rows.length === 0) { container.innerHTML = "Vacío."; return; }
+            if (!rows.length) { document.getElementById('st-content').innerHTML = '<p class="text-center py-10 opacity-40">Sin datos en esta tabla.</p>'; return; }
             const keys = Object.keys(rows[0]).filter(k => !k.startsWith('_'));
             let html = `<div class="glass-card overflow-x-auto"><table class="w-full text-sm text-left"><thead class="bg-slate-800/50 text-slate-500 uppercase text-[10px] font-bold"><tr>`;
             keys.forEach(k => html += `<th class="px-6 py-4">${k}</th>`);
             html += `</tr></thead><tbody class="divide-y divide-white/5">`;
             rows.forEach(r => {
-                html += `<tr class="hover:bg-white/5">`;
+                html += `<tr class="hover:bg-white/5 transition-colors">`;
                 keys.forEach(k => html += `<td class="px-6 py-4 whitespace-nowrap">${r[k] || '-'}</td>`);
                 html += `</tr>`;
             });
@@ -172,16 +232,18 @@
 
         function changeTab(tab) {
             currentTab = tab;
-            document.querySelectorAll('button[id^="tab-"]').forEach(b => b.className = "pb-3 text-slate-500");
-            document.getElementById('tab-'+tab).className = "pb-3 border-b-2 border-blue-500 text-blue-500";
+            document.querySelectorAll('button[id^="tab-"]').forEach(b => b.className = "pb-3 text-slate-500 transition-all");
+            document.getElementById('tab-'+tab).className = "pb-3 border-b-2 border-blue-500 text-blue-500 transition-all";
             loadData();
         }
 
         function saveConfig() {
             config.token = document.getElementById('st-token').value;
             config.uuid = document.getElementById('st-uuid').value;
+            config.googleId = document.getElementById('google-id').value;
             localStorage.setItem('mtte_crm_v1', JSON.stringify(config));
             toggleModal('config-modal', false);
+            initGoogle();
             loadData();
         }
 
@@ -189,6 +251,8 @@
             if(config.token && config.uuid) {
                 document.getElementById('st-token').value = config.token;
                 document.getElementById('st-uuid').value = config.uuid;
+                document.getElementById('google-id').value = config.googleId || '';
+                initGoogle();
                 loadData();
             } else {
                 toggleModal('config-modal', true);
