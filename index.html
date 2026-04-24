@@ -32,7 +32,7 @@
         </div>
         <div class="flex gap-4">
             <button id="auth-btn" onclick="handleAuthClick()" class="bg-white text-slate-900 px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg hover:bg-slate-200 transition-colors">Google Contacts</button>
-            <button onclick="toggleModal('config-modal', true)" class="p-2.5 bg-slate-800 rounded-xl border border-slate-700 hover:bg-slate-700 transition-all border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]">⚙️</button>
+            <button onclick="toggleModal('config-modal', true)" class="p-2.5 bg-slate-800 rounded-xl border border-slate-700 hover:bg-slate-700 transition-all border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]">⚙️ Configuración</button>
         </div>
     </header>
 
@@ -65,17 +65,17 @@
     <div id="config-modal" class="fixed inset-0 bg-black/90 hidden flex items-center justify-center z-50 p-4 backdrop-blur-sm">
         <div class="glass-card max-w-md w-full p-8 shadow-2xl border-blue-500/20">
             <h3 class="text-xl font-bold mb-2 text-center">Panel de Control</h3>
-            <p class="text-center text-slate-400 text-xs mb-8 uppercase tracking-widest">Configuración de Conexiones</p>
+            <p class="text-center text-slate-400 text-xs mb-8 uppercase tracking-widest">Configuración Automática</p>
             
             <div class="space-y-6">
                 <!-- SEATABLE SECTION -->
                 <div class="space-y-3">
                     <p class="text-[10px] font-bold text-blue-400 uppercase">SeaTable (Base de Datos)</p>
                     <div>
-                        <input type="password" id="st-token" placeholder="App Token de la Base" class="w-full input-dark px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <input type="password" id="st-token" placeholder="App Token de SeaTable" class="w-full input-dark px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                     </div>
-                    <div>
-                        <input type="text" id="st-uuid" placeholder="UUID de la Base (de la URL)" class="w-full input-dark px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    <div class="text-[10px] text-blue-300 bg-blue-500/10 p-3 rounded-lg border border-blue-500/20">
+                        Solo necesitas pegar el <b>App Token</b>. El sistema conectará automáticamente con tu base y obtendrá el UUID sin que tengas que buscarlo.
                     </div>
                 </div>
 
@@ -88,19 +88,65 @@
                 </div>
 
                 <div class="pt-4">
-                    <button onclick="saveConfig()" class="w-full btn-primary py-4 rounded-xl font-bold shadow-lg shadow-blue-600/20">Guardar y Conectar Todo</button>
+                    <button onclick="saveConfig()" class="w-full btn-primary py-4 rounded-xl font-bold shadow-lg shadow-blue-600/20">Guardar y Conectar</button>
                     <button onclick="toggleModal('config-modal', false)" class="w-full text-slate-500 text-xs mt-4 hover:text-white transition-colors">Cerrar sin guardar</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- MODAL DE IMPORTACIÓN RELACIONAL -->
+    <div id="import-modal" class="fixed inset-0 bg-black/90 hidden flex items-center justify-center z-50 p-4 overflow-y-auto backdrop-blur-sm">
+        <div class="glass-card max-w-4xl w-full p-8 my-10 border-blue-500/20 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-8 text-center md:text-left">Vincular a CRM MTTE</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Comercial -->
+                <div class="space-y-4">
+                    <h4 class="text-blue-400 text-xs font-bold uppercase tracking-widest border-b border-blue-500/30 pb-2">Datos del Contacto</h4>
+                    <input type="text" id="imp-nombre" placeholder="Nombre completo" class="w-full input-dark px-4 py-3 text-sm">
+                    <input type="email" id="imp-email" placeholder="Correo Electrónico" class="w-full input-dark px-4 py-3 text-sm">
+                    <input type="text" id="imp-tel" placeholder="Teléfono Móvil" class="w-full input-dark px-4 py-3 text-sm">
+                    <input type="text" id="imp-cargo" placeholder="Cargo (ej. Jefe de Compras)" class="w-full input-dark px-4 py-3 text-sm">
+                </div>
+                <!-- Empresa Relacionada -->
+                <div class="space-y-4">
+                    <h4 class="text-emerald-400 text-xs font-bold uppercase tracking-widest border-b border-emerald-500/30 pb-2">Asignar Empresa</h4>
+                    <select id="imp-select-empresa" onchange="toggleNuevaEmpresa(this.value)" class="w-full input-dark px-4 py-3 text-sm">
+                        <option value="NEW">+ Crear Nueva Empresa</option>
+                    </select>
+                    <div id="new-emp-fields" class="space-y-3">
+                        <input type="text" id="imp-emp-nombre" placeholder="Nombre de la Empresa" class="w-full input-dark px-4 py-3 text-sm font-bold border-emerald-500/30">
+                        <select id="imp-emp-tipo" class="w-full input-dark px-4 py-3 text-sm">
+                            <option value="Instaladora">Instaladora</option>
+                            <option value="Mantenedora">Mantenedora</option>
+                            <option value="Instaladora/Mantenedora">Instaladora / Mantenedora</option>
+                            <option value="Ingeniería">Ingeniería</option>
+                            <option value="Arquitectura">Arquitectura</option>
+                            <option value="Distribuidora">Distribuidora</option>
+                            <option value="HORECA">Canal HORECA</option>
+                            <option value="Otros">Otros</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-10 flex flex-col md:flex-row gap-4">
+                <button onclick="executeImport()" id="btn-import" class="flex-1 btn-primary py-4 rounded-2xl font-bold shadow-lg shadow-blue-500/30">Sincronizar y Guardar</button>
+                <button onclick="toggleModal('import-modal', false)" class="px-8 bg-slate-800 hover:bg-slate-700 py-4 rounded-2xl font-bold transition-colors">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        let config = JSON.parse(localStorage.getItem('mtte_crm_v1')) || { token: '', uuid: '', googleId: '' };
+        // ESTADO GLOBAL
+        let config = JSON.parse(localStorage.getItem('mtte_crm_v2')) || { token: '', googleId: '' };
         let currentTab = 'agenda';
         let googleToken = null;
         let tokenClient = null;
+        
+        // Variables dinámicas de SeaTable (Se consiguen con el token, no se guardan hardcodeadas)
         let dtableToken = null;
+        let stServer = null;
+        let stUuid = null;
 
         // --- GOOGLE AUTH LOGIC ---
         function initGoogle() {
@@ -117,7 +163,7 @@
                         },
                     });
                     console.log("Google Client Initialized");
-                    document.getElementById('google-status-msg').innerText = "Google listo. Pulsa el botón blanco arriba.";
+                    document.getElementById('google-status-msg').innerHTML = "<span class='text-blue-400'>✔ Google listo.</span> Pulsa el botón blanco arriba.";
                 } catch (e) { 
                     console.error("Error init Google:", e); 
                     document.getElementById('google-status-msg').innerText = "Error en Client ID de Google.";
@@ -143,7 +189,7 @@
             const list = document.getElementById('google-list');
             list.innerHTML = '<div class="flex justify-center py-10"><div class="loading"></div></div>';
             try {
-                const res = await fetch('https://people.googleapis.com/v1/people/me/connections?personFields=names,organizations', {
+                const res = await fetch('https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,phoneNumbers,organizations', {
                     headers: { 'Authorization': `Bearer ${googleToken}` }
                 });
                 const data = await res.json();
@@ -152,9 +198,9 @@
                     return;
                 }
                 list.innerHTML = data.connections.map(p => `
-                    <div class="bg-slate-800/40 p-4 rounded-xl border border-white/5 hover:border-blue-500/50 transition-all">
-                        <div class="font-bold text-sm">${p.names?.[0]?.displayName || 'Sin nombre'}</div>
-                        <div class="text-[10px] text-slate-500 uppercase">${p.organizations?.[0]?.name || 'Empresa no detectada'}</div>
+                    <div onclick='openImport(${JSON.stringify(p).replace(/'/g, "&apos;")})' class="bg-slate-800/40 p-4 rounded-xl border border-white/5 hover:border-blue-500/50 hover:bg-slate-800 cursor-pointer transition-all">
+                        <div class="font-bold text-sm text-blue-50">${p.names?.[0]?.displayName || 'Sin nombre'}</div>
+                        <div class="text-[10px] text-slate-500 uppercase mt-1">${p.organizations?.[0]?.name || 'Empresa no detectada'}</div>
                     </div>
                 `).join('');
             } catch (e) { 
@@ -162,12 +208,13 @@
             }
         }
 
-        // --- SEATABLE API LOGIC ---
+        // --- SEATABLE API LOGIC (AUTOMATIZADA) ---
         async function getSTToken() {
             if (!config.token) return null;
-            if (dtableToken) return dtableToken; // Reutilizar token si ya existe
+            if (dtableToken && stServer && stUuid) return dtableToken; // Reutilizar si ya lo tenemos
 
             try {
+                // Obtenemos Token Dinámico, Servidor Dinámico y UUID Dinámico
                 const res = await fetch(`https://cloud.seatable.io/api/v2.1/dtable/app-access-token/`, {
                     headers: { 
                         'Accept': 'application/json',
@@ -175,9 +222,16 @@
                     }
                 });
                 
-                if (!res.ok) throw new Error("Error de autorización inicial");
+                if (!res.ok) throw new Error("Error de autorización inicial. Revisa tu App Token.");
+                
                 const data = await res.json();
                 dtableToken = data.access_token || data.dtable_token;
+                stServer = data.dtable_server;
+                stUuid = data.dtable_uuid;
+
+                // Prevenir barras dobles en la URL
+                if(stServer.endsWith('/')) stServer = stServer.slice(0, -1);
+
                 return dtableToken;
             } catch (e) {
                 console.error("Error SeaTable Token:", e);
@@ -185,27 +239,35 @@
             }
         }
 
-        async function stFetch(table) {
+        async function stFetch(table, method = 'GET', body = null) {
             const dtoken = await getSTToken();
-            if (!dtoken) return { error: "auth", rows: [] };
+            if (!dtoken || !stServer || !stUuid) return { error: "auth", rows: [] };
             
             try {
-                const url = `https://cloud.seatable.io/dtable-server/api/v1/dtables/${config.uuid.trim()}/rows/?table_name=${encodeURIComponent(table)}`;
-                const res = await fetch(url, {
-                    headers: { 'Authorization': `Token ${dtoken}` }
-                });
+                // Ruta construida 100% dinámicamente, adiós errores 404 por UUID falso
+                const url = `${stServer}/api/v1/dtables/${stUuid}/rows/?table_name=${encodeURIComponent(table)}`;
                 
-                if (res.status === 404) {
-                    // Si no encuentra la tabla, intentamos listar qué tablas HAY disponibles para diagnosticar
-                    const infoRes = await fetch(`https://cloud.seatable.io/dtable-server/api/v1/dtables/${config.uuid.trim()}/metadata/`, {
-                        headers: { 'Authorization': `Token ${dtoken}` }
-                    });
-                    const metadata = await infoRes.json();
-                    const availableTables = metadata.metadata?.tables?.map(t => t.name).join(', ') || 'ninguna';
-                    return { error: "not_found", table: table, found: availableTables };
+                const options = {
+                    method,
+                    headers: { 
+                        'Authorization': `Token ${dtoken}`,
+                        'Content-Type': 'application/json' 
+                    }
+                };
+                
+                if (body) options.body = JSON.stringify(body);
+
+                const res = await fetch(url, options);
+                
+                if (res.status === 404) return { error: "not_found", table: table };
+
+                // Prevenir SyntaxError si SeaTable devuelve un error en HTML en vez de JSON
+                if (!res.ok) {
+                    const text = await res.text();
+                    console.error(`Error API ${res.status}:`, text);
+                    return { error: "unknown", rows: [] };
                 }
 
-                if (!res.ok) throw new Error(`Fetch Error: ${res.status}`);
                 return await res.json();
             } catch (e) { 
                 console.error("ST Fetch Error:", e);
@@ -213,6 +275,7 @@
             }
         }
 
+        // --- MANEJO DE VISTAS Y DATOS ---
         async function loadData() {
             const container = document.getElementById('st-content');
             container.innerHTML = '<div class="flex justify-center py-20"><div class="loading"></div></div>';
@@ -221,12 +284,12 @@
             const data = await stFetch(table);
             
             if (data.error === "auth") {
-                renderError("Error de Autenticación", "El Token de SeaTable es incorrecto o la base UUID no corresponde a ese token.");
+                renderError("Error de Autenticación", "El App Token de SeaTable es incorrecto. Vuelve a generarlo desde tu base en SeaTable.");
                 return;
             }
             
             if (data.error === "not_found") {
-                renderError("Tabla no encontrada", `La tabla "${data.table}" no aparece en esta base.<br><br><b>Tablas detectadas en tu base:</b><br><span class="text-blue-400">${data.found}</span>`);
+                renderError("Tabla no encontrada", `La tabla llamada "${data.table}" no existe. Asegúrate de que las pestañas en SeaTable se llamen exactamente "Contactos" y "Empresas".`);
                 return;
             }
 
@@ -242,19 +305,81 @@
                         </div>
                         <a href="mailto:${r.email || ''}" class="bg-blue-600/20 text-blue-400 px-6 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition-all">Email</a>
                     </div>
-                `).join('') : '<div class="text-center py-20 opacity-40 italic font-medium">No hay datos. Añade filas en SeaTable.</div>';
+                `).join('') : '<div class="text-center py-20 opacity-40 italic font-medium">Agenda vacía. Importa contactos desde Google.</div>';
             } else {
                 renderTable(rows);
             }
         }
 
+        // --- IMPORTACIÓN Y FORMULARIOS ---
+        async function openImport(person) {
+            document.getElementById('imp-nombre').value = person.names?.[0]?.displayName || '';
+            document.getElementById('imp-email').value = person.emailAddresses?.[0]?.value || '';
+            document.getElementById('imp-tel').value = person.phoneNumbers?.[0]?.value || '';
+            document.getElementById('imp-emp-nombre').value = person.organizations?.[0]?.name || '';
+            document.getElementById('imp-cargo').value = person.organizations?.[0]?.title || '';
+            
+            toggleModal('import-modal', true);
+
+            // Cargar selector de empresas desde la base de datos
+            const select = document.getElementById('imp-select-empresa');
+            select.innerHTML = '<option value="NEW">Buscando empresas en SeaTable...</option>';
+            
+            const data = await stFetch('Empresas');
+            select.innerHTML = '<option value="NEW">+ Crear Nueva Empresa</option>' + 
+                (data.rows || []).map(e => `<option value="${e._id}">${e['Nombre Empresa']}</option>`).join('');
+        }
+
+        async function executeImport() {
+            const btn = document.getElementById('btn-import');
+            btn.disabled = true; btn.innerText = "Sincronizando con CRM...";
+
+            let empresaId = document.getElementById('imp-select-empresa').value;
+            let nombreEmpresa = document.getElementById('imp-emp-nombre').value;
+
+            try {
+                // 1. Guardar Empresa si es nueva
+                if (empresaId === 'NEW') {
+                    const resEmp = await stFetch('Empresas', 'POST', {
+                        row: { 
+                            "Nombre Empresa": nombreEmpresa, 
+                            "Tipo Empresa": document.getElementById('imp-emp-tipo').value 
+                        }
+                    });
+                    if (resEmp && resEmp._id) empresaId = resEmp._id;
+                }
+
+                // 2. Guardar Contacto
+                await stFetch('Contactos', 'POST', {
+                    row: {
+                        "Nombre Apellido1": document.getElementById('imp-nombre').value,
+                        "email": document.getElementById('imp-email').value,
+                        "Teléfono Móvil": document.getElementById('imp-tel').value,
+                        "Cargo": document.getElementById('imp-cargo').value,
+                        "Nombre Empresa": nombreEmpresa,
+                        "Empresa": [empresaId], // Vinculación relacional real
+                        "Estado": "Nuevo"
+                    }
+                });
+
+            } catch (e) {
+                console.error("Error al guardar", e);
+                alert("Ocurrió un error al guardar en SeaTable.");
+            }
+
+            btn.disabled = false; btn.innerText = "Sincronizar y Guardar";
+            toggleModal('import-modal', false);
+            changeTab('agenda');
+        }
+
+        // --- INTERFAZ UI ---
         function renderError(title, msg) {
             document.getElementById('st-content').innerHTML = `
                 <div class="text-center py-16 bg-red-500/5 rounded-3xl border border-red-500/20 px-6">
                     <div class="text-3xl mb-4">⚠️</div>
                     <p class="text-red-400 font-bold text-lg">${title}</p>
                     <p class="text-sm text-slate-400 mt-2 max-w-md mx-auto">${msg}</p>
-                    <button onclick="toggleModal('config-modal', true)" class="mt-6 bg-slate-800 text-white px-6 py-2 rounded-xl text-xs font-bold hover:bg-slate-700 transition-all border border-white/10">Revisar Configuración</button>
+                    <button onclick="toggleModal('config-modal', true)" class="mt-6 bg-slate-800 text-white px-6 py-2 rounded-xl text-xs font-bold hover:bg-slate-700 transition-all border border-white/10">Revisar App Token</button>
                 </div>
             `;
         }
@@ -275,6 +400,7 @@
         }
 
         function toggleModal(id, show) { document.getElementById(id).classList.toggle('hidden', !show); }
+        function toggleNuevaEmpresa(val) { document.getElementById('new-emp-fields').classList.toggle('hidden', val !== 'NEW'); }
 
         function changeTab(tab) {
             currentTab = tab;
@@ -285,19 +411,20 @@
 
         function saveConfig() {
             config.token = document.getElementById('st-token').value;
-            config.uuid = document.getElementById('st-uuid').value;
             config.googleId = document.getElementById('google-id').value;
-            dtableToken = null; // Forzar nuevo token al guardar
-            localStorage.setItem('mtte_crm_v1', JSON.stringify(config));
+            
+            // Limpiar cache anterior
+            dtableToken = null; stServer = null; stUuid = null;
+            
+            localStorage.setItem('mtte_crm_v2', JSON.stringify(config));
             toggleModal('config-modal', false);
             initGoogle();
             loadData();
         }
 
         window.onload = () => {
-            if(config.token && config.uuid) {
+            if(config.token) {
                 document.getElementById('st-token').value = config.token;
-                document.getElementById('st-uuid').value = config.uuid;
                 document.getElementById('google-id').value = config.googleId || '';
                 initGoogle();
                 loadData();
