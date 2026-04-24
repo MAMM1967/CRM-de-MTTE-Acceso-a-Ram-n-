@@ -143,10 +143,11 @@
         let googleToken = null;
         let tokenClient = null;
         
-        // Variables dinámicas de SeaTable (Se consiguen con el token, no se guardan hardcodeadas)
+        // Variables dinámicas
         let dtableToken = null;
-        let stServer = null;
         let stUuid = null;
+        // Forzamos el servidor directo para evitar el bug del api-gateway de SeaTable
+        const DIRECT_ST_SERVER = 'https://cloud.seatable.io/dtable-server';
 
         // --- GOOGLE AUTH LOGIC ---
         function initGoogle() {
@@ -208,13 +209,13 @@
             }
         }
 
-        // --- SEATABLE API LOGIC (AUTOMATIZADA) ---
+        // --- SEATABLE API LOGIC (AUTOMATIZADA & CORREGIDA) ---
         async function getSTToken() {
             if (!config.token) return null;
-            if (dtableToken && stServer && stUuid) return dtableToken; // Reutilizar si ya lo tenemos
+            if (dtableToken && stUuid) return dtableToken; 
 
             try {
-                // Obtenemos Token Dinámico, Servidor Dinámico y UUID Dinámico
+                // Endpoint para App Tokens (Aseguramos la obtención del UUID real)
                 const res = await fetch(`https://cloud.seatable.io/api/v2.1/dtable/app-access-token/`, {
                     headers: { 
                         'Accept': 'application/json',
@@ -226,12 +227,8 @@
                 
                 const data = await res.json();
                 dtableToken = data.access_token || data.dtable_token;
-                stServer = data.dtable_server;
                 stUuid = data.dtable_uuid;
-
-                // Prevenir barras dobles en la URL
-                if(stServer.endsWith('/')) stServer = stServer.slice(0, -1);
-
+                
                 return dtableToken;
             } catch (e) {
                 console.error("Error SeaTable Token:", e);
@@ -241,11 +238,11 @@
 
         async function stFetch(table, method = 'GET', body = null) {
             const dtoken = await getSTToken();
-            if (!dtoken || !stServer || !stUuid) return { error: "auth", rows: [] };
+            if (!dtoken || !stUuid) return { error: "auth", rows: [] };
             
             try {
-                // Ruta construida 100% dinámicamente, adiós errores 404 por UUID falso
-                const url = `${stServer}/api/v1/dtables/${stUuid}/rows/?table_name=${encodeURIComponent(table)}`;
+                // Forzamos el servidor directo para evitar el error 404 del api-gateway
+                const url = `${DIRECT_ST_SERVER}/api/v1/dtables/${stUuid}/rows/?table_name=${encodeURIComponent(table)}`;
                 
                 const options = {
                     method,
@@ -259,9 +256,21 @@
 
                 const res = await fetch(url, options);
                 
-                if (res.status === 404) return { error: "not_found", table: table };
+                if (res.status === 404) {
+                    try {
+                        // Si falla, intentamos ver qué tablas existen realmente
+                        const infoRes = await fetch(`${DIRECT_ST_SERVER}/api/v1/dtables/${stUuid}/metadata/`, {
+                            headers: { 'Authorization': `Token ${dtoken}` }
+                        });
+                        if (infoRes.ok) {
+                            const metadata = await infoRes.json();
+                            const availableTables = metadata.metadata?.tables?.map(t => t.name).join(', ') || 'ninguna';
+                            return { error: "not_found", table: table, found: availableTables };
+                        }
+                    } catch(e){}
+                    return { error: "not_found", table: table, found: "Desconocidas" };
+                }
 
-                // Prevenir SyntaxError si SeaTable devuelve un error en HTML en vez de JSON
                 if (!res.ok) {
                     const text = await res.text();
                     console.error(`Error API ${res.status}:`, text);
@@ -284,12 +293,12 @@
             const data = await stFetch(table);
             
             if (data.error === "auth") {
-                renderError("Error de Autenticación", "El App Token de SeaTable es incorrecto. Vuelve a generarlo desde tu base en SeaTable.");
+                renderError("Error de Autenticación", "El App Token de SeaTable es incorrecto o ha caducado. Vuelve a generarlo desde tu base en SeaTable.");
                 return;
             }
             
             if (data.error === "not_found") {
-                renderError("Tabla no encontrada", `La tabla llamada "${data.table}" no existe. Asegúrate de que las pestañas en SeaTable se llamen exactamente "Contactos" y "Empresas".`);
+                renderError("Tabla no encontrada", `La tabla llamada "${data.table}" no existe.<br><br><b>Tablas detectadas en tu base:</b><br><span class="text-blue-400 font-bold">${data.found}</span><br><br>Asegúrate de que las pestañas en SeaTable se llamen exactamente igual que la palabra que estás buscando (sin espacios al final).`);
                 return;
             }
 
@@ -378,8 +387,8 @@
                 <div class="text-center py-16 bg-red-500/5 rounded-3xl border border-red-500/20 px-6">
                     <div class="text-3xl mb-4">⚠️</div>
                     <p class="text-red-400 font-bold text-lg">${title}</p>
-                    <p class="text-sm text-slate-400 mt-2 max-w-md mx-auto">${msg}</p>
-                    <button onclick="toggleModal('config-modal', true)" class="mt-6 bg-slate-800 text-white px-6 py-2 rounded-xl text-xs font-bold hover:bg-slate-700 transition-all border border-white/10">Revisar App Token</button>
+                    <p class="text-sm text-slate-400 mt-4 max-w-md mx-auto leading-relaxed">${msg}</p>
+                    <button onclick="toggleModal('config-modal', true)" class="mt-6 bg-slate-800 text-white px-6 py-2 rounded-xl text-xs font-bold hover:bg-slate-700 transition-all border border-white/10">Revisar Configuración</button>
                 </div>
             `;
         }
@@ -414,7 +423,7 @@
             config.googleId = document.getElementById('google-id').value;
             
             // Limpiar cache anterior
-            dtableToken = null; stServer = null; stUuid = null;
+            dtableToken = null; stUuid = null;
             
             localStorage.setItem('mtte_crm_v2', JSON.stringify(config));
             toggleModal('config-modal', false);
