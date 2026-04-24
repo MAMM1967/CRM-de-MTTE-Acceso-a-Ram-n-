@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MTTE · CRM Comercial Frío Industrial</title>
-    <!-- Google Identity Service -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -14,9 +13,8 @@
         .input-dark { background: #0f172a !important; border: 1px solid #3b82f6 !important; color: white !important; border-radius: 0.75rem !important; }
         .btn-primary { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); transition: all 0.3s ease; }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4); }
-        .loading { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        .loading { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
         .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
         .tab-inactive { color: #64748b; }
     </style>
@@ -35,7 +33,7 @@
         </div>
         <div class="flex gap-4">
             <button id="auth-btn" onclick="handleAuthClick()" class="bg-white text-slate-900 px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg hover:bg-slate-200 transition-colors">Google Contacts</button>
-            <button onclick="toggleModal('config-modal', true)" class="p-2.5 bg-slate-800 rounded-xl border border-slate-700 hover:bg-slate-700 transition-all border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]">⚙️ Configuración</button>
+            <button onclick="toggleModal('config-modal', true)" class="p-2.5 bg-slate-800 rounded-xl border border-slate-700 hover:bg-slate-700 transition-all border-blue-500/30">⚙️ Configuración</button>
         </div>
     </header>
 
@@ -67,7 +65,7 @@
     <!-- MODAL CONFIG -->
     <div id="config-modal" class="fixed inset-0 bg-black/90 hidden flex items-center justify-center z-50 p-4 backdrop-blur-sm">
         <div class="glass-card max-w-md w-full p-8 shadow-2xl">
-            <h3 class="text-xl font-bold mb-8 text-center">Configuración del Sistema</h3>
+            <h3 class="text-xl font-bold mb-8 text-center text-white">Configuración del Sistema</h3>
             <div class="space-y-6">
                 <div>
                     <label class="text-[10px] font-bold text-blue-400 uppercase block mb-2">SeaTable App Token</label>
@@ -77,7 +75,7 @@
                     <label class="text-[10px] font-bold text-blue-400 uppercase block mb-2">Google Client ID</label>
                     <input type="text" id="google-id" placeholder="ID de cliente de Google Cloud" class="w-full input-dark px-4 py-3 text-sm">
                 </div>
-                <button onclick="saveConfig()" class="w-full btn-primary py-4 rounded-xl font-bold">Guardar y Re-conectar</button>
+                <button onclick="saveConfig()" class="w-full btn-primary py-4 rounded-xl font-bold text-white">Guardar y Re-conectar</button>
                 <button onclick="toggleModal('config-modal', false)" class="w-full text-slate-500 text-xs mt-2">Cerrar</button>
             </div>
         </div>
@@ -124,15 +122,11 @@
                             <input type="text" id="imp-emp-ciu" placeholder="Ciudad" class="w-full input-dark px-4 py-3 text-sm">
                             <input type="text" id="imp-emp-pro" placeholder="Provincia" class="w-full input-dark px-4 py-3 text-sm">
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="text" id="imp-emp-cp" placeholder="C.P." class="w-full input-dark px-4 py-3 text-sm">
-                            <input type="text" id="imp-emp-pai" placeholder="País" value="España" class="w-full input-dark px-4 py-3 text-sm">
-                        </div>
                     </div>
                 </div>
             </div>
             <div class="mt-10 flex gap-4">
-                <button onclick="executeImport()" id="btn-import" class="flex-1 btn-primary py-4 rounded-xl font-bold">Importar al CRM</button>
+                <button onclick="executeImport()" id="btn-import" class="flex-1 btn-primary py-4 rounded-xl font-bold text-white">Importar al CRM</button>
                 <button onclick="toggleModal('import-modal', false)" class="px-8 bg-slate-800 py-4 rounded-xl">Cancelar</button>
             </div>
         </div>
@@ -147,6 +141,11 @@
         let stUuid = null;
         let dtableServerUrl = null; 
 
+        function syncInputs() {
+            if(document.getElementById('st-token')) document.getElementById('st-token').value = config.token;
+            if(document.getElementById('google-id')) document.getElementById('google-id').value = config.googleId;
+        }
+
         function initGoogle() {
             if (typeof google !== 'undefined' && config.googleId) {
                 tokenClient = google.accounts.oauth2.initTokenClient({
@@ -154,13 +153,15 @@
                     scope: 'https://www.googleapis.com/auth/contacts.readonly',
                     callback: (resp) => { if(resp.access_token) { googleToken = resp.access_token; fetchGoogleContacts(); } }
                 });
-                document.getElementById('google-status-msg').innerHTML = "<span class='text-blue-400'>✔ Google Conectado</span>";
+                const status = document.getElementById('google-status-msg');
+                if(status) status.innerHTML = "<span class='text-blue-400'>✔ Google Conectado</span>";
             }
         }
 
         function handleAuthClick() {
             if (!tokenClient) initGoogle();
-            tokenClient?.requestAccessToken();
+            if (tokenClient) tokenClient.requestAccessToken();
+            else alert("Primero introduce tu Google Client ID en configuración.");
         }
 
         async function fetchGoogleContacts() {
@@ -189,71 +190,72 @@
             if (!config.token) return false;
             if (dtableToken && stUuid && dtableServerUrl) return true;
             try {
+                const cleanToken = config.token.trim().replace(/[\n\r]/g, "");
+                // Usamos la API de SeaTable Cloud para obtener el access token de la base específica
                 const res = await fetch(`https://cloud.seatable.io/api/v2.1/dtable/app-access-token/`, {
-                    headers: { 'Authorization': `Token ${config.token.trim()}` }
+                    headers: { 'Authorization': `Token ${cleanToken}` }
                 });
                 if (!res.ok) throw new Error("Token Inválido");
                 const data = await res.json();
                 dtableToken = data.access_token;
                 stUuid = data.dtable_uuid;
-                let baseUrl = data.dtable_server || 'https://cloud.seatable.io/dtable-server';
-                dtableServerUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+                // Importante: SeaTable devuelve la URL del servidor que aloja tu base de datos
+                dtableServerUrl = data.dtable_server.endsWith('/') ? data.dtable_server.slice(0, -1) : data.dtable_server;
                 return true;
-            } catch (e) { return false; }
+            } catch (e) { 
+                console.error("Error Autenticación SeaTable:", e);
+                return false; 
+            }
         }
 
         async function stRequest(table, method = 'GET', body = null) {
             const authed = await getSTAuth();
             if (!authed) return { error: "auth" };
-            const tableName = table.trim();
-            const encodedTable = encodeURIComponent(tableName);
             
-            // Reintentar con URLs base comunes de SeaTable
-            const baseUrls = [
-                dtableServerUrl,
-                'https://cloud.seatable.io/dtable-server',
-                'https://cloud.seatable.io/api-gateway'
-            ];
+            const tableName = table.trim();
+            // URL correcta para dtable-server siguiendo la documentación oficial
+            const url = `${dtableServerUrl}/api/v1/dtables/${stUuid}/rows/?table_name=${encodeURIComponent(tableName)}`;
 
-            for (let baseUrl of baseUrls) {
-                try {
-                    const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-                    const url = `${cleanBase}/api/v1/dtables/${stUuid}/rows/?table_name=${encodedTable}`;
-                    
-                    const res = await fetch(url, {
-                        method,
-                        headers: { 'Authorization': `Token ${dtableToken}`, 'Content-Type': 'application/json' },
-                        body: body ? JSON.stringify(body) : null
-                    });
-                    
-                    if (res.ok) return await res.json();
-                    if (res.status === 404) continue; // Probar siguiente URL si es 404
-                    
-                    const errData = await res.json().catch(() => ({}));
-                    throw new Error(errData.error_msg || `Error HTTP ${res.status}`);
-                } catch (e) {
-                    console.warn(`Fallo intento con ${baseUrl}:`, e.message);
-                }
+            try {
+                const res = await fetch(url, {
+                    method,
+                    headers: { 
+                        'Authorization': `Token ${dtableToken}`, 
+                        'Content-Type': 'application/json'
+                    },
+                    body: body ? JSON.stringify(body) : null
+                });
+                
+                if (res.ok) return await res.json();
+                
+                const errData = await res.json().catch(() => ({}));
+                if (res.status === 404) return { error: "404", table: tableName };
+                throw new Error(errData.error_msg || `Error ${res.status}`);
+            } catch (e) {
+                console.error("Error en stRequest:", e.message);
+                return { error: "request", msg: e.message };
             }
-            return { error: "404", table: tableName };
         }
 
         async function loadData() {
             const container = document.getElementById('st-content');
+            if(!container) return;
             container.innerHTML = '<div class="flex justify-center py-20"><div class="loading"></div></div>';
             
-            // Determinamos la tabla según la pestaña
             const tableName = (currentTab === 'empresas') ? 'Empresas' : 'Contactos';
-            
             const data = await stRequest(tableName);
             
             if (data.error === "auth") { 
-                renderError("Acceso Denegado", "El App Token de SeaTable parece incorrecto."); 
+                renderError("Error de Conexión", "El App Token no es válido. Genéralo en SeaTable (Tres puntos -> API Token)."); 
                 return; 
             }
             if (data.error === "404") { 
-                renderError("Tabla no encontrada", `La tabla "${tableName}" no existe en tu base. Revisa que el nombre sea exacto (mayúsculas/minúsculas).`); 
+                renderError("Tabla no encontrada", `No existe la tabla <b>"${tableName}"</b> en tu base. Asegúrate de que el nombre sea exacto.`); 
                 return; 
+            }
+            if (data.error) {
+                renderError("Error de API", data.msg || "Error desconocido");
+                return;
             }
 
             const rows = data.rows || [];
@@ -262,7 +264,7 @@
                     <div class="glass-card p-6 flex justify-between items-center border-l-4 border-l-blue-500 hover:bg-white/5 transition-all">
                         <div>
                             <div class="text-[10px] text-blue-400 font-bold uppercase mb-1 tracking-widest">${r.Estado || 'NUEVO'}</div>
-                            <h3 class="text-xl font-bold">${r.Nombre || ''} ${r['Apellido 1'] || ''} ${r['Apellido 2'] || ''}</h3>
+                            <h3 class="text-xl font-bold">${r.Nombre || ''} ${r['Apellido 1'] || ''}</h3>
                             <p class="text-sm text-slate-400">${r['Nombre Empresa'] || 'Particular'}</p>
                         </div>
                         <div class="flex gap-2">
@@ -270,7 +272,7 @@
                             ${r['Teléfono móvil'] ? `<a href="https://wa.me/${r['Teléfono móvil'].replace(/\D/g,'')}" target="_blank" class="bg-emerald-600/20 text-emerald-400 px-4 py-2 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white transition-all">WhatsApp</a>` : ''}
                         </div>
                     </div>
-                `).join('') : '<p class="text-center py-20 opacity-40">Agenda vacía.</p>';
+                `).join('') : '<p class="text-center py-20 opacity-40">No hay datos en la tabla ' + tableName + '.</p>';
             } else { 
                 renderTableView(rows); 
             }
@@ -287,39 +289,30 @@
 
         function renderError(title, body) {
             document.getElementById('st-content').innerHTML = `
-                <div class="text-center py-16 bg-red-500/5 rounded-3xl border border-red-500/20">
-                    <p class="text-red-400 font-bold mb-2">${title}</p>
-                    <p class="text-xs text-slate-400 px-6 max-w-sm mx-auto">${body}</p>
-                    <button onclick="loadData()" class="mt-6 text-blue-400 text-[10px] uppercase font-bold hover:underline">Reintentar</button>
+                <div class="text-center py-12 px-6 bg-red-500/10 rounded-3xl border border-red-500/20 max-w-xl mx-auto">
+                    <p class="text-red-400 font-bold mb-3 text-lg">${title}</p>
+                    <p class="text-sm text-slate-300 mb-6">${body}</p>
+                    <div class="flex flex-col gap-3 max-w-xs mx-auto">
+                        <button onclick="loadData()" class="btn-primary py-3 rounded-xl font-bold text-sm">Reintentar</button>
+                        <button onclick="toggleModal('config-modal', true)" class="text-slate-400 text-xs hover:text-white">Abrir Configuración</button>
+                    </div>
                 </div>`;
         }
 
         async function openImport(p) {
             const fullName = p.names?.[0]?.displayName || '';
             const nameParts = fullName.split(' ');
-            
             document.getElementById('imp-nombre').value = nameParts[0] || '';
             document.getElementById('imp-ap1').value = nameParts[1] || '';
-            document.getElementById('imp-ap2').value = nameParts.slice(2).join(' ') || '';
-            
             document.getElementById('imp-email').value = p.emailAddresses?.[0]?.value || '';
-            document.getElementById('imp-tel-mov').value = p.phoneNumbers?.find(pn => pn.type === 'mobile')?.value || p.phoneNumbers?.[0]?.value || '';
-            document.getElementById('imp-tel-fix').value = p.phoneNumbers?.find(pn => pn.type === 'home' || pn.type === 'work')?.value || '';
+            document.getElementById('imp-tel-mov').value = p.phoneNumbers?.[0]?.value || '';
             document.getElementById('imp-emp-nombre').value = p.organizations?.[0]?.name || '';
             document.getElementById('imp-cargo').value = p.organizations?.[0]?.title || '';
-            document.getElementById('imp-linkedin').value = ''; 
-            document.getElementById('imp-notas').value = '';
-
             toggleModal('import-modal', true);
             const sel = document.getElementById('imp-select-empresa');
-            sel.innerHTML = '<option value="NEW">Cargando empresas...</option>';
-            
+            sel.innerHTML = '<option value="NEW">Cargando...</option>';
             const emps = await stRequest('Empresas');
-            if (emps.rows) {
-                sel.innerHTML = '<option value="NEW">+ Crear Nueva Empresa</option>' + emps.rows.map(e => `<option value="${e._id}">${e['Nombre Empresa']}</option>`).join('');
-            } else { 
-                sel.innerHTML = '<option value="NEW">+ Crear Nueva Empresa</option>'; 
-            }
+            sel.innerHTML = '<option value="NEW">+ Crear Nueva Empresa</option>' + (emps.rows || []).map(e => `<option value="${e._id}">${e['Nombre Empresa']}</option>`).join('');
         }
 
         async function executeImport() {
@@ -327,50 +320,19 @@
             btn.disabled = true; btn.innerText = "Guardando...";
             let empId = document.getElementById('imp-select-empresa').value;
             let empNom = document.getElementById('imp-emp-nombre').value;
-            
             if(empId === 'NEW') {
-                const resE = await stRequest('Empresas', 'POST', { 
-                    row: { 
-                        "Nombre Empresa": empNom, 
-                        "Tipo Empresa": document.getElementById('imp-emp-tipo').value,
-                        "Dirección": document.getElementById('imp-emp-dir').value,
-                        "Ciudad": document.getElementById('imp-emp-ciu').value,
-                        "Provincia": document.getElementById('imp-emp-pro').value,
-                        "Código Postal": document.getElementById('imp-emp-cp').value,
-                        "País": document.getElementById('imp-emp-pai').value
-                    } 
-                });
+                const resE = await stRequest('Empresas', 'POST', { row: { "Nombre Empresa": empNom, "Tipo Empresa": document.getElementById('imp-emp-tipo').value } });
                 if(resE?._id) empId = resE._id;
             }
-            
-            const resC = await stRequest('Contactos', 'POST', {
-                row: {
-                    "Email": document.getElementById('imp-email').value,
-                    "Nombre": document.getElementById('imp-nombre').value,
-                    "Apellido 1": document.getElementById('imp-ap1').value,
-                    "Apellido 2": document.getElementById('imp-ap2').value,
-                    "Nombre Empresa": empNom,
-                    "Cargo": document.getElementById('imp-cargo').value,
-                    "Teléfono móvil": document.getElementById('imp-tel-mov').value,
-                    "Teléfono Fijo": document.getElementById('imp-tel-fix').value,
-                    "Linkedin": document.getElementById('imp-linkedin').value,
-                    "Notas": document.getElementById('imp-notas').value,
-                    "Empresa": [empId]
-                }
-            });
-            
-            if (resC.error) {
-                alert("Error al importar. Revisa los nombres de las columnas en SeaTable.");
-            } else {
-                toggleModal('import-modal', false);
-                changeTab('agenda');
-            }
+            await stRequest('Contactos', 'POST', { row: { "Nombre": document.getElementById('imp-nombre').value, "Apellido 1": document.getElementById('imp-ap1').value, "Email": document.getElementById('imp-email').value, "Nombre Empresa": empNom, "Empresa": [empId] } });
+            toggleModal('import-modal', false);
+            changeTab('agenda');
             btn.disabled = false; btn.innerText = "Importar al CRM";
         }
 
         function saveConfig() {
-            config.token = document.getElementById('st-token').value;
-            config.googleId = document.getElementById('google-id').value;
+            config.token = document.getElementById('st-token').value.trim();
+            config.googleId = document.getElementById('google-id').value.trim();
             localStorage.setItem('mtte_crm_v2', JSON.stringify(config));
             dtableToken = null; stUuid = null; dtableServerUrl = null;
             toggleModal('config-modal', false);
@@ -384,20 +346,13 @@
             currentTab = t; 
             ['agenda', 'empresas', 'contactos'].forEach(id => {
                 const btn = document.getElementById('tab-' + id);
-                if (id === t) btn.classList.replace('tab-inactive', 'tab-active');
+                if(id === t) btn.classList.replace('tab-inactive', 'tab-active');
                 else btn.classList.replace('tab-active', 'tab-inactive');
             });
             loadData(); 
         }
 
-        window.onload = () => { 
-            if(config.token) { 
-                loadData(); 
-                initGoogle(); 
-            } else { 
-                toggleModal('config-modal', true); 
-            } 
-        };
+        window.onload = () => { syncInputs(); if(config.token) { loadData(); initGoogle(); } else toggleModal('config-modal', true); };
     </script>
 </body>
 </html>
