@@ -16,6 +16,9 @@
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4); }
         .loading { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
+        .tab-inactive { color: #64748b; }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-10">
@@ -53,9 +56,9 @@
 
         <section class="lg:col-span-8">
             <div class="flex gap-6 mb-6 font-bold text-sm uppercase tracking-wider border-b border-slate-800">
-                <button onclick="changeTab('agenda')" id="tab-agenda" class="pb-3 border-b-2 border-blue-500 text-blue-500 transition-all">📅 Agenda</button>
-                <button onclick="changeTab('empresas')" id="tab-empresas" class="pb-3 text-slate-500 transition-all">🏢 Empresas</button>
-                <button onclick="changeTab('contactos')" id="tab-contactos" class="pb-3 text-slate-500 transition-all">👥 Todos</button>
+                <button onclick="changeTab('agenda')" id="tab-agenda" class="pb-3 tab-active transition-all">📅 Agenda</button>
+                <button onclick="changeTab('empresas')" id="tab-empresas" class="pb-3 tab-inactive transition-all">🏢 Empresas</button>
+                <button onclick="changeTab('contactos')" id="tab-contactos" class="pb-3 tab-inactive transition-all">👥 Todos</button>
             </div>
             <div id="st-content" class="space-y-4"></div>
         </section>
@@ -75,25 +78,34 @@
                     <input type="text" id="google-id" placeholder="ID de cliente de Google Cloud" class="w-full input-dark px-4 py-3 text-sm">
                 </div>
                 <button onclick="saveConfig()" class="w-full btn-primary py-4 rounded-xl font-bold">Guardar y Re-conectar</button>
-                <button onclick="toggleModal('config-modal', false)" class="w-full text-slate-500 text-xs">Cerrar</button>
+                <button onclick="toggleModal('config-modal', false)" class="w-full text-slate-500 text-xs mt-2">Cerrar</button>
             </div>
         </div>
     </div>
 
     <!-- MODAL IMPORTACIÓN -->
-    <div id="import-modal" class="fixed inset-0 bg-black/90 hidden flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div class="glass-card max-w-4xl w-full p-8 border-blue-500/20 shadow-2xl">
+    <div id="import-modal" class="fixed inset-0 bg-black/90 hidden flex items-center justify-center z-50 p-4 backdrop-blur-sm overflow-y-auto">
+        <div class="glass-card max-w-4xl w-full p-8 border-blue-500/20 shadow-2xl my-8">
             <h3 class="text-2xl font-bold mb-8">Vincular a CRM MTTE</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="space-y-4">
-                    <h4 class="text-blue-400 text-xs font-bold uppercase tracking-widest pb-2 border-b border-blue-500/20">Contacto</h4>
-                    <input type="text" id="imp-nombre" placeholder="Nombre" class="w-full input-dark px-4 py-3 text-sm">
+                    <h4 class="text-blue-400 text-xs font-bold uppercase tracking-widest pb-2 border-b border-blue-500/20">Datos del Contacto</h4>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" id="imp-nombre" placeholder="Nombre" class="w-full input-dark px-4 py-3 text-sm">
+                        <input type="text" id="imp-ap1" placeholder="Apellido 1" class="w-full input-dark px-4 py-3 text-sm">
+                    </div>
+                    <input type="text" id="imp-ap2" placeholder="Apellido 2" class="w-full input-dark px-4 py-3 text-sm">
                     <input type="email" id="imp-email" placeholder="Email" class="w-full input-dark px-4 py-3 text-sm">
-                    <input type="text" id="imp-tel" placeholder="Teléfono" class="w-full input-dark px-4 py-3 text-sm">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" id="imp-tel-mov" placeholder="Tel. Móvil" class="w-full input-dark px-4 py-3 text-sm">
+                        <input type="text" id="imp-tel-fix" placeholder="Tel. Fijo" class="w-full input-dark px-4 py-3 text-sm">
+                    </div>
                     <input type="text" id="imp-cargo" placeholder="Cargo" class="w-full input-dark px-4 py-3 text-sm">
+                    <input type="text" id="imp-linkedin" placeholder="LinkedIn URL" class="w-full input-dark px-4 py-3 text-sm">
+                    <textarea id="imp-notas" placeholder="Notas" class="w-full input-dark px-4 py-3 text-sm h-20"></textarea>
                 </div>
                 <div class="space-y-4">
-                    <h4 class="text-emerald-400 text-xs font-bold uppercase tracking-widest pb-2 border-b border-emerald-500/20">Empresa</h4>
+                    <h4 class="text-emerald-400 text-xs font-bold uppercase tracking-widest pb-2 border-b border-emerald-500/20">Empresa Relacionada</h4>
                     <select id="imp-select-empresa" onchange="toggleNuevaEmpresa(this.value)" class="w-full input-dark px-4 py-3 text-sm">
                         <option value="NEW">+ Crear Nueva Empresa</option>
                     </select>
@@ -107,6 +119,15 @@
                             <option value="Distribuidora">Distribuidora</option>
                             <option value="Otros">Otros</option>
                         </select>
+                        <input type="text" id="imp-emp-dir" placeholder="Dirección" class="w-full input-dark px-4 py-3 text-sm">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="imp-emp-ciu" placeholder="Ciudad" class="w-full input-dark px-4 py-3 text-sm">
+                            <input type="text" id="imp-emp-pro" placeholder="Provincia" class="w-full input-dark px-4 py-3 text-sm">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="imp-emp-cp" placeholder="C.P." class="w-full input-dark px-4 py-3 text-sm">
+                            <input type="text" id="imp-emp-pai" placeholder="País" value="España" class="w-full input-dark px-4 py-3 text-sm">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -122,12 +143,10 @@
         let currentTab = 'agenda';
         let googleToken = null;
         let tokenClient = null;
-        
         let dtableToken = null;
         let stUuid = null;
         let dtableServerUrl = null; 
 
-        // --- GOOGLE ---
         function initGoogle() {
             if (typeof google !== 'undefined' && config.googleId) {
                 tokenClient = google.accounts.oauth2.initTokenClient({
@@ -152,161 +171,164 @@
                     headers: { 'Authorization': `Bearer ${googleToken}` }
                 });
                 const data = await res.json();
-                list.innerHTML = data.connections?.map(p => `
-                    <div onclick='openImport(${JSON.stringify(p).replace(/'/g, "&apos;")})' class="bg-slate-800/40 p-4 rounded-xl border border-white/5 hover:border-blue-500/50 cursor-pointer mb-2">
-                        <div class="font-bold text-sm text-blue-50">${p.names?.[0]?.displayName || 'Sin nombre'}</div>
-                        <div class="text-[10px] text-slate-500 uppercase">${p.organizations?.[0]?.name || 'Particular'}</div>
-                    </div>
-                `).join('') || '<p class="text-center py-10 opacity-40">No hay contactos.</p>';
-            } catch (e) { list.innerHTML = '<p class="text-red-400 text-xs text-center">Error Google API</p>'; }
+                list.innerHTML = data.connections?.map(p => {
+                    const cleanObj = JSON.stringify(p).replace(/'/g, "&apos;");
+                    return `
+                        <div onclick='openImport(${cleanObj})' class="bg-slate-800/40 p-4 rounded-xl border border-white/5 hover:border-blue-500/50 cursor-pointer mb-2 transition-all">
+                            <div class="font-bold text-sm text-blue-50">${p.names?.[0]?.displayName || 'Sin nombre'}</div>
+                            <div class="text-[10px] text-slate-500 uppercase">${p.organizations?.[0]?.name || 'Particular'}</div>
+                        </div>
+                    `;
+                }).join('') || '<p class="text-center py-10 opacity-40">No hay contactos en Google.</p>';
+            } catch (e) { 
+                list.innerHTML = '<p class="text-red-400 text-xs text-center">Error al conectar con Google API</p>'; 
+            }
         }
 
-        // --- SEATABLE: AUTODETECCIÓN DE SERVIDOR ---
         async function getSTAuth() {
             if (!config.token) return false;
             if (dtableToken && stUuid && dtableServerUrl) return true;
-
             try {
                 const res = await fetch(`https://cloud.seatable.io/api/v2.1/dtable/app-access-token/`, {
                     headers: { 'Authorization': `Token ${config.token.trim()}` }
                 });
-                
                 if (!res.ok) throw new Error("Token Inválido");
-                
                 const data = await res.json();
                 dtableToken = data.access_token;
                 stUuid = data.dtable_uuid;
-                
                 let baseUrl = data.dtable_server || 'https://cloud.seatable.io/dtable-server';
                 dtableServerUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-                
-                console.log("Conectado a SeaTable UUID:", stUuid);
-                console.log("Servidor detectado:", dtableServerUrl);
                 return true;
-            } catch (e) {
-                console.error("Error Auth SeaTable:", e);
-                return false;
-            }
+            } catch (e) { return false; }
         }
 
         async function stRequest(table, method = 'GET', body = null) {
             const authed = await getSTAuth();
             if (!authed) return { error: "auth" };
-
-            // REPARACIÓN DE RUTA: Si el servidor es api-gateway, la ruta debe incluir dtable-server
-            // Si el servidor ya es dtable-server, lo usamos directo.
-            let fullUrl = "";
-            if (dtableServerUrl.includes('api-gateway')) {
-                fullUrl = `${dtableServerUrl}/dtable-server/api/v1/dtables/${stUuid}/rows/?table_name=${encodeURIComponent(table)}`;
-            } else {
-                fullUrl = `${dtableServerUrl}/api/v1/dtables/${stUuid}/rows/?table_name=${encodeURIComponent(table)}`;
+            const tableName = table.trim();
+            const encodedTable = encodeURIComponent(tableName);
+            const endpoints = [
+                `${dtableServerUrl}/api/v1/dtables/${stUuid}/rows/?table_name=${encodedTable}`,
+                `https://cloud.seatable.io/dtable-server/api/v1/dtables/${stUuid}/rows/?table_name=${encodedTable}`
+            ];
+            for (let url of endpoints) {
+                try {
+                    const res = await fetch(url, {
+                        method,
+                        headers: { 'Authorization': `Token ${dtableToken}`, 'Content-Type': 'application/json' },
+                        body: body ? JSON.stringify(body) : null
+                    });
+                    if (res.ok) return await res.json();
+                    if (res.status === 404) continue;
+                    throw new Error(`Error HTTP ${res.status}`);
+                } catch (e) {}
             }
-            
-            try {
-                const res = await fetch(fullUrl, {
-                    method,
-                    headers: { 
-                        'Authorization': `Token ${dtableToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: body ? JSON.stringify(body) : null
-                });
-
-                if (res.status === 404) return { error: "404", table };
-                if (!res.ok) throw new Error("Error en petición");
-                
-                return await res.json();
-            } catch (e) {
-                return { error: "fatal" };
-            }
+            return { error: "404", table: tableName };
         }
 
-        // --- CARGA DE DATOS ---
         async function loadData() {
             const container = document.getElementById('st-content');
             container.innerHTML = '<div class="flex justify-center py-20"><div class="loading"></div></div>';
-            
-            const tableName = currentTab === 'empresas' ? 'Empresas' : 'Contactos';
+            const tableName = (currentTab === 'empresas') ? 'Empresas' : 'Contactos';
             const data = await stRequest(tableName);
-
-            if (data.error === "auth") {
-                renderError("Error de Configuración", "El App Token no es válido. Genéralo en SeaTable (Configuración de la Base > App Tokens).");
-                return;
-            }
-            if (data.error === "404") {
-                renderError("Tabla no encontrada", `No existe la tabla "<b>${tableName}</b>". Verifica que el nombre sea idéntico en SeaTable.`);
-                return;
-            }
-
+            if (data.error === "auth") { renderError("Acceso Denegado", "Token incorrecto."); return; }
+            if (data.error === "404") { renderError("Tabla no encontrada", `Asegúrate de que la pestaña se llame "${tableName}" exactamente.`); return; }
             const rows = data.rows || [];
             if (currentTab === 'agenda') {
                 container.innerHTML = rows.length ? rows.map(r => `
                     <div class="glass-card p-6 flex justify-between items-center border-l-4 border-l-blue-500 hover:bg-white/5 transition-all">
                         <div>
-                            <div class="text-[10px] text-blue-400 font-bold uppercase mb-1">${r.Estado || 'NUEVO'}</div>
-                            <h3 class="text-xl font-bold">${r['Nombre Apellido1'] || r.Nombre || 'Sin nombre'}</h3>
+                            <div class="text-[10px] text-blue-400 font-bold uppercase mb-1 tracking-widest">${r.Estado || 'NUEVO'}</div>
+                            <h3 class="text-xl font-bold">${r.Nombre || ''} ${r['Apellido 1'] || ''} ${r['Apellido 2'] || ''}</h3>
                             <p class="text-sm text-slate-400">${r['Nombre Empresa'] || 'Particular'}</p>
                         </div>
-                        <a href="mailto:${r.email || ''}" class="bg-blue-600/20 text-blue-400 px-4 py-2 rounded-lg text-xs font-bold">Email</a>
+                        <div class="flex gap-2">
+                            <a href="mailto:${r.Email || ''}" class="bg-blue-600/20 text-blue-400 px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-600 hover:text-white transition-all">Email</a>
+                            ${r['Teléfono móvil'] ? `<a href="https://wa.me/${r['Teléfono móvil'].replace(/\D/g,'')}" target="_blank" class="bg-emerald-600/20 text-emerald-400 px-4 py-2 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white transition-all">WhatsApp</a>` : ''}
+                        </div>
                     </div>
                 `).join('') : '<p class="text-center py-20 opacity-40">Agenda vacía.</p>';
-            } else {
-                renderTableView(rows);
-            }
+            } else { renderTableView(rows); }
         }
 
         function renderTableView(rows) {
-            if(!rows.length) { document.getElementById('st-content').innerHTML = '<p class="text-center py-20 opacity-40">Sin datos.</p>'; return; }
+            if(!rows.length) { document.getElementById('st-content').innerHTML = '<p class="text-center py-20 opacity-40">Tabla vacía.</p>'; return; }
             const cols = Object.keys(rows[0]).filter(k => !k.startsWith('_'));
-            let h = `<div class="glass-card overflow-hidden overflow-x-auto"><table class="w-full text-xs text-left">`;
-            h += `<thead class="bg-slate-800 text-slate-500 uppercase font-bold"><tr>` + cols.map(c => `<th class="px-6 py-4">${c}</th>`).join('') + `</tr></thead>`;
-            h += `<tbody class="divide-y divide-white/5">` + rows.map(r => `<tr>` + cols.map(c => `<td class="px-6 py-4 whitespace-nowrap">${r[c] || ''}</td>`).join('') + `</tr>`).join('') + `</tbody></table></div>`;
+            let h = `<div class="glass-card overflow-hidden overflow-x-auto border border-white/5"><table class="w-full text-xs text-left">`;
+            h += `<thead class="bg-slate-800/50 text-slate-400 uppercase font-bold"><tr>` + cols.map(c => `<th class="px-6 py-4 border-b border-white/5">${c}</th>`).join('') + `</tr></thead>`;
+            h += `<tbody class="divide-y divide-white/5">` + rows.map(r => `<tr>` + cols.map(c => `<td class="px-6 py-4 whitespace-nowrap text-slate-300">${r[c] || ''}</td>`).join('') + `</tr>`).join('') + `</tbody></table></div>`;
             document.getElementById('st-content').innerHTML = h;
         }
 
         function renderError(title, body) {
-            document.getElementById('st-content').innerHTML = `<div class="text-center py-16 bg-red-500/5 rounded-3xl border border-red-500/20"><p class="text-red-400 font-bold mb-2">${title}</p><p class="text-xs text-slate-400">${body}</p></div>`;
+            document.getElementById('st-content').innerHTML = `<div class="text-center py-16 bg-red-500/5 rounded-3xl border border-red-500/20"><p class="text-red-400 font-bold mb-2">${title}</p><p class="text-xs text-slate-400 px-6">${body}</p></div>`;
         }
 
-        // --- ACCIONES ---
         async function openImport(p) {
-            document.getElementById('imp-nombre').value = p.names?.[0]?.displayName || '';
+            const fullName = p.names?.[0]?.displayName || '';
+            const nameParts = fullName.split(' ');
+            
+            document.getElementById('imp-nombre').value = nameParts[0] || '';
+            document.getElementById('imp-ap1').value = nameParts[1] || '';
+            document.getElementById('imp-ap2').value = nameParts.slice(2).join(' ') || '';
+            
             document.getElementById('imp-email').value = p.emailAddresses?.[0]?.value || '';
-            document.getElementById('imp-tel').value = p.phoneNumbers?.[0]?.value || '';
+            document.getElementById('imp-tel-mov').value = p.phoneNumbers?.find(pn => pn.type === 'mobile')?.value || p.phoneNumbers?.[0]?.value || '';
+            document.getElementById('imp-tel-fix').value = p.phoneNumbers?.find(pn => pn.type === 'home' || pn.type === 'work')?.value || '';
             document.getElementById('imp-emp-nombre').value = p.organizations?.[0]?.name || '';
             document.getElementById('imp-cargo').value = p.organizations?.[0]?.title || '';
-            toggleModal('import-modal', true);
+            document.getElementById('imp-linkedin').value = ''; 
+            document.getElementById('imp-notas').value = '';
 
+            toggleModal('import-modal', true);
             const sel = document.getElementById('imp-select-empresa');
-            sel.innerHTML = '<option value="NEW">Cargando empresas...</option>';
+            sel.innerHTML = '<option value="NEW">Cargando...</option>';
             const emps = await stRequest('Empresas');
-            sel.innerHTML = '<option value="NEW">+ Crear Nueva Empresa</option>' + (emps.rows || []).map(e => `<option value="${e._id}">${e['Nombre Empresa']}</option>`).join('');
+            if (emps.rows) {
+                sel.innerHTML = '<option value="NEW">+ Crear Nueva Empresa</option>' + emps.rows.map(e => `<option value="${e._id}">${e['Nombre Empresa']}</option>`).join('');
+            } else { sel.innerHTML = '<option value="NEW">+ Crear Nueva Empresa</option>'; }
         }
 
         async function executeImport() {
             const btn = document.getElementById('btn-import');
             btn.disabled = true; btn.innerText = "Guardando...";
-
             let empId = document.getElementById('imp-select-empresa').value;
             let empNom = document.getElementById('imp-emp-nombre').value;
-
+            
             if(empId === 'NEW') {
-                const resE = await stRequest('Empresas', 'POST', { row: { "Nombre Empresa": empNom, "Tipo Empresa": document.getElementById('imp-emp-tipo').value } });
+                const resE = await stRequest('Empresas', 'POST', { 
+                    row: { 
+                        "Nombre Empresa": empNom, 
+                        "Tipo Empresa": document.getElementById('imp-emp-tipo').value,
+                        "Dirección": document.getElementById('imp-emp-dir').value,
+                        "Ciudad": document.getElementById('imp-emp-ciu').value,
+                        "Provincia": document.getElementById('imp-emp-pro').value,
+                        "Código Postal": document.getElementById('imp-emp-cp').value,
+                        "País": document.getElementById('imp-emp-pai').value
+                    } 
+                });
                 if(resE?._id) empId = resE._id;
             }
-
-            await stRequest('Contactos', 'POST', {
+            
+            const resC = await stRequest('Contactos', 'POST', {
                 row: {
-                    "Nombre Apellido1": document.getElementById('imp-nombre').value,
-                    "email": document.getElementById('imp-email').value,
-                    "Teléfono Móvil": document.getElementById('imp-tel').value,
-                    "Cargo": document.getElementById('imp-cargo').value,
+                    "Email": document.getElementById('imp-email').value,
+                    "Nombre": document.getElementById('imp-nombre').value,
+                    "Apellido 1": document.getElementById('imp-ap1').value,
+                    "Apellido 2": document.getElementById('imp-ap2').value,
                     "Nombre Empresa": empNom,
-                    "Empresa": [empId],
-                    "Estado": "Nuevo"
+                    "Cargo": document.getElementById('imp-cargo').value,
+                    "Teléfono móvil": document.getElementById('imp-tel-mov').value,
+                    "Teléfono Fijo": document.getElementById('imp-tel-fix').value,
+                    "Linkedin": document.getElementById('imp-linkedin').value,
+                    "Notas": document.getElementById('imp-notas').value,
+                    "Empresa": [empId]
                 }
             });
-
+            
+            if (resC.error) {
+                alert("Error al importar. Verifica que los nombres de las columnas coincidan al 100% con los indicados.");
+            }
             btn.disabled = false; btn.innerText = "Importar al CRM";
             toggleModal('import-modal', false);
             changeTab('agenda');
@@ -324,7 +346,15 @@
 
         function toggleModal(id, show) { document.getElementById(id).classList.toggle('hidden', !show); }
         function toggleNuevaEmpresa(v) { document.getElementById('new-emp-fields').classList.toggle('hidden', v !== 'NEW'); }
-        function changeTab(t) { currentTab = t; loadData(); }
+        function changeTab(t) { 
+            currentTab = t; 
+            ['agenda', 'empresas', 'contactos'].forEach(id => {
+                const btn = document.getElementById('tab-' + id);
+                if (id === t) btn.classList.replace('tab-inactive', 'tab-active');
+                else btn.classList.replace('tab-active', 'tab-inactive');
+            });
+            loadData(); 
+        }
 
         window.onload = () => { if(config.token) { loadData(); initGoogle(); } else { toggleModal('config-modal', true); } };
     </script>
