@@ -125,7 +125,7 @@
         
         let dtableToken = null;
         let stUuid = null;
-        let dtableServerUrl = null; // Detectado dinámicamente
+        let dtableServerUrl = null; 
 
         // --- GOOGLE ---
         function initGoogle() {
@@ -167,7 +167,6 @@
             if (dtableToken && stUuid && dtableServerUrl) return true;
 
             try {
-                // Paso 1: Obtener el Access Token y la URL del servidor que le corresponde a este token
                 const res = await fetch(`https://cloud.seatable.io/api/v2.1/dtable/app-access-token/`, {
                     headers: { 'Authorization': `Token ${config.token.trim()}` }
                 });
@@ -178,8 +177,6 @@
                 dtableToken = data.access_token;
                 stUuid = data.dtable_uuid;
                 
-                // IMPORTANTE: SeaTable nos dice cuál es la URL correcta para este token específico
-                // Si viene "cloud.seatable.io/dtable-server", la usamos.
                 let baseUrl = data.dtable_server || 'https://cloud.seatable.io/dtable-server';
                 dtableServerUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
                 
@@ -196,11 +193,17 @@
             const authed = await getSTAuth();
             if (!authed) return { error: "auth" };
 
-            // Construcción manual de la URL para evitar api-gateway si falla
-            const url = `${dtableServerUrl}/api/v1/dtables/${stUuid}/rows/?table_name=${encodeURIComponent(table)}`;
+            // REPARACIÓN DE RUTA: Si el servidor es api-gateway, la ruta debe incluir dtable-server
+            // Si el servidor ya es dtable-server, lo usamos directo.
+            let fullUrl = "";
+            if (dtableServerUrl.includes('api-gateway')) {
+                fullUrl = `${dtableServerUrl}/dtable-server/api/v1/dtables/${stUuid}/rows/?table_name=${encodeURIComponent(table)}`;
+            } else {
+                fullUrl = `${dtableServerUrl}/api/v1/dtables/${stUuid}/rows/?table_name=${encodeURIComponent(table)}`;
+            }
             
             try {
-                const res = await fetch(url, {
+                const res = await fetch(fullUrl, {
                     method,
                     headers: { 
                         'Authorization': `Token ${dtableToken}`,
