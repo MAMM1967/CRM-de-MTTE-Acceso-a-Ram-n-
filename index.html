@@ -60,21 +60,22 @@
         <div class="glass-card max-w-sm w-full p-6">
             <h3 class="text-lg font-bold mb-4">Configuración</h3>
             <div class="space-y-4">
+                <p class="text-[10px] text-slate-400 uppercase">Credenciales SeaTable Cloud</p>
                 <input type="password" id="st-token" placeholder="SeaTable App Token" class="w-full input-dark px-4 py-2 text-sm">
                 <input type="text" id="google-id" placeholder="Google Client ID" class="w-full input-dark px-4 py-2 text-sm">
-                <button onclick="saveConfig()" class="w-full btn-primary py-3 rounded-lg font-bold text-sm text-white">Guardar</button>
-                <button onclick="toggleModal('config-modal', false)" class="w-full text-slate-400 text-xs">Cerrar</button>
+                <button onclick="saveConfig()" class="w-full btn-primary py-3 rounded-lg font-bold text-sm text-white shadow-lg shadow-blue-500/20">Guardar y Conectar</button>
+                <button onclick="toggleModal('config-modal', false)" class="w-full text-slate-400 text-xs hover:text-white transition-colors">Cerrar</button>
             </div>
         </div>
     </div>
 
     <script>
+        // Configuración persistente en localStorage
         let config = JSON.parse(localStorage.getItem('mtte_crm_v3')) || { token: '', googleId: '' };
         let currentTab = 'agenda';
         let googleToken = null;
         let tokenClient = null;
         
-        // Variables de sesión SeaTable
         let session = {
             accessToken: null,
             dtableUuid: null,
@@ -83,113 +84,150 @@
 
         function updateStatus(msg, color = 'text-blue-400') {
             const el = document.getElementById('connection-status');
-            el.innerText = msg;
-            el.className = `text-[10px] ${color} uppercase tracking-widest font-semibold`;
+            if (el) {
+                el.innerText = msg;
+                el.className = `text-[10px] ${color} uppercase tracking-widest font-semibold`;
+            }
         }
 
+        // Paso 1: Autenticación con SeaTable Cloud
         async function authenticateSeaTable() {
-            if (!config.token) return false;
+            if (!config.token) {
+                updateStatus('Falta Token', 'text-yellow-500');
+                return false;
+            }
+            
             updateStatus('Autenticando...');
             
             try {
-                // Paso 1: Obtener el access token usando el App Token
                 const res = await fetch('https://cloud.seatable.io/api/v2.1/dtable/app-access-token/', {
-                    headers: { 'Authorization': `Token ${config.token.trim()}` }
+                    method: 'GET',
+                    headers: { 
+                        'Authorization': `Token ${config.token.trim()}`,
+                        'Accept': 'application/json'
+                    }
                 });
 
-                if (!res.ok) throw new Error('Token inválido');
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error_msg || 'Error de autenticación');
+                }
                 
                 const data = await res.json();
                 session.accessToken = data.access_token;
                 session.dtableUuid = data.dtable_uuid;
-                // Importante: Usar el dtable_server que devuelve la API
-                session.serverUrl = data.dtable_server.replace(/\/$/, ""); 
                 
-                updateStatus('Conectado a SeaTable', 'text-emerald-500');
+                // Determinamos el servidor correcto (Cloud usa dtable-server.seatable.io)
+                if (data.dtable_server) {
+                    session.serverUrl = data.dtable_server.replace(/\/$/, "");
+                }
+                
+                updateStatus('Conectado', 'text-emerald-500');
                 return true;
             } catch (e) {
-                updateStatus('Error de Token', 'text-red-500');
+                console.error("Auth Error:", e);
+                updateStatus('Error de Conexión', 'text-red-500');
                 return false;
             }
         }
 
+        // Paso 2: Obtención de filas
         async function fetchRows(tableName) {
+            // Si no hay token de sesión, lo obtenemos
             if (!session.accessToken) {
-                const authed = await authenticateSeaTable();
-                if (!authed) return null;
+                const ok = await authenticateSeaTable();
+                if (!ok) return { error: 401, msg: "Token de App inválido o expirado" };
             }
 
-            // URL Exacta para SeaTable Cloud dtable-server
-            const url = `${session.serverUrl}/api/v1/dtables/${session.dtableUuid}/rows/?table_name=${encodeURIComponent(tableName)}`;
+            // IMPORTANTE: Ruta de API oficial para lectura de filas
+            const url = `${session.serverUrl}/api/v1/dtables/${session.dtableUuid}/rows/?table_name=${encodeURIComponent(tableName.trim())}`;
             
             try {
                 const res = await fetch(url, {
-                    headers: { 'Authorization': `Token ${session.accessToken}` }
+                    method: 'GET',
+                    headers: { 
+                        'Authorization': `Token ${session.accessToken}`,
+                        'Accept': 'application/json'
+                    }
                 });
 
                 if (res.status === 404) {
-                    return { error: 404, msg: `La tabla "${tableName}" no existe.` };
+                    return { error: 404, msg: `La pestaña "${tableName}" no existe en SeaTable.` };
                 }
 
-                if (!res.ok) throw new Error('Error en respuesta');
+                if (!res.ok) {
+                    // Si el token de sesión caducó, lo limpiamos para reintentar en la próxima carga
+                    if (res.status === 403) session.accessToken = null;
+                    throw new Error(`Error HTTP ${res.status}`);
+                }
                 
                 return await res.json();
             } catch (e) {
-                // Si falla por token expirado, intentamos una vez más re-autenticando
-                session.accessToken = null;
-                return { error: 500, msg: e.message };
+                console.error("Fetch Error:", e);
+                return { error: 500, msg: "No se pudo conectar con el servidor de datos." };
             }
         }
 
         async function loadData() {
             const container = document.getElementById('st-content');
+            if (!container) return;
+            
             container.innerHTML = '<div class="flex justify-center py-20"><div class="loading"></div></div>';
 
+            // Mapeo según la pestaña seleccionada
             const tableName = (currentTab === 'empresas') ? 'Empresas' : 'Contactos';
             const result = await fetchRows(tableName);
 
-            if (!result || result.error) {
+            if (result && result.error) {
                 container.innerHTML = `
-                    <div class="text-center py-10 bg-red-500/10 rounded-2xl border border-red-500/20">
-                        <p class="text-red-400 font-bold">${result?.msg || 'Error de conexión'}</p>
-                        <p class="text-[10px] text-slate-400 mt-2">Verifica que el nombre de la tabla sea "${tableName}"</p>
-                        <button onclick="loadData()" class="mt-4 text-xs bg-slate-800 px-4 py-2 rounded-lg">Reintentar</button>
+                    <div class="text-center py-12 glass-card border-red-500/30 max-w-md mx-auto">
+                        <div class="text-red-500 text-3xl mb-4 text-center">⚠️</div>
+                        <h3 class="text-red-400 font-bold mb-2">Error de Sincronización</h3>
+                        <p class="text-xs text-slate-400 px-6">${result.msg}</p>
+                        <button onclick="loadData()" class="mt-8 bg-blue-600 hover:bg-blue-500 text-white text-[10px] px-8 py-2.5 rounded-full font-bold uppercase tracking-wider transition-all">Reintentar</button>
                     </div>`;
                 return;
             }
 
-            renderData(result.rows || []);
+            renderData(result ? (result.rows || []) : []);
         }
 
         function renderData(rows) {
             const container = document.getElementById('st-content');
             if (!rows.length) {
-                container.innerHTML = '<p class="text-center py-20 opacity-30">No hay registros.</p>';
+                container.innerHTML = `
+                    <div class="text-center py-20 opacity-20 italic">
+                        <p class="text-xs">Esta tabla está vacía o no tiene registros visibles.</p>
+                    </div>`;
                 return;
             }
 
             if (currentTab === 'agenda') {
                 container.innerHTML = rows.map(r => `
-                    <div class="glass-card p-5 mb-3 flex justify-between items-center border-l-4 border-blue-500">
+                    <div class="glass-card p-5 mb-3 flex justify-between items-center border-l-4 border-blue-500 hover:translate-x-1 transition-all">
                         <div>
-                            <h3 class="font-bold">${r.Nombre || ''} ${r['Apellido 1'] || ''}</h3>
-                            <p class="text-xs text-slate-400">${r['Nombre Empresa'] || 'Particular'}</p>
+                            <h3 class="font-bold text-sm text-white">${r.Nombre || ''} ${r['Apellido 1'] || ''}</h3>
+                            <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">${r['Nombre Empresa'] || 'Particular'}</p>
                         </div>
-                        <a href="mailto:${r.Email || ''}" class="text-[10px] bg-blue-600/20 text-blue-400 px-3 py-1.5 rounded-md font-bold uppercase">Email</a>
+                        <div class="flex gap-2">
+                            ${r.Email ? `<a href="mailto:${r.Email}" class="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500 hover:text-white transition-all text-[10px] font-bold">Email</a>` : ''}
+                        </div>
                     </div>
                 `).join('');
             } else {
                 const cols = Object.keys(rows[0]).filter(k => !k.startsWith('_'));
                 container.innerHTML = `
-                    <div class="glass-card overflow-x-auto">
-                        <table class="w-full text-[11px] text-left">
-                            <thead class="bg-white/5 text-slate-400">
-                                <tr>${cols.map(c => `<th class="p-4">${c}</th>`).join('')}</tr>
-                            </thead>
-                            <tbody class="divide-y divide-white/5">
-                                ${rows.map(r => `<tr>${cols.map(c => `<td class="p-4 text-slate-300">${r[c] || ''}</td>`).join('')}</tr>`).join('')}
-                            </tbody>
-                        </table>
+                    <div class="glass-card overflow-hidden border border-white/5 shadow-2xl">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-[11px] text-left">
+                                <thead class="bg-slate-800/80 text-blue-400 uppercase font-bold tracking-tighter">
+                                    <tr>${cols.map(c => `<th class="p-4 whitespace-nowrap">${c}</th>`).join('')}</tr>
+                                </thead>
+                                <tbody class="divide-y divide-white/5">
+                                    ${rows.map(r => `<tr>${cols.map(c => `<td class="p-4 text-slate-300 whitespace-nowrap">${r[c] || '-'}</td>`).join('')}</tr>`).join('')}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>`;
             }
         }
@@ -198,7 +236,7 @@
         function initGoogle() {
             if (window.google && config.googleId) {
                 tokenClient = google.accounts.oauth2.initTokenClient({
-                    client_id: config.googleId,
+                    client_id: config.googleId.trim(),
                     scope: 'https://www.googleapis.com/auth/contacts.readonly',
                     callback: (resp) => { if(resp.access_token) { googleToken = resp.access_token; fetchGoogleContacts(); } }
                 });
@@ -207,7 +245,8 @@
 
         function handleAuthClick() {
             if (!tokenClient) initGoogle();
-            tokenClient ? tokenClient.requestAccessToken() : alert("Configura el Client ID");
+            if (tokenClient) tokenClient.requestAccessToken();
+            else alert("Configura primero el Client ID de Google");
         }
 
         async function fetchGoogleContacts() {
@@ -219,12 +258,12 @@
                 });
                 const data = await res.json();
                 list.innerHTML = data.connections?.map(p => `
-                    <div class="bg-white/5 p-3 rounded-xl border border-white/5 hover:border-blue-500/50 cursor-pointer transition-all">
-                        <div class="font-bold text-xs">${p.names?.[0]?.displayName || 'Sin nombre'}</div>
-                        <div class="text-[9px] text-slate-500">${p.organizations?.[0]?.name || 'Particular'}</div>
+                    <div class="bg-white/5 p-4 rounded-xl border border-white/5 hover:border-blue-500/40 transition-all mb-2">
+                        <div class="font-bold text-xs text-white">${p.names?.[0]?.displayName || 'Sin nombre'}</div>
+                        <div class="text-[9px] text-slate-500 uppercase mt-1 font-semibold">${p.organizations?.[0]?.name || 'Particular'}</div>
                     </div>
-                `).join('') || 'Sin contactos.';
-            } catch (e) { list.innerHTML = 'Error Google API'; }
+                `).join('') || '<p class="text-center py-10 opacity-30 text-xs">No hay contactos.</p>';
+            } catch (e) { list.innerHTML = '<p class="text-red-400 text-[10px] text-center">Error en API Google</p>'; }
         }
 
         // --- UTILIDADES ---
@@ -232,29 +271,42 @@
             config.token = document.getElementById('st-token').value.trim();
             config.googleId = document.getElementById('google-id').value.trim();
             localStorage.setItem('mtte_crm_v3', JSON.stringify(config));
-            session.accessToken = null; // Forzar re-auth
+            
+            session.accessToken = null; // Forzamos nueva autenticación
             toggleModal('config-modal', false);
             loadData();
             initGoogle();
         }
 
-        function toggleModal(id, show) { document.getElementById(id).classList.toggle('hidden', !show); }
+        function toggleModal(id, show) {
+            const m = document.getElementById(id);
+            if (m) m.classList.toggle('hidden', !show);
+        }
         
         function changeTab(t) {
             currentTab = t;
             ['agenda', 'empresas', 'contactos'].forEach(id => {
                 const el = document.getElementById('tab-' + id);
-                el.className = (id === t) ? 'pb-2 tab-active' : 'pb-2 text-slate-500';
+                if (el) el.className = (id === t) ? 'pb-2 tab-active' : 'pb-2 text-slate-500 hover:text-white transition-colors';
             });
             loadData();
         }
 
         window.onload = () => {
-            document.getElementById('st-token').value = config.token;
-            document.getElementById('google-id').value = config.googleId;
-            if (config.token) loadData();
-            if (config.googleId) setTimeout(initGoogle, 1000);
-            else toggleModal('config-modal', true);
+            const tInput = document.getElementById('st-token');
+            const gInput = document.getElementById('google-id');
+            if (tInput) tInput.value = config.token;
+            if (gInput) gInput.value = config.googleId;
+            
+            if (config.token) {
+                loadData();
+            } else {
+                toggleModal('config-modal', true);
+            }
+            
+            if (config.googleId) {
+                setTimeout(initGoogle, 1000);
+            }
         };
     </script>
 </body>
