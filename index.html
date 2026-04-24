@@ -100,6 +100,7 @@
         let currentTab = 'agenda';
         let googleToken = null;
         let tokenClient = null;
+        let dtableToken = null;
 
         // --- GOOGLE AUTH LOGIC ---
         function initGoogle() {
@@ -164,8 +165,9 @@
         // --- SEATABLE API LOGIC ---
         async function getSTToken() {
             if (!config.token) return null;
+            if (dtableToken) return dtableToken; // Reutilizar token si ya existe
+
             try {
-                // Cambiamos a la URL de acceso de app que es más estándar para tokens de base
                 const res = await fetch(`https://cloud.seatable.io/api/v2.1/dtable/app-access-token/`, {
                     headers: { 
                         'Accept': 'application/json',
@@ -173,19 +175,10 @@
                     }
                 });
                 
-                if (res.status === 404) {
-                    // Si falla, intentamos la ruta alternativa de servidor
-                    const backupRes = await fetch(`https://cloud.seatable.io/api/v2.1/dtable-server/temp-api-token/`, {
-                        headers: { 'Authorization': `Token ${config.token.trim()}` }
-                    });
-                    if (!backupRes.ok) throw new Error("404 en ambas rutas de API");
-                    const backupData = await backupRes.json();
-                    return backupData.dtable_token;
-                }
-
-                if (!res.ok) throw new Error(`Status: ${res.status}`);
+                if (!res.ok) throw new Error("Error de autorización inicial");
                 const data = await res.json();
-                return data.access_token || data.dtable_token;
+                dtableToken = data.access_token || data.dtable_token;
+                return dtableToken;
             } catch (e) {
                 console.error("Error SeaTable Token:", e);
                 return null;
@@ -194,16 +187,30 @@
 
         async function stFetch(table) {
             const dtoken = await getSTToken();
-            if (!dtoken) {
-                return { error: "auth", rows: [] };
-            }
+            if (!dtoken) return { error: "auth", rows: [] };
+            
             try {
                 const url = `https://cloud.seatable.io/dtable-server/api/v1/dtables/${config.uuid.trim()}/rows/?table_name=${encodeURIComponent(table)}`;
                 const res = await fetch(url, {
                     headers: { 'Authorization': `Token ${dtoken}` }
                 });
+                
+                if (res.status === 404) {
+                    // Si no encuentra la tabla, intentamos listar qué tablas HAY disponibles para diagnosticar
+                    const infoRes = await fetch(`https://cloud.seatable.io/dtable-server/api/v1/dtables/${config.uuid.trim()}/metadata/`, {
+                        headers: { 'Authorization': `Token ${dtoken}` }
+                    });
+                    const metadata = await infoRes.json();
+                    const availableTables = metadata.metadata?.tables?.map(t => t.name).join(', ') || 'ninguna';
+                    return { error: "not_found", table: table, found: availableTables };
+                }
+
+                if (!res.ok) throw new Error(`Fetch Error: ${res.status}`);
                 return await res.json();
-            } catch (e) { return { rows: [] }; }
+            } catch (e) { 
+                console.error("ST Fetch Error:", e);
+                return { error: "unknown", rows: [] }; 
+            }
         }
 
         async function loadData() {
@@ -214,13 +221,12 @@
             const data = await stFetch(table);
             
             if (data.error === "auth") {
-                container.innerHTML = `
-                    <div class="text-center py-20 bg-red-500/10 rounded-2xl border border-red-500/20">
-                        <p class="text-red-400 font-bold">Error de Conexión con SeaTable</p>
-                        <p class="text-xs text-slate-400 mt-2">El Token o el UUID no son válidos. Revisa la configuración (⚙️).</p>
-                        <button onclick="toggleModal('config-modal', true)" class="mt-4 text-xs bg-red-500/20 px-4 py-2 rounded-lg hover:bg-red-500/40 transition-all">Abrir Configuración</button>
-                    </div>
-                `;
+                renderError("Error de Autenticación", "El Token de SeaTable es incorrecto o la base UUID no corresponde a ese token.");
+                return;
+            }
+            
+            if (data.error === "not_found") {
+                renderError("Tabla no encontrada", `La tabla "${data.table}" no aparece en esta base.<br><br><b>Tablas detectadas en tu base:</b><br><span class="text-blue-400">${data.found}</span>`);
                 return;
             }
 
@@ -236,10 +242,21 @@
                         </div>
                         <a href="mailto:${r.email || ''}" class="bg-blue-600/20 text-blue-400 px-6 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition-all">Email</a>
                     </div>
-                `).join('') : '<div class="text-center py-20 opacity-40 italic">No hay datos en SeaTable. Asegúrate de que las tablas se llamen "Contactos" o "Empresas".</div>';
+                `).join('') : '<div class="text-center py-20 opacity-40 italic font-medium">No hay datos. Añade filas en SeaTable.</div>';
             } else {
                 renderTable(rows);
             }
+        }
+
+        function renderError(title, msg) {
+            document.getElementById('st-content').innerHTML = `
+                <div class="text-center py-16 bg-red-500/5 rounded-3xl border border-red-500/20 px-6">
+                    <div class="text-3xl mb-4">⚠️</div>
+                    <p class="text-red-400 font-bold text-lg">${title}</p>
+                    <p class="text-sm text-slate-400 mt-2 max-w-md mx-auto">${msg}</p>
+                    <button onclick="toggleModal('config-modal', true)" class="mt-6 bg-slate-800 text-white px-6 py-2 rounded-xl text-xs font-bold hover:bg-slate-700 transition-all border border-white/10">Revisar Configuración</button>
+                </div>
+            `;
         }
 
         function renderTable(rows) {
@@ -270,6 +287,7 @@
             config.token = document.getElementById('st-token').value;
             config.uuid = document.getElementById('st-uuid').value;
             config.googleId = document.getElementById('google-id').value;
+            dtableToken = null; // Forzar nuevo token al guardar
             localStorage.setItem('mtte_crm_v1', JSON.stringify(config));
             toggleModal('config-modal', false);
             initGoogle();
