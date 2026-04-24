@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTTE · CRM Comercial Frío Industrial</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+        body { font-family: 'Outfit', sans-serif; background-color: #050a15; color: #e2e8f0; }
+        .glass-card { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1.5rem; }
+        .input-dark { background: #0f172a !important; border: 1px solid #1e293b !important; color: white !important; border-radius: 0.75rem !important; }
+        .btn-primary { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); transition: all 0.3s ease; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4); }
+        .loading { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-10">
+
+    <header class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center mb-10 gap-6 glass-card p-6">
+        <div class="flex items-center gap-4">
+            <div class="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center shadow-2xl">
+                <span class="text-white font-bold text-2xl italic">M</span>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight">MTTE <span class="text-blue-500">CRM</span></h1>
+                <p class="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Frío Industrial & Comercial</p>
+            </div>
+        </div>
+        <div class="flex gap-4">
+            <button onclick="handleAuthClick()" class="bg-white text-slate-900 px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg hover:bg-slate-200">Google Contacts</button>
+            <button onclick="toggleModal('config-modal', true)" class="p-2.5 bg-slate-800 rounded-xl border border-slate-700 hover:bg-slate-700 transition-all">⚙️</button>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <aside class="lg:col-span-4">
+            <div class="glass-card p-6 min-h-[500px]">
+                <h2 class="text-xs font-bold text-blue-400 uppercase mb-6 tracking-widest flex items-center gap-2">
+                    <span class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                    Contactos de Google
+                </h2>
+                <div id="google-list" class="space-y-3 overflow-y-auto max-h-[600px] pr-2">
+                    <div class="text-center py-10 opacity-40 italic text-sm">Conecta con Google para importar comerciales.</div>
+                </div>
+            </div>
+        </aside>
+
+        <section class="lg:col-span-8">
+            <div class="flex gap-6 mb-6 font-bold text-sm uppercase tracking-wider border-b border-slate-800">
+                <button onclick="changeTab('agenda')" id="tab-agenda" class="pb-3 border-b-2 border-blue-500 text-blue-500 transition-all">📅 Agenda</button>
+                <button onclick="changeTab('empresas')" id="tab-empresas" class="pb-3 text-slate-500 transition-all">🏢 Empresas</button>
+                <button onclick="changeTab('contactos')" id="tab-contactos" class="pb-3 text-slate-500 transition-all">👥 Todos</button>
+            </div>
+            <div id="st-content" class="space-y-4"></div>
+        </section>
+    </main>
+
+    <!-- MODAL CONFIG -->
+    <div id="config-modal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center z-50 p-4">
+        <div class="glass-card max-w-sm w-full p-8 shadow-2xl">
+            <h3 class="text-xl font-bold mb-6 text-center">Configurar SeaTable</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] text-slate-400 uppercase ml-1">API Token (App Token)</label>
+                    <input type="password" id="st-token" placeholder="Token de 40+ caracteres" class="w-full input-dark px-4 py-3 mt-1 text-sm">
+                </div>
+                <div>
+                    <label class="text-[10px] text-slate-400 uppercase ml-1">Base UUID</label>
+                    <input type="text" id="st-uuid" placeholder="UUID de la base" class="w-full input-dark px-4 py-3 mt-1 text-sm">
+                </div>
+                <button onclick="saveConfig()" class="w-full btn-primary py-4 rounded-xl font-bold mt-4">Guardar y Probar</button>
+                <button onclick="toggleModal('config-modal', false)" class="w-full text-slate-500 text-sm mt-2">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let config = JSON.parse(localStorage.getItem('mtte_crm_v1')) || { token: '', uuid: '' };
+        let currentTab = 'agenda';
+        let googleToken = null;
+        let tokenClient = null;
+
+        // CORRECCIÓN DE RUTAS SEATABLE
+        async function getSTToken() {
+            if (!config.token) return null;
+            try {
+                // Ruta corregida para evitar el 404
+                const res = await fetch(`https://cloud.seatable.io/api/v2.1/dtable-server/temp-api-token/`, {
+                    method: 'GET',
+                    headers: { 
+                        'Authorization': `Token ${config.token.trim()}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                if (!res.ok) throw new Error(`Status: ${res.status}`);
+                const data = await res.json();
+                return data.dtable_token;
+            } catch (e) {
+                console.error("Error obteniendo dtable_token:", e);
+                return null;
+            }
+        }
+
+        async function stFetch(table, method = 'GET', body = null) {
+            const dtoken = await getSTToken();
+            if (!dtoken) {
+                document.getElementById('st-content').innerHTML = '<div class="text-red-400 text-center py-10">Error de conexión. Verifica el API Token.</div>';
+                return { rows: [] };
+            }
+            try {
+                const url = `https://cloud.seatable.io/dtable-server/api/v1/dtables/${config.uuid.trim()}/rows/?table_name=${encodeURIComponent(table)}`;
+                const options = {
+                    method,
+                    headers: { 
+                        'Authorization': `Token ${dtoken}`,
+                        'Content-Type': 'application/json'
+                    }
+                };
+                if (body) options.body = JSON.stringify({ table_name: table, ...body });
+                
+                const res = await fetch(url, options);
+                return await res.json();
+            } catch (e) {
+                console.error("Fetch error:", e);
+                return { rows: [] };
+            }
+        }
+
+        async function loadData() {
+            const container = document.getElementById('st-content');
+            container.innerHTML = '<div class="flex justify-center py-20"><div class="loading"></div></div>';
+            
+            const table = currentTab === 'empresas' ? 'Empresas' : 'Contactos';
+            const data = await stFetch(table);
+            const rows = data.rows || [];
+
+            if (currentTab === 'agenda') {
+                container.innerHTML = rows.length > 0 ? rows.map(r => `
+                    <div class="glass-card p-6 flex justify-between items-center border-l-4 border-l-blue-500 hover:bg-white/5 transition-all mb-4">
+                        <div>
+                            <div class="text-[10px] text-blue-400 font-bold uppercase mb-1">${r.Estado || 'NUEVO'}</div>
+                            <h3 class="text-xl font-bold">${r['Nombre Apellido1'] || 'Sin Nombre'}</h3>
+                            <p class="text-sm text-slate-400">${r['Nombre Empresa'] || 'Particular'} · <span class="italic">${r.Cargo || 'Contacto'}</span></p>
+                        </div>
+                        <a href="mailto:${r.email}" class="bg-blue-600/20 text-blue-400 px-6 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition-all">Email</a>
+                    </div>
+                `).join('') : '<div class="text-center py-20 opacity-40">No hay datos.</div>';
+            } else {
+                renderTable(rows);
+            }
+        }
+
+        function renderTable(rows) {
+            if (!rows || rows.length === 0) { container.innerHTML = "Vacío."; return; }
+            const keys = Object.keys(rows[0]).filter(k => !k.startsWith('_'));
+            let html = `<div class="glass-card overflow-x-auto"><table class="w-full text-sm text-left"><thead class="bg-slate-800/50 text-slate-500 uppercase text-[10px] font-bold"><tr>`;
+            keys.forEach(k => html += `<th class="px-6 py-4">${k}</th>`);
+            html += `</tr></thead><tbody class="divide-y divide-white/5">`;
+            rows.forEach(r => {
+                html += `<tr class="hover:bg-white/5">`;
+                keys.forEach(k => html += `<td class="px-6 py-4 whitespace-nowrap">${r[k] || '-'}</td>`);
+                html += `</tr>`;
+            });
+            html += `</tbody></table></div>`;
+            document.getElementById('st-content').innerHTML = html;
+        }
+
+        function toggleModal(id, show) { document.getElementById(id).classList.toggle('hidden', !show); }
+
+        function changeTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('button[id^="tab-"]').forEach(b => b.className = "pb-3 text-slate-500");
+            document.getElementById('tab-'+tab).className = "pb-3 border-b-2 border-blue-500 text-blue-500";
+            loadData();
+        }
+
+        function saveConfig() {
+            config.token = document.getElementById('st-token').value;
+            config.uuid = document.getElementById('st-uuid').value;
+            localStorage.setItem('mtte_crm_v1', JSON.stringify(config));
+            toggleModal('config-modal', false);
+            loadData();
+        }
+
+        window.onload = () => {
+            if(config.token && config.uuid) {
+                document.getElementById('st-token').value = config.token;
+                document.getElementById('st-uuid').value = config.uuid;
+                loadData();
+            } else {
+                toggleModal('config-modal', true);
+            }
+        };
+    </script>
+</body>
+</html>
