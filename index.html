@@ -207,21 +207,33 @@
             if (!authed) return { error: "auth" };
             const tableName = table.trim();
             const encodedTable = encodeURIComponent(tableName);
-            const endpoints = [
-                `${dtableServerUrl}/api/v1/dtables/${stUuid}/rows/?table_name=${encodedTable}`,
-                `https://cloud.seatable.io/dtable-server/api/v1/dtables/${stUuid}/rows/?table_name=${encodedTable}`
+            
+            // Reintentar con URLs base comunes de SeaTable
+            const baseUrls = [
+                dtableServerUrl,
+                'https://cloud.seatable.io/dtable-server',
+                'https://cloud.seatable.io/api-gateway'
             ];
-            for (let url of endpoints) {
+
+            for (let baseUrl of baseUrls) {
                 try {
+                    const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+                    const url = `${cleanBase}/api/v1/dtables/${stUuid}/rows/?table_name=${encodedTable}`;
+                    
                     const res = await fetch(url, {
                         method,
                         headers: { 'Authorization': `Token ${dtableToken}`, 'Content-Type': 'application/json' },
                         body: body ? JSON.stringify(body) : null
                     });
+                    
                     if (res.ok) return await res.json();
-                    if (res.status === 404) continue;
-                    throw new Error(`Error HTTP ${res.status}`);
-                } catch (e) {}
+                    if (res.status === 404) continue; // Probar siguiente URL si es 404
+                    
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.error_msg || `Error HTTP ${res.status}`);
+                } catch (e) {
+                    console.warn(`Fallo intento con ${baseUrl}:`, e.message);
+                }
             }
             return { error: "404", table: tableName };
         }
@@ -229,10 +241,21 @@
         async function loadData() {
             const container = document.getElementById('st-content');
             container.innerHTML = '<div class="flex justify-center py-20"><div class="loading"></div></div>';
+            
+            // Determinamos la tabla según la pestaña
             const tableName = (currentTab === 'empresas') ? 'Empresas' : 'Contactos';
+            
             const data = await stRequest(tableName);
-            if (data.error === "auth") { renderError("Acceso Denegado", "Token incorrecto."); return; }
-            if (data.error === "404") { renderError("Tabla no encontrada", `Asegúrate de que la pestaña se llame "${tableName}" exactamente.`); return; }
+            
+            if (data.error === "auth") { 
+                renderError("Acceso Denegado", "El App Token de SeaTable parece incorrecto."); 
+                return; 
+            }
+            if (data.error === "404") { 
+                renderError("Tabla no encontrada", `La tabla "${tableName}" no existe en tu base. Revisa que el nombre sea exacto (mayúsculas/minúsculas).`); 
+                return; 
+            }
+
             const rows = data.rows || [];
             if (currentTab === 'agenda') {
                 container.innerHTML = rows.length ? rows.map(r => `
@@ -248,7 +271,9 @@
                         </div>
                     </div>
                 `).join('') : '<p class="text-center py-20 opacity-40">Agenda vacía.</p>';
-            } else { renderTableView(rows); }
+            } else { 
+                renderTableView(rows); 
+            }
         }
 
         function renderTableView(rows) {
@@ -261,7 +286,12 @@
         }
 
         function renderError(title, body) {
-            document.getElementById('st-content').innerHTML = `<div class="text-center py-16 bg-red-500/5 rounded-3xl border border-red-500/20"><p class="text-red-400 font-bold mb-2">${title}</p><p class="text-xs text-slate-400 px-6">${body}</p></div>`;
+            document.getElementById('st-content').innerHTML = `
+                <div class="text-center py-16 bg-red-500/5 rounded-3xl border border-red-500/20">
+                    <p class="text-red-400 font-bold mb-2">${title}</p>
+                    <p class="text-xs text-slate-400 px-6 max-w-sm mx-auto">${body}</p>
+                    <button onclick="loadData()" class="mt-6 text-blue-400 text-[10px] uppercase font-bold hover:underline">Reintentar</button>
+                </div>`;
         }
 
         async function openImport(p) {
@@ -282,11 +312,14 @@
 
             toggleModal('import-modal', true);
             const sel = document.getElementById('imp-select-empresa');
-            sel.innerHTML = '<option value="NEW">Cargando...</option>';
+            sel.innerHTML = '<option value="NEW">Cargando empresas...</option>';
+            
             const emps = await stRequest('Empresas');
             if (emps.rows) {
                 sel.innerHTML = '<option value="NEW">+ Crear Nueva Empresa</option>' + emps.rows.map(e => `<option value="${e._id}">${e['Nombre Empresa']}</option>`).join('');
-            } else { sel.innerHTML = '<option value="NEW">+ Crear Nueva Empresa</option>'; }
+            } else { 
+                sel.innerHTML = '<option value="NEW">+ Crear Nueva Empresa</option>'; 
+            }
         }
 
         async function executeImport() {
@@ -327,11 +360,12 @@
             });
             
             if (resC.error) {
-                alert("Error al importar. Verifica que los nombres de las columnas coincidan al 100% con los indicados.");
+                alert("Error al importar. Revisa los nombres de las columnas en SeaTable.");
+            } else {
+                toggleModal('import-modal', false);
+                changeTab('agenda');
             }
             btn.disabled = false; btn.innerText = "Importar al CRM";
-            toggleModal('import-modal', false);
-            changeTab('agenda');
         }
 
         function saveConfig() {
@@ -356,7 +390,14 @@
             loadData(); 
         }
 
-        window.onload = () => { if(config.token) { loadData(); initGoogle(); } else { toggleModal('config-modal', true); } };
+        window.onload = () => { 
+            if(config.token) { 
+                loadData(); 
+                initGoogle(); 
+            } else { 
+                toggleModal('config-modal', true); 
+            } 
+        };
     </script>
 </body>
 </html>
