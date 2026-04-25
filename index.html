@@ -61,7 +61,7 @@
             <h3 class="text-lg font-bold mb-4">Configuración</h3>
             <div class="space-y-4">
                 <p class="text-[10px] text-slate-400 uppercase">Credenciales SeaTable Cloud</p>
-                <input type="password" id="st-token" placeholder="SeaTable App Token" class="w-full input-dark px-4 py-2 text-sm">
+                <input type="password" id="st-token" placeholder="SeaTable API Token" class="w-full input-dark px-4 py-2 text-sm">
                 <input type="text" id="google-id" placeholder="Google Client ID" class="w-full input-dark px-4 py-2 text-sm">
                 <button onclick="saveConfig()" class="w-full btn-primary py-3 rounded-lg font-bold text-sm text-white shadow-lg shadow-blue-500/20">Guardar y Conectar</button>
                 <button onclick="toggleModal('config-modal', false)" class="w-full text-slate-400 text-xs hover:text-white transition-colors">Cerrar</button>
@@ -79,7 +79,7 @@
         let session = {
             accessToken: null,
             dtableUuid: null,
-            serverUrl: 'https://dtable-server.seatable.io' // Servidor por defecto para Cloud
+            serverUrl: 'https://cloud.seatable.io/dtable-server'
         };
 
         function updateStatus(msg, color = 'text-blue-400') {
@@ -100,71 +100,100 @@
             updateStatus('Autenticando...');
             
             try {
+                // Endpoint correcto para obtener Base-Token con API-Token
                 const res = await fetch('https://cloud.seatable.io/api/v2.1/dtable/app-access-token/', {
                     method: 'GET',
                     headers: { 
-                        'Authorization': `Token ${config.token.trim()}`,
+                        'Authorization': `Bearer ${config.token.trim()}`,
                         'Accept': 'application/json'
                     }
                 });
 
                 if (!res.ok) {
-                    const err = await res.json();
-                    throw new Error(err.error_msg || 'Error de autenticación');
+                    const errorText = await res.text();
+                    console.error('Error response:', errorText);
+                    throw new Error(`HTTP ${res.status}: ${errorText}`);
                 }
                 
                 const data = await res.json();
+                console.log('Auth successful:', data);
+                
                 session.accessToken = data.access_token;
                 session.dtableUuid = data.dtable_uuid;
                 
-                // Determinamos el servidor correcto (Cloud usa dtable-server.seatable.io)
+                // Usar el servidor proporcionado por la respuesta (ej: https://cloud.seatable.io/dtable-server/)
                 if (data.dtable_server) {
                     session.serverUrl = data.dtable_server.replace(/\/$/, "");
+                } else {
+                    // Fallback para SeaTable Cloud
+                    session.serverUrl = 'https://cloud.seatable.io/dtable-server';
                 }
                 
+                console.log('Server URL:', session.serverUrl);
                 updateStatus('Conectado', 'text-emerald-500');
                 return true;
             } catch (e) {
                 console.error("Auth Error:", e);
-                updateStatus('Error de Conexión', 'text-red-500');
+                updateStatus('Error: ' + e.message, 'text-red-500');
                 return false;
             }
         }
 
-        // Paso 2: Obtención de filas
+        // Paso 2: Obtención de filas usando la API correcta
         async function fetchRows(tableName) {
             // Si no hay token de sesión, lo obtenemos
             if (!session.accessToken) {
                 const ok = await authenticateSeaTable();
-                if (!ok) return { error: 401, msg: "Token de App inválido o expirado" };
+                if (!ok) return { error: 401, msg: "Token de API inválido o expirado. Verifica tu API Token en la configuración." };
             }
 
-            // IMPORTANTE: Ruta de API oficial para lectura de filas
-            const url = `${session.serverUrl}/api/v1/dtables/${session.dtableUuid}/rows/?table_name=${encodeURIComponent(tableName.trim())}`;
+            // Endpoint correcto para listar filas
+            const url = `${session.serverUrl}/api/v1/dtables/${session.dtableUuid}/rows/`;
             
             try {
                 const res = await fetch(url, {
                     method: 'GET',
                     headers: { 
-                        'Authorization': `Token ${session.accessToken}`,
+                        'Authorization': `Bearer ${session.accessToken}`,
+                        'Accept': 'application/json'
+                    },
+                    // Parámetros de consulta
+                    params: new URLSearchParams({
+                        table_name: tableName.trim()
+                    })
+                });
+
+                // Construir URL con parámetros manualmente
+                const fullUrl = `${url}?table_name=${encodeURIComponent(tableName.trim())}`;
+                const res2 = await fetch(fullUrl, {
+                    method: 'GET',
+                    headers: { 
+                        'Authorization': `Bearer ${session.accessToken}`,
                         'Accept': 'application/json'
                     }
                 });
 
-                if (res.status === 404) {
-                    return { error: 404, msg: `La pestaña "${tableName}" no existe en SeaTable.` };
+                if (res2.status === 404) {
+                    return { error: 404, msg: `La tabla "${tableName}" no existe en tu Base de SeaTable.` };
                 }
 
-                if (!res.ok) {
-                    // Si el token de sesión caducó, lo limpiamos para reintentar en la próxima carga
-                    if (res.status === 403) session.accessToken = null;
-                    throw new Error(`Error HTTP ${res.status}`);
+                if (!res2.ok) {
+                    // Si el token de sesión caducó, lo limpiamos para reintentar
+                    if (res2.status === 403 || res2.status === 401) {
+                        session.accessToken = null;
+                        return { error: 403, msg: "El token ha expirado. Recarga la página para reconectar." };
+                    }
+                    const errorText = await res2.text();
+                    console.error('Fetch error:', errorText);
+                    throw new Error(`Error HTTP ${res2.status}`);
                 }
                 
-                return await res.json();
+                const data = await res2.json();
+                console.log('Rows fetched:', data);
+                return data;
             } catch (e) {
                 console.error("Fetch Error:", e);
-                return { error: 500, msg: "No se pudo conectar con el servidor de datos." };
+                return { error: 500, msg: "No se pudo conectar con el servidor de datos: " + e.message };
             }
         }
 
