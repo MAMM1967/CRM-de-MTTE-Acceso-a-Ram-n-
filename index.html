@@ -18,10 +18,12 @@
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        .modal-overlay { background: rgba(2, 6, 23, 0.92); backdrop-filter: blur(8px); }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-8">
 
+    <!-- HEADER -->
     <header class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-6 glass-card p-6">
         <div class="flex items-center gap-4">
             <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
@@ -31,21 +33,28 @@
                 <h1 class="text-xl font-bold tracking-tight">MTTE <span class="text-blue-500 italic">INDUSTRIAL</span></h1>
                 <div class="flex items-center gap-2">
                     <div id="status-dot" class="w-2 h-2 rounded-full bg-yellow-500"></div>
-                    <p id="connection-status" class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Esperando Configuración</p>
+                    <p id="connection-status" class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Sin Conectar</p>
                 </div>
             </div>
         </div>
         <div class="flex items-center gap-3">
-            <button id="auth-btn" onclick="handleAuthClick()" class="bg-white text-slate-900 px-6 py-2.5 rounded-xl font-bold text-xs hover:bg-blue-50 transition-colors shadow-sm">Google Contacts</button>
-            <button onclick="toggleModal('config-modal', true)" class="p-2.5 bg-slate-800 rounded-xl border border-blue-500/30 hover:bg-slate-700 transition-all">
+            <button id="auth-btn" onclick="handleGoogleAuth()" class="bg-white text-slate-900 px-6 py-2.5 rounded-xl font-bold text-xs hover:bg-blue-50 transition-colors shadow-sm flex items-center gap-2">
+                <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                <span id="auth-btn-text">Conectar con Google</span>
+            </button>
+            <button onclick="openAddModal(currentTab)" class="p-2.5 bg-emerald-600/20 rounded-xl border border-emerald-500/30 hover:bg-emerald-600/30 transition-all" title="Añadir registro">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            </button>
+            <button onclick="toggleModal('config-modal', true)" class="p-2.5 bg-slate-800 rounded-xl border border-blue-500/30 hover:bg-slate-700 transition-all" title="Configuración">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                 </svg>
             </button>
         </div>
     </header>
 
+    <!-- MAIN -->
     <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
         <aside class="lg:col-span-4 space-y-6">
             <div class="glass-card p-6 min-h-[500px] flex flex-col">
@@ -54,453 +63,369 @@
                     <span id="google-count" class="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold">0</span>
                 </div>
                 <div id="google-list" class="space-y-3 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar">
-                    <div class="text-center py-20 opacity-30">
-                        <p class="text-xs">Conecta con Google para importar</p>
-                    </div>
+                    <div class="text-center py-20 opacity-30"><p class="text-xs">Conecta con Google para importar</p></div>
                 </div>
             </div>
         </aside>
 
         <section class="lg:col-span-8">
             <div class="flex gap-8 mb-6 font-bold text-[11px] uppercase border-b border-slate-800">
-                <button onclick="changeTab('Agenda')" id="tab-Agenda" class="pb-3 tab-active tracking-widest">📅 Agenda Hoy</button>
-                <button onclick="changeTab('Empresas')" id="tab-Empresas" class="pb-3 text-slate-500 hover:text-white tracking-widest">🏢 Empresas</button>
-                <button onclick="changeTab('Contactos')" id="tab-Contactos" class="pb-3 text-slate-500 hover:text-white tracking-widest">👥 Todos los Contactos</button>
+                <button onclick="changeTab('Agenda')"    id="tab-Agenda"    class="pb-3 tab-active tracking-widest">📅 Agenda</button>
+                <button onclick="changeTab('Empresas')"  id="tab-Empresas"  class="pb-3 text-slate-500 hover:text-white tracking-widest">🏢 Empresas</button>
+                <button onclick="changeTab('Contactos')" id="tab-Contactos" class="pb-3 text-slate-500 hover:text-white tracking-widest">👥 Contactos</button>
             </div>
-            <div id="st-content" class="min-h-[400px]"></div>
+            <div id="st-content" class="min-h-[400px]">
+                <div class="glass-card p-10 text-center">
+                    <p class="text-slate-400 text-sm mb-4">Conecta con Google para ver tus datos</p>
+                    <button onclick="handleGoogleAuth()" class="btn-primary px-6 py-2.5 rounded-xl text-xs font-bold text-white">Conectar con Google</button>
+                </div>
+            </div>
         </section>
     </main>
 
     <!-- CONFIG MODAL -->
-    <div id="config-modal" class="fixed inset-0 bg-slate-950/90 hidden flex items-center justify-center z-[100] p-4 backdrop-blur-md">
+    <div id="config-modal" class="fixed inset-0 modal-overlay hidden flex items-center justify-center z-[100] p-4">
         <div class="glass-card max-w-md w-full p-8 shadow-2xl">
-            <h3 class="text-xl font-bold mb-2">Configuración</h3>
+            <h3 class="text-xl font-bold mb-6">⚙️ Configuración</h3>
             <div class="space-y-5">
                 <div>
-                    <label class="text-[10px] text-blue-400 font-bold uppercase ml-1">SeaTable API Token</label>
-                    <input type="password" id="st-token" placeholder="dc7813d23b26d6a0b717232cf5b4e375d0af46b1" class="w-full input-dark px-4 py-3 mt-1.5 text-sm outline-none">
-                    <p class="text-[9px] text-slate-500 mt-1 ml-1">Tu token: <code class="bg-black/30 px-1 rounded">dc78...46b1</code></p>
-                </div>
-                <div>
-                    <label class="text-[10px] text-blue-400 font-bold uppercase ml-1">Base UUID (opcional)</label>
-                    <input type="text" id="st-uuid" placeholder="a1b2c3d4-e5f6-7890-abcd-ef1234567890" class="w-full input-dark px-4 py-3 mt-1.5 text-sm outline-none">
-                    <p class="text-[9px] text-slate-500 mt-1 ml-1">Cópialo de la URL de tu base en SeaTable</p>
-                </div>
-                <div>
                     <label class="text-[10px] text-blue-400 font-bold uppercase ml-1">Google Client ID</label>
-                    <input type="text" id="google-id" placeholder="Client ID..." class="w-full input-dark px-4 py-3 mt-1.5 text-sm outline-none">
+                    <input type="text" id="cfg-google-id" placeholder="xxxxx.apps.googleusercontent.com" class="w-full input-dark px-4 py-3 mt-1.5 text-sm outline-none">
+                    <p class="text-[9px] text-slate-500 mt-1 ml-1">Google Cloud Console → APIs → Credenciales → OAuth 2.0</p>
                 </div>
-                <div class="pt-4">
-                    <button onclick="saveConfig()" class="w-full btn-primary py-4 rounded-xl font-bold text-sm text-white">Guardar y Recargar</button>
-                    <button onclick="listMyDatabases()" class="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 py-3 rounded-xl font-bold text-sm text-white transition-all">📋 Ver mis Bases de Datos</button>
-                    <div id="db-list-result" class="mt-4 text-xs text-slate-400"></div>
+                <div>
+                    <label class="text-[10px] text-blue-400 font-bold uppercase ml-1">ID de Google Sheets</label>
+                    <input type="text" id="cfg-sheet-id" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms" class="w-full input-dark px-4 py-3 mt-1.5 text-sm outline-none">
+                    <p class="text-[9px] text-slate-500 mt-1 ml-1">El ID largo en la URL de tu hoja: /spreadsheets/d/<strong class="text-slate-300">ESTE-ID</strong>/edit</p>
+                </div>
+                <div class="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-[10px] text-slate-400 space-y-1.5">
+                    <p class="text-blue-400 font-bold mb-2">📋 Crea estas pestañas en tu hoja:</p>
+                    <p>· <code class="bg-black/30 px-1 rounded text-white">Contactos</code> → Nombre · Apellido 1 · Nombre Empresa · Teléfono · Email · Notas</p>
+                    <p>· <code class="bg-black/30 px-1 rounded text-white">Empresas</code>  → Nombre Empresa · Teléfono · Email · Web · Notas</p>
+                    <p>· <code class="bg-black/30 px-1 rounded text-white">Agenda</code>    → Fecha · Contacto · Empresa · Asunto · Estado</p>
+                    <p class="text-yellow-400/80 mt-2">⚠ La primera fila de cada pestaña debe ser la cabecera.</p>
+                </div>
+                <div class="pt-2">
+                    <button onclick="saveConfig()" class="w-full btn-primary py-4 rounded-xl font-bold text-sm text-white">Guardar y Conectar</button>
                     <button onclick="toggleModal('config-modal', false)" class="w-full mt-4 text-slate-500 text-xs">Cerrar</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- ADD / EDIT MODAL -->
+    <div id="add-modal" class="fixed inset-0 modal-overlay hidden flex items-center justify-center z-[100] p-4">
+        <div class="glass-card max-w-lg w-full p-8 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <h3 class="text-xl font-bold mb-6" id="add-modal-title">➕ Nuevo registro</h3>
+            <div id="add-form-fields" class="space-y-4"></div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="saveRecord()" class="flex-1 btn-primary py-3 rounded-xl font-bold text-sm text-white">💾 Guardar</button>
+                <button onclick="toggleModal('add-modal', false)" class="flex-1 bg-slate-800 py-3 rounded-xl font-bold text-sm text-slate-400 hover:bg-slate-700">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Configuración y variables de estado
-        let config = JSON.parse(localStorage.getItem('mtte_crm_v3')) || { token: '', googleId: '' };
-        let currentTab = 'Agenda';
-        let googleToken = null;
-        let tokenClient = null;
+    // ── CONFIG ────────────────────────────────────────────────
+    let config = JSON.parse(localStorage.getItem('mtte_crm_config')) || { googleId: '', sheetId: '' };
+    let currentTab = 'Agenda';
+    let googleToken = null;
+    let tokenClient = null;
+    let _editContext = null; // { sheetName, rowNumber } cuando editamos
 
-        // Para SeaTable Cloud, usamos el API Token directamente
-        // El UUID se guarda separado para persistencia
-        let savedUuid = localStorage.getItem('st_dtable_uuid') || '';
-        let session = {
-            apiToken: null,
-            dtableUuid: savedUuid || null,
-            serverUrl: 'https://cloud.seatable.io',
-            authenticated: false
-        };
+    const SCHEMA = {
+        Contactos: ['Nombre', 'Apellido 1', 'Nombre Empresa', 'Teléfono', 'Email', 'Notas'],
+        Empresas:  ['Nombre Empresa', 'Teléfono', 'Email', 'Web', 'Notas'],
+        Agenda:    ['Fecha', 'Contacto', 'Empresa', 'Asunto', 'Estado']
+    };
 
-        console.log('=== CONFIG INICIAL ===');
-        console.log('Token en localStorage:', config.token ? config.token.substring(0, 15) + '...' : 'sin token');
-        console.log('UUID en localStorage:', savedUuid);
+    // ── STATUS ────────────────────────────────────────────────
+    function updateStatus(msg, colorClass, dotColor) {
+        document.getElementById('connection-status').innerText = msg;
+        document.getElementById('connection-status').className = `text-[10px] ${colorClass} uppercase tracking-widest font-bold`;
+        document.getElementById('status-dot').className = `w-2 h-2 rounded-full ${dotColor}`;
+    }
 
-        // Nombres de tablas estándar
-        let TABLE_NAMES = {
-            CONTACTOS: 'Contactos',
-            EMPRESAS: 'Empresas'
-        };
+    // ── GOOGLE AUTH ───────────────────────────────────────────
+    function handleGoogleAuth() {
+        if (!config.googleId || !config.sheetId) { toggleModal('config-modal', true); return; }
+        if (googleToken) { loadData(); return; }
+        if (!tokenClient) initTokenClient();
+        tokenClient.requestAccessToken();
+    }
 
-        function updateStatus(msg, colorClass, dotColor) {
-            const el = document.getElementById('connection-status');
-            const dot = document.getElementById('status-dot');
-            if (el) { el.innerText = msg; el.className = `text-[10px] ${colorClass} uppercase tracking-widest font-bold`; }
-            if (dot) { dot.className = `w-2 h-2 rounded-full ${dotColor}`; }
-        }
-
-        async function authenticateSeaTable() {
-            if (!config.token) {
-                updateStatus('Sin Token', 'text-red-500', 'bg-red-500');
-                return false;
-            }
-            try {
-                updateStatus('Conectando...', 'text-blue-400', 'bg-blue-400 animate-pulse');
-
-                session.apiToken = config.token.trim();
-
-                // Para API Token simple, necesitamos el dtable_uuid de la URL
-                // Intentamos obtenerlo de la URL actual o pedirlo al usuario
-                const urlParams = new URLSearchParams(window.location.search);
-                session.dtableUuid = urlParams.get('dtable') || localStorage.getItem('st_dtable_uuid');
-
-                // Si no tenemos UUID, listamos las bases de datos disponibles
-                if (!session.dtableUuid) {
-                    const res = await fetch('https://cloud.seatable.io/api/v2.1/workspaces/', {
-                        headers: {
-                            'Authorization': `Token ${session.apiToken}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        console.log('Workspaces:', data);
-                        // Obtener la primera base de datos del primer workspace
-                        if (data.workspace_list && data.workspace_list.length > 0) {
-                            const ws = data.workspace_list[0];
-                            // Obtener dtables del workspace
-                            const res2 = await fetch(`https://cloud.seatable.io/api/v2.1/workspaces/${ws.id}/dtables/`, {
-                                headers: {
-                                    'Authorization': `Token ${session.apiToken}`,
-                                    'Content-Type': 'application/json'
-                                }
-                            });
-                            if (res2.ok) {
-                                const data2 = await res2.json();
-                                console.log('Dtables:', data2);
-                                if (data2.dtable_list && data2.dtable_list.length > 0) {
-                                    session.dtableUuid = data2.dtable_list[0].uuid;
-                                    localStorage.setItem('st_dtable_uuid', session.dtableUuid);
-                                    console.log('UUID obtenido:', session.dtableUuid);
-                                }
-                            }
-                        }
-                    } else {
-                        console.error('Error workspaces:', res.status, await res.text());
-                    }
-                }
-
-                if (!session.dtableUuid) {
-                    throw new Error('No se pudo obtener el ID de la base de datos. Abre SeaTable, copia el UUID de la URL y pégalo en el campo "SeaTable UUID" opcional.');
-                }
-
-                updateStatus('Conectado', 'text-emerald-500', 'bg-emerald-500');
-                return true;
-            } catch (e) {
-                console.error('Error conectando a SeaTable:', e);
-                updateStatus(`Error: ${e.message}`, 'text-red-500', 'bg-red-500');
-                return false;
-            }
-        }
-
-        async function getAvailableTables() {
-            if (!session.apiToken || !session.dtableUuid) return [];
-            try {
-                // Intentar metadata primero
-                const res = await fetch(`https://cloud.seatable.io/api/v2.1/dtables/${session.dtableUuid}/metadata/`, {
-                    headers: {
-                        'Authorization': `Token ${session.apiToken}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    return data.metadata?.tables?.map(t => t.name) || [];
-                }
-                // Si metadata falla (401), intentar con column-data que requiere menos permisos
-                console.log('Metadata falló, intentando column-data...');
-                const res2 = await fetch(`https://cloud.seatable.io/api/v2.1/dtables/${session.dtableUuid}/columns/`, {
-                    headers: {
-                        'Authorization': `Token ${session.apiToken}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                if (res2.ok) {
-                    const data2 = await res2.json();
-                    // Extraer nombres únicos de tabla de las columnas
-                    const tables = [...new Set(data2.map(c => c.table_name))];
-                    console.log('Tablas desde columnas:', tables);
-                    return tables;
-                }
-                return [];
-            } catch (e) {
-                console.error('Error obteniendo tablas:', e);
-                return [];
-            }
-        }
-
-        async function stRequest(tableName, method = 'GET', body = null) {
-            if (!session.apiToken) {
-                const ok = await authenticateSeaTable();
-                if (!ok) return { error: 401 };
-            }
-
-            // Probar múltiples endpoints de SeaTable
-            const endpoints = [
-                // API v1 (más compatible con tokens básicos)
-                `https://cloud.seatable.io/api/v1/dtables/${session.dtableUuid}/rows/?table_name=${encodeURIComponent(tableName)}`,
-                // API v2.1
-                `https://cloud.seatable.io/api/v2.1/dtables/${session.dtableUuid}/rows/?table_name=${encodeURIComponent(tableName)}`,
-                // Endpoint alternativo sin query params
-                `https://cloud.seatable.io/api/v1/dtables/${session.dtableUuid}/rows/?name=${encodeURIComponent(tableName)}`
-            ];
-
-            for (const url of endpoints) {
-                try {
-                    console.log(`Intentando: ${url}`);
-                    const res = await fetch(url, {
-                        method,
-                        headers: {
-                            'Authorization': `Token ${session.apiToken}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: body ? JSON.stringify(body) : null
-                    });
-
-                    console.log(`Respuesta ${tableName}:`, res.status, url);
-
-                    if (res.status === 404) continue; // Probar siguiente endpoint
-                    if (!res.ok) {
-                        const errorText = await res.text();
-                        console.error('Error HTTP:', res.status, errorText);
-                        continue;
-                    }
-
-                    return await res.json();
-                } catch (e) {
-                    console.error('Error en endpoint:', url, e);
-                    continue;
-                }
-            }
-
-            // Si todos los endpoints fallan
-            return { error: 404, tableName };
-        }
-
-        async function loadData() {
-            const container = document.getElementById('st-content');
-            container.innerHTML = '<div class="flex justify-center py-24"><div class="loading"></div></div>';
-
-            // Primero autenticar y obtener UUID si no tenemos
-            console.log('=== Iniciando carga de datos ===');
-            console.log('Token:', config.token ? config.token.substring(0, 15) + '...' : 'sin token');
-            console.log('UUID actual:', session.dtableUuid);
-
-            // Asegurar autenticación primero
-            if (!session.authenticated) {
-                session.apiToken = config.token.trim();
-                session.authenticated = true;
-            }
-
-            // Si no tenemos UUID, intentar obtenerlo
-            if (!session.dtableUuid && session.apiToken) {
-                console.log('Obteniendo UUID...');
-                try {
-                    const res = await fetch('https://cloud.seatable.io/api/v2.1/dtables/', {
-                        headers: {
-                            'Authorization': `Token ${session.apiToken}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        console.log('Dtables disponibles:', data);
-                        if (data.dtable_list && data.dtable_list.length > 0) {
-                            session.dtableUuid = data.dtable_list[0].uuid;
-                            localStorage.setItem('st_dtable_uuid', session.dtableUuid);
-                            console.log('UUID obtenido:', session.dtableUuid);
-                        }
-                    }
-                } catch (e) {
-                    console.error('Error obteniendo UUID:', e);
-                }
-            }
-
-            if (!session.dtableUuid) {
-                container.innerHTML = `
-                    <div class="glass-card p-10 text-center border-yellow-500/30">
-                        <h4 class="text-yellow-400 font-bold mb-4">⚠️ No se pudo obtener la base de datos</h4>
-                        <p class="text-xs text-slate-400 mb-4">Necesitas pegar el UUID manualmente.</p>
-                        <ol class="text-xs text-left inline-block space-y-2">
-                            <li>1. Abre tu base en SeaTable</li>
-                            <li>2. Copia el UUID de la URL:</li>
-                            <li><code class="bg-black/40 px-2 py-1 rounded block mt-1">https://cloud.seatable.io/dtable/<strong>AQUI-EL-UUID</strong>/...</code></li>
-                            <li>3. Pégalo en Configuración → Base UUID</li>
-                        </ol>
-                    </div>`;
-                return;
-            }
-
-            console.log('UUID final:', session.dtableUuid);
-
-            const tableToFetch = (currentTab === 'Empresas') ? TABLE_NAMES.EMPRESAS : TABLE_NAMES.CONTACTOS;
-            console.log('Cargando tabla:', tableToFetch);
-
-            const data = await stRequest(tableToFetch);
-
-            if (data.error === 404) {
-                const available = await getAvailableTables();
-                container.innerHTML = `
-                    <div class="glass-card p-10 text-center border-red-500/30">
-                        <h4 class="text-red-400 font-bold mb-4">Error 404: Tabla "${tableToFetch}" no encontrada</h4>
-                        <p class="text-xs text-slate-400 mb-6">SeaTable dice que esa tabla no existe en esta Base de Datos.</p>
-                        <div class="bg-black/40 p-4 rounded-xl inline-block text-left">
-                            <p class="text-[10px] text-blue-400 font-bold uppercase mb-2">Tablas detectadas en tu SeaTable:</p>
-                            <ul class="text-xs space-y-1">
-                                ${available.length > 0 ? available.map(t => `<li class="text-white">🔹 "${t}"</li>`).join('') : '<li class="text-slate-500">No se pudieron obtener tablas</li>'}
-                            </ul>
-                        </div>
-                        <p class="text-[10px] mt-6 text-slate-500 italic">Asegúrate de que el nombre coincida exactamente (mayúsculas, minúsculas y espacios).</p>
-                    </div>`;
-                return;
-            }
-
-            if (data.error === 401) {
-                container.innerHTML = '<div class="glass-card p-10 text-center"><p class="text-red-400 text-sm font-bold">❌ Token inválido o expirado</p><p class="text-xs text-slate-500 mt-2">Verifica tu App Token en la configuración</p></div>';
-                return;
-            }
-
-            if (data.rows) renderData(data.rows);
-            else container.innerHTML = '<div class="text-center py-24 opacity-20"><p class="text-xs italic">Sin registros o error en la respuesta</p></div>';
-        }
-
-        function renderData(rows) {
-            const container = document.getElementById('st-content');
-            if (!rows || !rows.length) {
-                container.innerHTML = '<div class="text-center py-24 opacity-20"><p class="text-xs italic">Sin registros</p></div>';
-                return;
-            }
-
-            if (currentTab === 'Agenda') {
-                container.innerHTML = rows.slice(0, 20).map(r => `
-                    <div class="glass-card p-5 mb-4 flex justify-between items-center border-l-4 border-blue-500 hover:bg-white/5 transition-all">
-                        <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold text-xs">
-                                ${r.Nombre ? r.Nombre[0] : '?'}
-                            </div>
-                            <div>
-                                <h3 class="font-bold text-sm">${r.Nombre || ''} ${r['Apellido 1'] || ''}</h3>
-                                <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">${r['Nombre Empresa'] || 'PARTICULAR'}</p>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                const cols = Object.keys(rows[0]).filter(k => !k.startsWith('_'));
-                container.innerHTML = `
-                    <div class="glass-card overflow-hidden">
-                        <div class="overflow-x-auto custom-scrollbar">
-                            <table class="w-full text-[10px] text-left">
-                                <thead class="bg-slate-800 text-blue-400 uppercase font-black">
-                                    <tr>${cols.map(c => `<th class="p-5 whitespace-nowrap">${c}</th>`).join('')}</tr>
-                                </thead>
-                                <tbody class="divide-y divide-white/5">
-                                    ${rows.map(r => `<tr class="hover:bg-white/[0.02]">${cols.map(c => `<td class="p-5 text-slate-300 whitespace-nowrap">${r[c] !== null ? r[c] : '-'}</td>`).join('')}</tr>`).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>`;
-            }
-        }
-
-        function changeTab(t) {
-            currentTab = t;
-            ['Agenda','Empresas','Contactos'].forEach(id => {
-                const btn = document.getElementById('tab-'+id);
-                if(btn) btn.className = (id === t) ? 'pb-3 tab-active tracking-widest transition-all' : 'pb-3 text-slate-500 hover:text-white tracking-widest transition-all';
-            });
-            loadData();
-        }
-
-        function toggleModal(id, show) { document.getElementById(id).classList.toggle('hidden', !show); }
-
-        function saveConfig() {
-            config.token = document.getElementById('st-token').value.trim();
-            config.googleId = document.getElementById('google-id').value.trim();
-            const uuid = document.getElementById('st-uuid').value.trim();
-            if (!config.token) {
-                alert('⚠️ El token de SeaTable es requerido');
-                return;
-            }
-            if (uuid) {
-                localStorage.setItem('st_dtable_uuid', uuid);
-            }
-            localStorage.setItem('mtte_crm_v3', JSON.stringify(config));
-            location.reload();
-        }
-
-        async function listMyDatabases() {
-            const resultDiv = document.getElementById('db-list-result');
-            const token = document.getElementById('st-token').value.trim() || config.token;
-
-            if (!token) {
-                resultDiv.innerHTML = '<span class="text-red-400">Primero ingresa tu token</span>';
-                return;
-            }
-
-            resultDiv.innerHTML = '<span class="text-blue-400">Cargando...</span>';
-
-            try {
-                const res = await fetch('https://cloud.seatable.io/api/v2.1/dtables/', {
-                    headers: {
-                        'Authorization': `Token ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (!res.ok) {
-                    const error = await res.text();
-                    resultDiv.innerHTML = `<span class="text-red-400">Error ${res.status}: ${error.substring(0, 50)}</span>`;
+    function initTokenClient() {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: config.googleId,
+            scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/contacts.readonly',
+            callback: async (response) => {
+                if (response.error) {
+                    updateStatus('Error de auth', 'text-red-500', 'bg-red-500');
+                    console.error('Auth error:', response);
                     return;
                 }
-
-                const data = await res.json();
-                console.log('Respuesta de SeaTable:', data);
-
-                if (data.dtable_list && data.dtable_list.length > 0) {
-                    resultDiv.innerHTML = `
-                        <div class="bg-black/40 p-3 rounded-xl mt-2">
-                            <p class="text-blue-400 font-bold mb-2">✅ Bases encontradas:</p>
-                            <ul class="space-y-1">
-                                ${data.dtable_list.map(db => `
-                                    <li class="text-xs">
-                                        <strong class="text-white">${db.name}</strong><br>
-                                        <code class="text-emerald-400">${db.uuid}</code>
-                                        <button onclick="selectUuid('${db.uuid}')" class="ml-2 text-[9px] bg-blue-600 px-2 py-0.5 rounded hover:bg-blue-500">Usar este</button>
-                                    </li>
-                                `).join('')}
-                            </ul>
-                        </div>
-                    `;
-                } else {
-                    resultDiv.innerHTML = '<span class="text-yellow-400">No se encontraron bases de datos</span>';
-                }
-            } catch (e) {
-                resultDiv.innerHTML = `<span class="text-red-400">Error: ${e.message}</span>`;
-            }
-        }
-
-        function selectUuid(uuid) {
-            document.getElementById('st-uuid').value = uuid;
-            localStorage.setItem('st_dtable_uuid', uuid);
-            alert('UUID seleccionado: ' + uuid + '\n\nAhora haz clic en "Guardar y Recargar"');
-        }
-
-        window.onload = () => {
-            if (config.token) {
-                document.getElementById('st-token').value = config.token;
-                document.getElementById('google-id').value = config.googleId || '';
-                document.getElementById('st-uuid').value = localStorage.getItem('st_dtable_uuid') || '';
+                googleToken = response.access_token;
+                document.getElementById('auth-btn-text').textContent = 'Conectado ✓';
+                updateStatus('Google Sheets · Conectado', 'text-emerald-500', 'bg-emerald-500');
+                loadGoogleContacts();
                 loadData();
-            } else {
-                toggleModal('config-modal', true);
             }
-        };
+        });
+    }
+
+    // ── GOOGLE CONTACTS ───────────────────────────────────────
+    async function loadGoogleContacts() {
+        try {
+            const res = await fetch(
+                'https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,phoneNumbers,organizations&pageSize=100',
+                { headers: { Authorization: `Bearer ${googleToken}` } }
+            );
+            const data = await res.json();
+            const contacts = data.connections || [];
+            document.getElementById('google-count').textContent = contacts.length;
+            const list = document.getElementById('google-list');
+            if (!contacts.length) { list.innerHTML = '<div class="text-center py-10 opacity-30 text-xs">Sin contactos</div>'; return; }
+            list.innerHTML = contacts.map(c => {
+                const name  = c.names?.[0]?.displayName || 'Sin nombre';
+                const phone = c.phoneNumbers?.[0]?.value || '';
+                const org   = c.organizations?.[0]?.name || '';
+                const email = c.emailAddresses?.[0]?.value || '';
+                return `<div onclick='importContact(${JSON.stringify({name,phone,org,email})})'
+                    class="p-3 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 transition-all cursor-pointer border border-transparent hover:border-blue-500/30">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold text-xs flex-shrink-0">${name[0]?.toUpperCase()}</div>
+                        <div class="min-w-0">
+                            <p class="font-bold text-xs truncate">${name}</p>
+                            <p class="text-[10px] text-slate-500 truncate">${org || phone || email || 'Sin datos'}</p>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch(e) { console.error('Contacts error:', e); }
+    }
+
+    function importContact(c) {
+        const parts = c.name.split(' ');
+        openAddModal('Contactos', {
+            'Nombre': parts[0] || '',
+            'Apellido 1': parts.slice(1).join(' '),
+            'Nombre Empresa': c.org,
+            'Teléfono': c.phone,
+            'Email': c.email
+        });
+    }
+
+    // ── SHEETS API ────────────────────────────────────────────
+    async function sheetsGet(sheetName) {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(sheetName)}!A:Z`;
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${googleToken}` } });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error?.message || `Error ${res.status}`);
+        }
+        const data = await res.json();
+        const rows = data.values || [];
+        if (rows.length < 1) return [];
+        const headers = rows[0];
+        return rows.slice(1).map((row, i) => {
+            const obj = { _row: i + 2 }; // fila real en Sheets (1 cabecera + 1 base)
+            headers.forEach((h, j) => obj[h] = row[j] ?? '');
+            return obj;
+        });
+    }
+
+    async function sheetsAppend(sheetName, values) {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(sheetName)}!A:Z:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${googleToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ values: [values] })
+        });
+        return res.ok;
+    }
+
+    async function sheetsUpdate(sheetName, rowNum, values) {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(sheetName)}!A${rowNum}:Z${rowNum}?valueInputOption=USER_ENTERED`;
+        const res = await fetch(url, {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${googleToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ values: [values] })
+        });
+        return res.ok;
+    }
+
+    // ── LOAD DATA ─────────────────────────────────────────────
+    async function loadData() {
+        if (!googleToken) { handleGoogleAuth(); return; }
+        const container = document.getElementById('st-content');
+        container.innerHTML = '<div class="flex justify-center py-24"><div class="loading"></div></div>';
+        try {
+            const rows = await sheetsGet(currentTab);
+            if (!rows.length) {
+                container.innerHTML = `
+                    <div class="glass-card p-10 text-center">
+                        <p class="text-slate-400 text-sm mb-1">La pestaña <strong class="text-white">"${currentTab}"</strong> está vacía o no existe.</p>
+                        <p class="text-[11px] text-slate-500 mb-4">Asegúrate de que la hoja tiene esa pestaña con la primera fila como cabecera.</p>
+                        <button onclick="openAddModal('${currentTab}')" class="btn-primary px-5 py-2 rounded-xl text-xs font-bold text-white">➕ Añadir primer registro</button>
+                    </div>`;
+                return;
+            }
+            renderData(rows);
+        } catch(e) {
+            container.innerHTML = `<div class="glass-card p-10 text-center border-red-500/30"><p class="text-red-400 font-bold">❌ ${e.message}</p></div>`;
+        }
+    }
+
+    // ── RENDER ────────────────────────────────────────────────
+    function renderData(rows) {
+        const container = document.getElementById('st-content');
+
+        if (currentTab === 'Agenda') {
+            const today = new Date().toLocaleDateString('es-ES');
+            const shown = rows.filter(r => r['Fecha'] === today);
+            const upcoming = shown.length ? shown : rows.slice(0, 15);
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-4">
+                    <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest">${shown.length} eventos hoy · ${new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})}</p>
+                    <button onclick="openAddModal('Agenda')" class="text-[10px] bg-emerald-600/20 text-emerald-400 px-3 py-1.5 rounded-lg hover:bg-emerald-600/30 font-bold">➕ Añadir</button>
+                </div>
+                ${upcoming.map(r => agendaCard(r)).join('')}
+                ${!shown.length ? '<p class="text-[10px] text-slate-600 text-center mt-4">Sin eventos hoy · Mostrando todos</p>' : ''}`;
+            return;
+        }
+
+        const cols = Object.keys(rows[0]).filter(k => !k.startsWith('_'));
+        container.innerHTML = `
+            <div class="flex justify-end mb-4">
+                <button onclick="openAddModal('${currentTab}')" class="text-[10px] bg-emerald-600/20 text-emerald-400 px-3 py-1.5 rounded-lg hover:bg-emerald-600/30 font-bold">➕ Añadir</button>
+            </div>
+            <div class="glass-card overflow-hidden">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-[10px] text-left">
+                        <thead class="bg-slate-800 text-blue-400 uppercase font-black">
+                            <tr>${cols.map(c => `<th class="p-4 whitespace-nowrap">${c}</th>`).join('')}<th class="p-4"></th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/5">
+                            ${rows.map(r => `
+                                <tr class="hover:bg-white/[0.02] group">
+                                    ${cols.map(c => `<td class="p-4 text-slate-300 whitespace-nowrap">${r[c] || '-'}</td>`).join('')}
+                                    <td class="p-4">
+                                        <button onclick='openEditModal("${currentTab}", ${r._row}, ${JSON.stringify(r)})'
+                                            class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-1 rounded hover:bg-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity font-bold">
+                                            ✏️ Editar
+                                        </button>
+                                    </td>
+                                </tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+    }
+
+    function agendaCard(r) {
+        const estado = r['Estado'] || 'Pendiente';
+        const borderColor = { Completado: 'border-emerald-500', Cancelado: 'border-red-500' }[estado] || 'border-blue-500';
+        const badgeClass  = { Completado: 'bg-emerald-500/20 text-emerald-400', Cancelado: 'bg-red-500/20 text-red-400' }[estado] || 'bg-blue-500/20 text-blue-400';
+        return `
+            <div class="glass-card p-5 mb-3 flex justify-between items-center border-l-4 ${borderColor} hover:bg-white/5 transition-all">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold text-xs flex-shrink-0">
+                        ${(r['Contacto'] || '?')[0]?.toUpperCase()}
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm">${r['Contacto'] || ''}</h3>
+                        <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">${r['Empresa'] || 'PARTICULAR'}</p>
+                        <p class="text-[10px] text-blue-400 mt-1">${r['Asunto'] || ''}</p>
+                    </div>
+                </div>
+                <div class="text-right flex-shrink-0 ml-4">
+                    <p class="text-[10px] text-slate-400 mb-1">${r['Fecha'] || ''}</p>
+                    <span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${badgeClass}">${estado}</span>
+                    <div class="mt-2">
+                        <button onclick='openEditModal("Agenda", ${r._row}, ${JSON.stringify(r)})'
+                            class="text-[9px] bg-slate-700 text-slate-400 px-2 py-0.5 rounded hover:bg-slate-600 font-bold">✏️</button>
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    // ── ADD / EDIT ────────────────────────────────────────────
+    function openAddModal(sheetName, prefill = {}) {
+        _editContext = null;
+        document.getElementById('add-modal-title').textContent = `➕ Nuevo en ${sheetName}`;
+        buildForm(sheetName, prefill);
+        toggleModal('add-modal', true);
+    }
+
+    function openEditModal(sheetName, rowNumber, rowData) {
+        _editContext = { sheetName, rowNumber };
+        document.getElementById('add-modal-title').textContent = `✏️ Editar en ${sheetName}`;
+        buildForm(sheetName, rowData);
+        toggleModal('add-modal', true);
+    }
+
+    function buildForm(sheetName, prefill = {}) {
+        const cols = SCHEMA[sheetName] || Object.keys(prefill).filter(k => !k.startsWith('_'));
+        document.getElementById('add-form-fields').innerHTML = cols.map(col => `
+            <div>
+                <label class="text-[10px] text-blue-400 font-bold uppercase ml-1">${col}</label>
+                ${col === 'Estado'
+                    ? `<select id="field-${col}" class="w-full input-dark px-4 py-3 mt-1.5 text-sm outline-none">
+                          <option value="Pendiente"  ${(prefill[col]||'Pendiente')==='Pendiente'?'selected':''}>Pendiente</option>
+                          <option value="Completado" ${prefill[col]==='Completado'?'selected':''}>Completado</option>
+                          <option value="Cancelado"  ${prefill[col]==='Cancelado'?'selected':''}>Cancelado</option>
+                       </select>`
+                    : `<input type="${col==='Fecha'?'date':'text'}" id="field-${col}"
+                           value="${(prefill[col]||'').replace(/"/g,'&quot;')}"
+                           placeholder="${col}"
+                           class="w-full input-dark px-4 py-3 mt-1.5 text-sm outline-none">`}
+            </div>`).join('');
+    }
+
+    async function saveRecord() {
+        const sheetName = _editContext ? _editContext.sheetName : currentTab;
+        const cols = SCHEMA[sheetName] || [];
+        const values = cols.map(col => (document.getElementById(`field-${col}`)?.value || '').trim());
+
+        const ok = _editContext
+            ? await sheetsUpdate(_editContext.sheetName, _editContext.rowNumber, values)
+            : await sheetsAppend(sheetName, values);
+
+        if (ok) { toggleModal('add-modal', false); await loadData(); }
+        else    { alert('❌ Error al guardar. Verifica los permisos de la hoja.'); }
+    }
+
+    // ── TABS ──────────────────────────────────────────────────
+    function changeTab(t) {
+        currentTab = t;
+        ['Agenda','Empresas','Contactos'].forEach(id => {
+            document.getElementById('tab-'+id).className = id===t
+                ? 'pb-3 tab-active tracking-widest transition-all'
+                : 'pb-3 text-slate-500 hover:text-white tracking-widest transition-all';
+        });
+        loadData();
+    }
+
+    // ── UTILS ─────────────────────────────────────────────────
+    function toggleModal(id, show) { document.getElementById(id).classList.toggle('hidden', !show); }
+
+    function saveConfig() {
+        config.googleId = document.getElementById('cfg-google-id').value.trim();
+        config.sheetId  = document.getElementById('cfg-sheet-id').value.trim();
+        if (!config.googleId || !config.sheetId) { alert('⚠️ Rellena el Client ID y el ID de la hoja'); return; }
+        localStorage.setItem('mtte_crm_config', JSON.stringify(config));
+        tokenClient = null; googleToken = null;
+        toggleModal('config-modal', false);
+        initTokenClient();
+        tokenClient.requestAccessToken();
+    }
+
+    // ── INIT ──────────────────────────────────────────────────
+    window.onload = () => {
+        if (config.googleId) document.getElementById('cfg-google-id').value = config.googleId;
+        if (config.sheetId)  document.getElementById('cfg-sheet-id').value  = config.sheetId;
+        if (!config.googleId || !config.sheetId) { toggleModal('config-modal', true); }
+    };
     </script>
 </body>
 </html>
