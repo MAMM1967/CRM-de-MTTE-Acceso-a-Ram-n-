@@ -32,7 +32,7 @@
 <p class="p1"><span class="Apple-converted-space">    </span>}</p>
 <p class="p2"><br></p>
 <p class="p1"><span class="Apple-converted-space">    </span>* { box-sizing: border-box; margin: 0; padding: 0; }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>body { background: var(--bg-dark); color: var(--text-main); font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; min-height: 100vh; line-height: 1.5; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>body { background: var(--bg-dark); color: var(--text-main); font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; min-height: 100vh; line-height: 1.5; overflow-x: hidden; }</p>
 <p class="p2"><span class="Apple-converted-space">    </span></p>
 <p class="p1"><span class="Apple-converted-space">    </span>#header { background: linear-gradient(135deg,#0d1117,#111827); border-bottom: 1px solid var(--border-color); padding: 0 24px; position: sticky; top: 0; z-index: 50; }</p>
 <p class="p1"><span class="Apple-converted-space">    </span>#header-inner { max-width: 1140px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 70px; }</p>
@@ -44,48 +44,80 @@
 <p class="p2"><br></p>
 <p class="p1"><span class="Apple-converted-space">    </span>#login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; background: radial-gradient(circle at center, #111827 0%, #0a0d14 100%); }</p>
 <p class="p2"><span class="Apple-converted-space">    </span></p>
-<p class="p1"><span class="Apple-converted-space">    </span>.btn { padding: 12px 24px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; font-size: 1rem; text-decoration: none; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.btn { padding: 12px 24px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; font-size: 1rem; text-decoration: none; justify-content: center; }</p>
 <p class="p1"><span class="Apple-converted-space">    </span>.btn-primary { background: var(--mitsubishi-red); color: white; box-shadow: 0 4px 14px 0 rgba(235, 28, 36, 0.3); }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>.btn-primary:hover { background: #c11219; transform: translateY(-1px); box-shadow: 0 6px 20px 0 rgba(235, 28, 36, 0.4); }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.btn-primary:hover { background: #c11219; transform: translateY(-1px); }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.btn-secondary { background: #374151; color: white; width: 100%; }</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>.card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }</p>
 <p class="p2"><span class="Apple-converted-space">    </span></p>
-<p class="p1"><span class="Apple-converted-space">    </span>.card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; margin-bottom: 24px; }</p>
-<p class="p2"><span class="Apple-converted-space">    </span></p>
-<p class="p1"><span class="Apple-converted-space">    </span>.search-box { width: 100%; background: #1f2937; border: 1px solid #374151; padding: 14px 18px; border-radius: 10px; color: white; margin-bottom: 20px; outline: none; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.search-box { width: 100%; background: #1f2937; border: 1px solid #374151; padding: 14px 18px; border-radius: 10px; color: white; margin-bottom: 20px; outline: none; font-size: 1rem; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.search-box:focus { border-color: var(--mitsubishi-red); }</p>
 <p class="p2"><br></p>
 <p class="p1"><span class="Apple-converted-space">    </span>table { width: 100%; border-collapse: collapse; }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>th { text-align: left; padding: 14px; color: var(--text-muted); font-size: 0.75rem; border-bottom: 1px solid var(--border-color); }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>td { padding: 16px 14px; border-bottom: 1px solid var(--border-color); }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>th { text-align: left; padding: 14px; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>td { padding: 16px 14px; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>tr:hover { background: rgba(255,255,255,0.03); }</p>
 <p class="p2"><br></p>
 <p class="p1"><span class="Apple-converted-space">    </span>#action-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(6px); }</p>
 <p class="p1"><span class="Apple-converted-space">    </span>.modal-content { background: var(--card-bg); border: 1px solid #374151; padding: 32px; border-radius: 20px; width: 90%; max-width: 550px; }</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>.status-msg { padding: 12px; border-radius: 8px; margin-top: 15px; display: none; font-size: 0.9rem; text-align: center; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.success { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.error { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }</p>
 <p class="p1"><span class="Apple-converted-space">  </span>&lt;/style&gt;</p>
 <p class="p1">&lt;/head&gt;</p>
 <p class="p1">&lt;body&gt;</p>
 <p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- Pantalla de Login --&gt;</p>
 <p class="p1"><span class="Apple-converted-space">  </span>&lt;div id="login-screen"&gt;</p>
 <p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="logo" style="font-size: 3rem; margin-bottom: 15px;"&gt;MITSUBISHI &lt;span&gt;·&lt;/span&gt; CRM&lt;/div&gt;</p>
 <p class="p1"><span class="Apple-converted-space">    </span>&lt;p style="color: var(--text-muted); margin-bottom: 35px; max-width: 450px;"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>Gestión comercial integrada con Google Contacts y Sheets.</p>
+<p class="p1"><span class="Apple-converted-space">      </span>CRM Comercial optimizado para Mitsubishi Electric.</p>
 <p class="p1"><span class="Apple-converted-space">    </span>&lt;/p&gt;</p>
 <p class="p1"><span class="Apple-converted-space">    </span>&lt;button class="btn btn-primary" onclick="handleAuthClick()"&gt;</p>
 <p class="p1"><span class="Apple-converted-space">      </span>Acceder con Google</p>
 <p class="p1"><span class="Apple-converted-space">    </span>&lt;/button&gt;</p>
 <p class="p1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</p>
 <p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- Cabecera --&gt;</p>
 <p class="p1"><span class="Apple-converted-space">  </span>&lt;header id="header" style="display:none;"&gt;</p>
 <p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="header-inner"&gt;</p>
 <p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="logo"&gt;MITSUBISHI &lt;span&gt;·&lt;/span&gt; CRM&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="user-info" style="font-size: 0.85rem; color: var(--text-muted);"&gt;&lt;/div&gt;</p>
 <p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
 <p class="p1"><span class="Apple-converted-space">  </span>&lt;/header&gt;</p>
 <p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- Dashboard --&gt;</p>
 <p class="p1"><span class="Apple-converted-space">  </span>&lt;main id="main-content"&gt;</p>
 <p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="card"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;input type="text" id="search" class="search-box" placeholder="Buscar contactos..." oninput="filtrarContactos()"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;input type="text" id="search" class="search-box" placeholder="Filtrar por nombre, empresa o cargo..." oninput="filtrarContactos()"&gt;</p>
 <p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="table-wrapper"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;p style="text-align:center; padding: 20px; color: var(--text-muted);"&gt;Cargando contactos...&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;p style="text-align:center; padding: 40px; color: var(--text-muted);"&gt;Iniciando sincronización...&lt;/p&gt;</p>
 <p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
 <p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
 <p class="p1"><span class="Apple-converted-space">  </span>&lt;/main&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- Modal de Gestión --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;div id="action-modal"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="modal-content"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;h2 id="modal-title" style="margin-bottom: 5px; color: #fff;"&gt;&lt;/h2&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;p id="modal-subtitle" style="color: var(--text-muted); margin-bottom: 25px;"&gt;&lt;/p&gt;</p>
+<p class="p2"><span class="Apple-converted-space">      </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;button class="btn btn-secondary" style="background:#0077b5" onclick="procesarAccion('LinkedIn')"&gt;LinkedIn&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;button class="btn btn-secondary" style="background:#25d366" onclick="procesarAccion('WhatsApp')"&gt;WhatsApp&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;button class="btn btn-secondary" style="background:#ea4335" onclick="procesarAccion('Email')"&gt;Email&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;button class="btn btn-secondary" style="background:#4b5563" onclick="procesarAccion('Llamada')"&gt;Llamada&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;button class="btn btn-secondary" style="background:#f59e0b" onclick="procesarAccion('Visita')"&gt;Visita&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;button class="btn btn-secondary" style="background:#1e2937" onclick="procesarAccion('Nota')"&gt;Nota Libre&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><span class="Apple-converted-space">      </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="feedback" class="status-msg"&gt;&lt;/div&gt;</p>
+<p class="p2"><span class="Apple-converted-space">      </span></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;button class="btn" style="margin-top: 20px; width: 100%; background: transparent; border: 1px solid #374151; color: var(--text-muted);" onclick="cerrarModal()"&gt;Cerrar&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</p>
 <p class="p2"><br></p>
 <p class="p1"><span class="Apple-converted-space">  </span>&lt;script&gt;</p>
 <p class="p1"><span class="Apple-converted-space">    </span>const CLIENT_ID = '232128500768-tmbbeonls89c7e0hmopfu999lrphbeco.apps.googleusercontent.com';</p>
@@ -94,7 +126,9 @@
 <p class="p2"><span class="Apple-converted-space">    </span></p>
 <p class="p1"><span class="Apple-converted-space">    </span>let tokenClient;</p>
 <p class="p1"><span class="Apple-converted-space">    </span>let allContacts = [];</p>
+<p class="p1"><span class="Apple-converted-space">    </span>let selectedContact = null;</p>
 <p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// Inicialización</p>
 <p class="p1"><span class="Apple-converted-space">    </span>function gapiLoaded() {</p>
 <p class="p1"><span class="Apple-converted-space">      </span>gapi.load('client', async () =&gt; {</p>
 <p class="p1"><span class="Apple-converted-space">        </span>await gapi.client.init({</p>
@@ -127,37 +161,130 @@
 <p class="p1"><span class="Apple-converted-space">        </span>document.getElementById('main-content').style.display = 'block';</p>
 <p class="p1"><span class="Apple-converted-space">        </span>await cargarContactos();</p>
 <p class="p1"><span class="Apple-converted-space">      </span>};</p>
-<p class="p1"><span class="Apple-converted-space">      </span>tokenClient.requestAccessToken();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>tokenClient.requestAccessToken({prompt: 'consent'});</p>
 <p class="p1"><span class="Apple-converted-space">    </span>}</p>
 <p class="p2"><br></p>
 <p class="p1"><span class="Apple-converted-space">    </span>async function cargarContactos() {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const response = await gapi.client.people.people.connections.list({</p>
-<p class="p1"><span class="Apple-converted-space">        </span>resourceName: 'people/me',</p>
-<p class="p1"><span class="Apple-converted-space">        </span>pageSize: 100,</p>
-<p class="p1"><span class="Apple-converted-space">        </span>personFields: 'names,organizations,emailAddresses,phoneNumbers',</p>
-<p class="p1"><span class="Apple-converted-space">      </span>});</p>
-<p class="p1"><span class="Apple-converted-space">      </span>allContacts = response.result.connections || [];</p>
-<p class="p1"><span class="Apple-converted-space">      </span>renderizarTabla(allContacts);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>try {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const response = await gapi.client.people.people.connections.list({</p>
+<p class="p1"><span class="Apple-converted-space">          </span>resourceName: 'people/me',</p>
+<p class="p1"><span class="Apple-converted-space">          </span>pageSize: 500,</p>
+<p class="p1"><span class="Apple-converted-space">          </span>personFields: 'names,organizations,emailAddresses,phoneNumbers,biographies,userDefined,etag',</p>
+<p class="p1"><span class="Apple-converted-space">        </span>});</p>
+<p class="p1"><span class="Apple-converted-space">        </span>allContacts = response.result.connections || [];</p>
+<p class="p1"><span class="Apple-converted-space">        </span>renderizarTabla(allContacts);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>} catch (e) {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>console.error(e);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>}</p>
 <p class="p1"><span class="Apple-converted-space">    </span>}</p>
 <p class="p2"><br></p>
 <p class="p1"><span class="Apple-converted-space">    </span>function renderizarTabla(contactos) {</p>
 <p class="p1"><span class="Apple-converted-space">      </span>const wrapper = document.getElementById('table-wrapper');</p>
-<p class="p1"><span class="Apple-converted-space">      </span>let html = `&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Nombre&lt;/th&gt;&lt;th&gt;Empresa&lt;/th&gt;&lt;th&gt;Acción&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;`;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>let html = `&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Contacto / Empresa&lt;/th&gt;&lt;th&gt;Datos&lt;/th&gt;&lt;th style="text-align:right"&gt;Gestión&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;`;</p>
+<p class="p2"><span class="Apple-converted-space">      </span></p>
 <p class="p1"><span class="Apple-converted-space">      </span>contactos.forEach(c =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const nombre = c.names?.[0]?.displayName || 'Sin nombre';</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const empresa = c.organizations?.[0]?.name || '---';</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const email = c.emailAddresses?.[0]?.value || '-';</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const telf = c.phoneNumbers?.[0]?.value || '';</p>
+<p class="p2"><br></p>
 <p class="p1"><span class="Apple-converted-space">        </span>html += `&lt;tr&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;td&gt;${c.names?.[0]?.displayName || 'Sin nombre'}&lt;/td&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;td&gt;${c.organizations?.[0]?.name || '---'}&lt;/td&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;td&gt;&lt;button class="btn btn-primary" style="padding:5px 10px; font-size:0.8rem"&gt;Tratar&lt;/button&gt;&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;td&gt;&lt;div style="font-weight:700"&gt;${nombre}&lt;/div&gt;&lt;div style="font-size:0.8rem; color:var(--text-muted)"&gt;${empresa}&lt;/div&gt;&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;td&gt;&lt;div style="font-size:0.9rem"&gt;${email}&lt;/div&gt;&lt;div style="font-size:0.8rem; color:var(--text-muted)"&gt;${telf}&lt;/div&gt;&lt;/td&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;td style="text-align:right"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;button class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem" onclick="abrirModal('${c.resourceName}')"&gt;Gestionar&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;/td&gt;</p>
 <p class="p1"><span class="Apple-converted-space">        </span>&lt;/tr&gt;`;</p>
 <p class="p1"><span class="Apple-converted-space">      </span>});</p>
+<p class="p2"><span class="Apple-converted-space">      </span></p>
 <p class="p1"><span class="Apple-converted-space">      </span>html += `&lt;/tbody&gt;&lt;/table&gt;`;</p>
 <p class="p1"><span class="Apple-converted-space">      </span>wrapper.innerHTML = html;</p>
 <p class="p1"><span class="Apple-converted-space">    </span>}</p>
 <p class="p2"><br></p>
 <p class="p1"><span class="Apple-converted-space">    </span>function filtrarContactos() {</p>
 <p class="p1"><span class="Apple-converted-space">      </span>const q = document.getElementById('search').value.toLowerCase();</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const res = allContacts.filter(c =&gt; (c.names?.[0]?.displayName || '').toLowerCase().includes(q));</p>
-<p class="p1"><span class="Apple-converted-space">      </span>renderizarTabla(res);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const filtrados = allContacts.filter(c =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const n = (c.names?.[0]?.displayName || '').toLowerCase();</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const e = (c.organizations?.[0]?.name || '').toLowerCase();</p>
+<p class="p1"><span class="Apple-converted-space">        </span>return n.includes(q) || e.includes(q);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>});</p>
+<p class="p1"><span class="Apple-converted-space">      </span>renderizarTabla(filtrados);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>function abrirModal(resourceName) {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>selectedContact = allContacts.find(c =&gt; c.resourceName === resourceName);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>document.getElementById('modal-title').textContent = selectedContact.names?.[0]?.displayName;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>document.getElementById('modal-subtitle').textContent = selectedContact.organizations?.[0]?.name || 'Sin empresa';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>document.getElementById('action-modal').style.display = 'flex';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>document.getElementById('feedback').style.display = 'none';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>function cerrarModal() {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>document.getElementById('action-modal').style.display = 'none';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>async function procesarAccion(tipo) {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const fb = document.getElementById('feedback');</p>
+<p class="p1"><span class="Apple-converted-space">      </span>fb.style.display = 'block';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>fb.className = 'status-msg';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>fb.textContent = `Guardando ${tipo}...`;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>const fecha = new Date().toLocaleString('es-ES');</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const nuevaNota = `\n[${fecha}] Acción: ${tipo}`;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>try {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>// 1. Actualizar Notas en Google Contacts</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const bioActual = selectedContact.biographies?.[0]?.value || "";</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const bioNueva = bioActual + nuevaNota;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>const resUpdate = await gapi.client.people.people.updateContact({</p>
+<p class="p1"><span class="Apple-converted-space">          </span>resourceName: selectedContact.resourceName,</p>
+<p class="p1"><span class="Apple-converted-space">          </span>updatePersonFields: 'biographies',</p>
+<p class="p1"><span class="Apple-converted-space">          </span>resource: {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>etag: selectedContact.etag,</p>
+<p class="p1"><span class="Apple-converted-space">            </span>biographies: [{ value: bioNueva, contentType: 'TEXT_PLAIN' }]</p>
+<p class="p1"><span class="Apple-converted-space">          </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>// Actualizar datos locales</p>
+<p class="p1"><span class="Apple-converted-space">        </span>selectedContact.etag = resUpdate.result.etag;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>selectedContact.biographies = [{ value: bioNueva }];</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>// 2. Registrar en Google Sheets</p>
+<p class="p1"><span class="Apple-converted-space">        </span>await registrarEnSheets(selectedContact, tipo, bioNueva);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>fb.className = 'status-msg success';</p>
+<p class="p1"><span class="Apple-converted-space">        </span>fb.textContent = "¡Registrado correctamente!";</p>
+<p class="p1"><span class="Apple-converted-space">        </span>setTimeout(cerrarModal, 1500);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>} catch (err) {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>fb.className = 'status-msg error';</p>
+<p class="p1"><span class="Apple-converted-space">        </span>fb.textContent = "Error al sincronizar.";</p>
+<p class="p1"><span class="Apple-converted-space">      </span>}</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>async function registrarEnSheets(p, tipo, historialCompleto) {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const row = [</p>
+<p class="p1"><span class="Apple-converted-space">        </span>new Date().toLocaleDateString('es-ES'),</p>
+<p class="p1"><span class="Apple-converted-space">        </span>(p.userDefined || []).map(u =&gt; u.value).join(', '),</p>
+<p class="p1"><span class="Apple-converted-space">        </span>p.names?.[0]?.givenName || "",</p>
+<p class="p1"><span class="Apple-converted-space">        </span>"",</p>
+<p class="p1"><span class="Apple-converted-space">        </span>p.names?.[0]?.familyName || "",</p>
+<p class="p1"><span class="Apple-converted-space">        </span>p.organizations?.[0]?.name || "",</p>
+<p class="p1"><span class="Apple-converted-space">        </span>p.organizations?.[0]?.title || "",</p>
+<p class="p1"><span class="Apple-converted-space">        </span>p.emailAddresses?.[0]?.value || "",</p>
+<p class="p1"><span class="Apple-converted-space">        </span>"",</p>
+<p class="p1"><span class="Apple-converted-space">        </span>p.phoneNumbers?.[0]?.value || "",</p>
+<p class="p1"><span class="Apple-converted-space">        </span>"", "", "", "", "", "",</p>
+<p class="p1"><span class="Apple-converted-space">        </span>`ACCIÓN: ${tipo} | NOTAS: ${historialCompleto}`</p>
+<p class="p1"><span class="Apple-converted-space">      </span>];</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>await gapi.client.sheets.spreadsheets.values.append({</p>
+<p class="p1"><span class="Apple-converted-space">        </span>spreadsheetId: SPREADSHEET_ID,</p>
+<p class="p1"><span class="Apple-converted-space">        </span>range: `${TAB_NAME}!A:Q`,</p>
+<p class="p1"><span class="Apple-converted-space">        </span>valueInputOption: 'USER_ENTERED',</p>
+<p class="p1"><span class="Apple-converted-space">        </span>resource: { values: [row] }</p>
+<p class="p1"><span class="Apple-converted-space">      </span>});</p>
 <p class="p1"><span class="Apple-converted-space">    </span>}</p>
 <p class="p1"><span class="Apple-converted-space">  </span>&lt;/script&gt;</p>
 <p class="p1">&lt;/body&gt;</p>
