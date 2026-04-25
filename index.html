@@ -8,439 +8,1021 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
-        body { font-family: 'Outfit', sans-serif; background-color: #050a15; color: #e2e8f0; overflow-x: hidden; }
-        .glass-card { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1.5rem; }
-        .input-dark { background: #0f172a !important; border: 1px solid #3b82f6 !important; color: white !important; border-radius: 0.75rem !important; }
-        .btn-primary { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); transition: all 0.3s ease; }
-        .loading { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
-        .modal-overlay { background: rgba(2, 6, 23, 0.92); backdrop-filter: blur(8px); }
+        * { box-sizing: border-box; }
+        body { font-family: 'Outfit', sans-serif; background: #050a15; color: #e2e8f0; overflow-x: hidden; }
+        .glass { background: rgba(15,23,42,0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); border-radius: 1.25rem; }
+        .input-dark { background:#0f172a; border:1px solid #3b82f6; color:white; border-radius:.75rem; outline:none; }
+        .btn-p { background:linear-gradient(135deg,#2563eb,#1d4ed8); }
+        .tab-on { border-bottom:2px solid #3b82f6; color:#3b82f6; }
+        ::-webkit-scrollbar { width:4px; } ::-webkit-scrollbar-thumb { background:#1e293b; border-radius:4px; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        @keyframes fadeIn { from { opacity:0;transform:translateY(4px);} to { opacity:1;transform:translateY(0); } }
+        .spin { width:24px;height:24px;border:3px solid rgba(255,255,255,.1);border-top:3px solid #3b82f6;border-radius:50%;animation:spin .8s linear infinite; }
+        .spin-wapp { border-top-color:#25d366; }
+        .fade { animation:fadeIn .25s ease; }
+        /* Action panel */
+        #action-panel { display:none;flex-direction:column;background:#0d1117;border:1px solid #1e2535;border-radius:1rem;overflow:hidden;max-height:calc(100vh - 120px);position:sticky;top:20px; }
+        #action-panel.open { display:flex; }
+        .p-tab { background:none;border:none;color:#6b7280;font-size:11px;font-weight:700;cursor:pointer;padding:7px 14px;border-radius:6px 6px 0 0;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.5px; }
+        .p-tab.on { color:#e2e8f0;border-bottom-color:#3b82f6;background:#111827; }
+        .msg-body { background:#111827;border-radius:.5rem;padding:14px;font-size:12px;line-height:1.8;color:#d1d5db;border:1px solid #1e2535;white-space:pre-wrap;word-break:break-word; }
+        .btn-send { flex:1;background:linear-gradient(135deg,#1d4ed8,#2563eb);color:#fff;border:none;border-radius:.5rem;padding:10px;font-size:12px;font-weight:700;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none; }
+        .btn-send.wapp { background:linear-gradient(135deg,#128c4a,#25d366); }
+        .btn-send.li { background:linear-gradient(135deg,#004182,#0a66c2); }
+        .btn-sec { background:#1e2535;color:#9ca3af;border:1px solid #374151;border-radius:.5rem;padding:10px 12px;font-size:11px;cursor:pointer;font-weight:600; }
+        .btn-ok { width:100%;margin-top:6px;background:#002a1a;color:#00cc88;border:1px solid #00cc8844;border-radius:.5rem;padding:9px;font-size:12px;cursor:pointer;font-weight:700; }
+        .btn-ok.wapp { background:#001a0d;color:#25d366;border-color:#25d36644; }
+        .btn-skip { width:100%;margin-top:5px;background:#1a1a2a;color:#9ca3af;border:1px solid #374151;border-radius:.5rem;padding:8px;font-size:12px;cursor:pointer;font-weight:600; }
+        .btn-post { flex:1;background:#111827;color:#6b7280;border:1px solid #1e2535;border-radius:.4rem;padding:6px 4px;font-size:11px;cursor:pointer;font-weight:600;transition:all .12s; }
+        .btn-post:hover { background:#1e2535;color:#e2e8f0; }
+        .badge-u { font-size:9px;font-weight:700;padding:1px 7px;border-radius:10px; }
+        .badge-OK     { background:#002a1a;color:#00cc88;border:1px solid #00cc8844; }
+        .badge-PROX   { background:#2a1a00;color:#ffaa00;border:1px solid #ffaa0044; }
+        .badge-URG    { background:#2a0a0a;color:#ff4444;border:1px solid #ff44440a; }
+        .dias-num { font-size:24px;font-weight:800;line-height:1; }
+        .proxima-box { background:#1a1030;border:1px solid #a78bfa44;border-radius:.5rem;padding:10px 14px;font-size:11px;color:#a78bfa;margin-bottom:10px;line-height:1.6; }
+        .wapp-info-box { background:#001a0d;border:1px solid #25d36633;border-radius:.5rem;padding:12px;font-size:12px;color:#6b7280;margin-bottom:10px;line-height:1.6; }
+        .modal-bg { background:rgba(2,6,23,.92);backdrop-filter:blur(8px); }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-8">
+<body class="min-h-screen p-4 md:p-6">
 
-    <!-- HEADER -->
-    <header class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-6 glass-card p-6">
-        <div class="flex items-center gap-4">
-            <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <span class="text-white font-bold text-xl italic">M</span>
-            </div>
-            <div>
-                <h1 class="text-xl font-bold tracking-tight">MTTE <span class="text-blue-500 italic">INDUSTRIAL</span></h1>
-                <div class="flex items-center gap-2">
-                    <div id="status-dot" class="w-2 h-2 rounded-full bg-yellow-500"></div>
-                    <p id="connection-status" class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Sin Conectar</p>
-                </div>
-            </div>
+<!-- HEADER -->
+<header class="max-w-screen-xl mx-auto flex flex-col md:flex-row justify-between items-center mb-6 gap-4 glass p-5">
+    <div class="flex items-center gap-4">
+        <div class="w-11 h-11 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <span class="text-white font-bold text-xl italic">M</span>
         </div>
-        <div class="flex items-center gap-3">
-            <button id="auth-btn" onclick="handleGoogleAuth()" class="bg-white text-slate-900 px-6 py-2.5 rounded-xl font-bold text-xs hover:bg-blue-50 transition-colors shadow-sm flex items-center gap-2">
-                <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                <span id="auth-btn-text">Conectar con Google</span>
-            </button>
-            <button onclick="openAddModal(currentTab)" class="p-2.5 bg-emerald-600/20 rounded-xl border border-emerald-500/30 hover:bg-emerald-600/30 transition-all" title="Añadir registro">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            </button>
-            <button onclick="toggleModal('config-modal', true)" class="p-2.5 bg-slate-800 rounded-xl border border-blue-500/30 hover:bg-slate-700 transition-all" title="Configuración">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-            </button>
-        </div>
-    </header>
-
-    <!-- MAIN -->
-    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <aside class="lg:col-span-4 space-y-6">
-            <div class="glass-card p-6 min-h-[500px] flex flex-col">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em]">Google Contacts</h2>
-                    <span id="google-count" class="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold">0</span>
-                </div>
-                <div id="google-list" class="space-y-3 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar">
-                    <div class="text-center py-20 opacity-30"><p class="text-xs">Conecta con Google para importar</p></div>
-                </div>
-            </div>
-        </aside>
-
-        <section class="lg:col-span-8">
-            <div class="flex gap-8 mb-6 font-bold text-[11px] uppercase border-b border-slate-800">
-                <button onclick="changeTab('Contactos')" id="tab-Contactos" class="pb-3 tab-active tracking-widest">👥 Contactos</button>
-                <button onclick="changeTab('Empresas')"  id="tab-Empresas"  class="pb-3 text-slate-500 hover:text-white tracking-widest">🏢 Empresas</button>
-                <button onclick="changeTab('Agenda')"    id="tab-Agenda"    class="pb-3 text-slate-500 hover:text-white tracking-widest">📅 Agenda</button>
-            </div>
-            <div id="st-content" class="min-h-[400px]">
-                <div class="glass-card p-10 text-center">
-                    <p class="text-slate-400 text-sm mb-4">Conecta con Google para ver tus datos</p>
-                    <button onclick="handleGoogleAuth()" class="btn-primary px-6 py-2.5 rounded-xl text-xs font-bold text-white">Conectar con Google</button>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- CONFIG MODAL -->
-    <div id="config-modal" class="fixed inset-0 modal-overlay hidden flex items-center justify-center z-[100] p-4">
-        <div class="glass-card max-w-md w-full p-8 shadow-2xl">
-            <h3 class="text-xl font-bold mb-6">⚙️ Configuración</h3>
-            <div class="space-y-5">
-                <div>
-                    <label class="text-[10px] text-blue-400 font-bold uppercase ml-1">Google Client ID</label>
-                    <input type="text" id="cfg-google-id" placeholder="xxxxx.apps.googleusercontent.com" class="w-full input-dark px-4 py-3 mt-1.5 text-sm outline-none">
-                    <p class="text-[9px] text-slate-500 mt-1 ml-1">Google Cloud Console → APIs → Credenciales → OAuth 2.0</p>
-                </div>
-                <div>
-                    <label class="text-[10px] text-blue-400 font-bold uppercase ml-1">ID de Google Sheets</label>
-                    <input type="text" id="cfg-sheet-id" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms" class="w-full input-dark px-4 py-3 mt-1.5 text-sm outline-none">
-                    <p class="text-[9px] text-slate-500 mt-1 ml-1">El ID largo en la URL de tu hoja: /spreadsheets/d/<strong class="text-slate-300">ESTE-ID</strong>/edit</p>
-                </div>
-                <div class="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-[10px] text-slate-400 space-y-1.5">
-                    <p class="text-blue-400 font-bold mb-2">📋 Estructura de tu hoja:</p>
-                    <p>· <code class="bg-black/30 px-1 rounded text-white">Contactos</code> → Email · Nombre · Apellido 1 · Apellido 2 · Nombre Empresa · Cargo · Teléfono Móvil · Teléfono Fijo · Linkedin · Notas</p>
-                    <p>· <code class="bg-black/30 px-1 rounded text-white">Empresas</code>  → Nombre Empresa · Tipo Empresa · Dirección · Ciudad · Provincia · Código Postal · País</p>
-                    <p>· <code class="bg-black/30 px-1 rounded text-white">Agenda</code>    → Fecha · Nombre · Apellido 1 · Apellido 2 · Empresa · Cargo · Descripción · Fecha Próxima Acción</p>
-                    <p class="text-yellow-400/80 mt-2">⚠ Los nombres de pestaña deben coincidir exactamente.</p>
-                </div>
-                <div class="pt-2">
-                    <button onclick="saveConfig()" class="w-full btn-primary py-4 rounded-xl font-bold text-sm text-white">Guardar y Conectar</button>
-                    <button onclick="toggleModal('config-modal', false)" class="w-full mt-4 text-slate-500 text-xs">Cerrar</button>
-                </div>
+        <div>
+            <h1 class="text-lg font-bold tracking-tight">MTTE <span class="text-blue-500 italic">INDUSTRIAL</span></h1>
+            <div class="flex items-center gap-2">
+                <div id="status-dot" class="w-2 h-2 rounded-full bg-yellow-500"></div>
+                <p id="status-txt" class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Sin Conectar</p>
             </div>
         </div>
     </div>
+    <div class="flex items-center gap-3">
+        <button id="auth-btn" onclick="handleAuth()" class="bg-white text-slate-900 px-5 py-2 rounded-xl font-bold text-xs hover:bg-blue-50 transition flex items-center gap-2 shadow-sm">
+            <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            <span id="auth-txt">Conectar Google</span>
+        </button>
+        <button onclick="openAddModal(currentTab)" class="p-2 bg-emerald-600/20 rounded-xl border border-emerald-500/30 hover:bg-emerald-600/30 transition" title="Añadir">
+            <svg class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        </button>
+        <button onclick="toggleModal('cfg-modal',true)" class="p-2 bg-slate-800 rounded-xl border border-blue-500/30 hover:bg-slate-700 transition" title="Config">
+            <svg class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </button>
+    </div>
+</header>
 
-    <!-- ADD / EDIT MODAL -->
-    <div id="add-modal" class="fixed inset-0 modal-overlay hidden flex items-center justify-center z-[100] p-4">
-        <div class="glass-card max-w-lg w-full p-8 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <h3 class="text-xl font-bold mb-6" id="add-modal-title">➕ Nuevo registro</h3>
-            <div id="add-form-fields" class="space-y-4"></div>
-            <div class="flex gap-3 mt-6">
-                <button onclick="saveRecord()" class="flex-1 btn-primary py-3 rounded-xl font-bold text-sm text-white">💾 Guardar</button>
-                <button onclick="toggleModal('add-modal', false)" class="flex-1 bg-slate-800 py-3 rounded-xl font-bold text-sm text-slate-400 hover:bg-slate-700">Cancelar</button>
+<!-- MAIN GRID -->
+<main class="max-w-screen-xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+    <!-- LEFT: Contacts + Action Panel -->
+    <div class="lg:col-span-4 space-y-4">
+
+        <!-- Contacts List -->
+        <div class="glass p-5 flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-[10px] font-black text-blue-400 uppercase tracking-[.2em]">Google Contacts</h2>
+                <span id="gc-count" class="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold">0</span>
+            </div>
+            <input id="gc-search" type="text" placeholder="🔍 Buscar..." oninput="renderContactList()"
+                class="w-full input-dark px-3 py-2 text-xs mb-3">
+            <div id="gc-list" class="space-y-2 overflow-y-auto max-h-[500px] pr-1">
+                <div class="text-center py-16 opacity-30 text-xs">Conecta Google para ver contactos</div>
             </div>
         </div>
-    </div>
 
-    <script>
-    // ── CONFIG ────────────────────────────────────────────────
-    let config = JSON.parse(localStorage.getItem('mtte_crm_config')) || {
-        googleId: '',
-        sheetId: '1nKeeV1mDqtaHKdWIljitlcmck4b11sm0-RlSdeQj0YI'
-    };
-    let currentTab = 'Contactos';
-    let googleToken = null;
-    let tokenClient = null;
-    let _editContext = null; // { sheetName, rowNumber } cuando editamos
+        <!-- Action Panel (appears when contact clicked) -->
+        <div id="action-panel" class="glass">
+            <!-- Panel Header -->
+            <div class="flex items-center justify-between px-5 py-4 border-b border-white/5">
+                <div>
+                    <div id="ap-tag" class="text-[10px] font-black text-blue-400 uppercase tracking-widest">✉ Email · IA</div>
+                    <div id="ap-name" class="text-sm font-bold mt-0.5"></div>
+                    <div id="ap-sub" class="text-[10px] text-slate-500"></div>
+                </div>
+                <button onclick="closePanel()" class="text-slate-500 hover:text-white text-xl leading-none">×</button>
+            </div>
+            <!-- Contact Info -->
+            <div id="ap-info" class="mx-4 mt-3 bg-slate-800/50 rounded-lg p-3 text-[10px] grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-slate-400"></div>
+            <!-- Próxima Acción Alert -->
+            <div id="ap-proxima" class="mx-4 mt-3 proxima-box" style="display:none;"></div>
+            <!-- Tabs -->
+            <div class="flex gap-1 px-4 mt-3 border-b border-white/5">
+                <button class="p-tab on" id="ptab-email" onclick="switchPTab('email')">✉ Email</button>
+                <button class="p-tab" id="ptab-wapp" onclick="switchPTab('wapp')">💬 WhatsApp</button>
+                <button class="p-tab" id="ptab-li" onclick="switchPTab('li')">💼 LinkedIn</button>
+            </div>
+            <!-- Panel Body -->
+            <div id="ap-body" class="p-4 overflow-y-auto flex-1" style="max-height:420px;">
 
-    // Nombres de columna EXACTOS de tu Google Sheet
-    const SCHEMA = {
-        Contactos: ['Email', 'Nombre', 'Apellido 1', 'Apellido 2', 'Nombre Empresa', 'Cargo', 'Teléfono Móvil', 'Teléfono Fijo', 'Linkedin', 'Notas'],
-        Empresas:  ['Nombre Empresa', 'Tipo Empresa', 'Dirección', 'Ciudad', 'Provincia', 'Código Postal', 'País'],
-        Agenda:    ['Fecha', 'Nombre', 'Apellido 1', 'Apellido 2', 'Empresa', 'Cargo', 'Descripción', 'Fecha Próxima Acción']
-    };
+                <!-- EMAIL CONTENT -->
+                <div id="pc-email">
+                    <div id="sp-email" class="flex justify-center py-10"><div class="spin"></div></div>
+                    <div id="res-email" class="fade" style="display:none;">
+                        <div class="bg-slate-800/50 rounded-lg px-3 py-2 mb-3 border border-white/5">
+                            <div class="text-[9px] text-slate-500 uppercase tracking-widest mb-1">Asunto</div>
+                            <div id="em-asunto" class="text-xs font-semibold"></div>
+                        </div>
+                        <div class="msg-body" id="em-cuerpo"></div>
+                        <div class="flex gap-2 mt-3">
+                            <a id="btn-open-email" class="btn-send" href="#">✉ Abrir email</a>
+                            <button class="btn-sec" onclick="copyEmail()">Copiar</button>
+                        </div>
+                        <button class="btn-ok" onclick="markEmailSent()">✓ Marcar email enviado</button>
+                        <button class="btn-sec w-full mt-1 text-[10px]" onclick="regenEmail()">↻ Regenerar</button>
+                    </div>
+                    <button class="btn-skip" onclick="togglePostpone()">⏭ No procede ahora — posponer</button>
+                    <div id="postpone-row" class="flex gap-2 mt-2" style="display:none;">
+                        <button class="btn-post" onclick="doPostpone(30)">+1 mes</button>
+                        <button class="btn-post" onclick="doPostpone(90)">+3 meses</button>
+                        <button class="btn-post" onclick="showDateInput()">📅 Fecha</button>
+                    </div>
+                    <div id="date-row" class="flex gap-2 mt-2" style="display:none;">
+                        <input id="custom-date" type="text" placeholder="DD-MM-AAAA" class="input-dark flex-1 px-3 py-1.5 text-xs">
+                        <button class="btn-post" onclick="doPostponeCustom()">OK</button>
+                    </div>
+                </div>
 
-    // ── STATUS ────────────────────────────────────────────────
-    function updateStatus(msg, colorClass, dotColor) {
-        document.getElementById('connection-status').innerText = msg;
-        document.getElementById('connection-status').className = `text-[10px] ${colorClass} uppercase tracking-widest font-bold`;
-        document.getElementById('status-dot').className = `w-2 h-2 rounded-full ${dotColor}`;
-    }
-
-    // ── GOOGLE AUTH ───────────────────────────────────────────
-    function handleGoogleAuth() {
-        if (!config.googleId || !config.sheetId) { toggleModal('config-modal', true); return; }
-        if (googleToken) { loadData(); return; }
-        if (!tokenClient) initTokenClient();
-        tokenClient.requestAccessToken();
-    }
-
-    function initTokenClient() {
-        tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: config.googleId,
-            scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/contacts.readonly',
-            callback: async (response) => {
-                if (response.error) {
-                    updateStatus('Error de auth', 'text-red-500', 'bg-red-500');
-                    console.error('Auth error:', response);
-                    return;
-                }
-                googleToken = response.access_token;
-                document.getElementById('auth-btn-text').textContent = 'Conectado ✓';
-                updateStatus('Google Sheets · Conectado', 'text-emerald-500', 'bg-emerald-500');
-                loadGoogleContacts();
-                loadData();
-            }
-        });
-    }
-
-    // ── GOOGLE CONTACTS ───────────────────────────────────────
-    async function loadGoogleContacts() {
-        try {
-            const res = await fetch(
-                'https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,phoneNumbers,organizations&pageSize=100',
-                { headers: { Authorization: `Bearer ${googleToken}` } }
-            );
-            const data = await res.json();
-            const contacts = data.connections || [];
-            document.getElementById('google-count').textContent = contacts.length;
-            const list = document.getElementById('google-list');
-            if (!contacts.length) { list.innerHTML = '<div class="text-center py-10 opacity-30 text-xs">Sin contactos</div>'; return; }
-            list.innerHTML = contacts.map(c => {
-                const name  = c.names?.[0]?.displayName || 'Sin nombre';
-                const phone = c.phoneNumbers?.[0]?.value || '';
-                const org   = c.organizations?.[0]?.name || '';
-                const email = c.emailAddresses?.[0]?.value || '';
-                return `<div onclick='importContact(${JSON.stringify({name,phone,org,email})})'
-                    class="p-3 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 transition-all cursor-pointer border border-transparent hover:border-blue-500/30">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold text-xs flex-shrink-0">${name[0]?.toUpperCase()}</div>
-                        <div class="min-w-0">
-                            <p class="font-bold text-xs truncate">${name}</p>
-                            <p class="text-[10px] text-slate-500 truncate">${org || phone || email || 'Sin datos'}</p>
+                <!-- WAPP CONTENT -->
+                <div id="pc-wapp" style="display:none;">
+                    <div id="wapp-locked" class="wapp-info-box">
+                        💬 Genera primero el email y márcalo como enviado.<br>
+                        El WhatsApp se activa si en <strong style="color:#25d366;">2 días</strong> no hay respuesta.
+                    </div>
+                    <div id="wapp-open" style="display:none;">
+                        <div id="sp-wapp" class="flex justify-center py-10" style="display:none;"><div class="spin spin-wapp"></div></div>
+                        <div id="res-wapp" class="fade" style="display:none;">
+                            <div class="msg-body" id="wapp-msg"></div>
+                            <div class="text-[10px] text-slate-500 mt-3 mb-1 uppercase tracking-widest">Teléfono</div>
+                            <input id="wapp-tel" type="tel" placeholder="+34 612 345 678" class="input-dark w-full px-3 py-2 text-xs mb-3">
+                            <div class="flex gap-2">
+                                <a id="btn-wapp" class="btn-send wapp" href="#" target="_blank" onclick="openWapp()">💬 Abrir WhatsApp</a>
+                                <button class="btn-sec" onclick="copyWapp()">Copiar</button>
+                            </div>
+                            <button class="btn-ok wapp" onclick="markWappSent()">✓ Marcar WhatsApp enviado</button>
+                            <button class="btn-sec w-full mt-1 text-[10px]" onclick="regenWapp()">↻ Regenerar</button>
                         </div>
                     </div>
-                </div>`;
-            }).join('');
-        } catch(e) { console.error('Contacts error:', e); }
-    }
-
-    function importContact(c) {
-        const parts = c.name.split(' ');
-        openAddModal('Contactos', {
-            'Email':          c.email,
-            'Nombre':         parts[0] || '',
-            'Apellido 1':     parts[1] || '',
-            'Apellido 2':     parts.slice(2).join(' ') || '',
-            'Nombre Empresa': c.org,
-            'Teléfono Móvil': c.phone
-        });
-    }
-
-    // ── SHEETS API ────────────────────────────────────────────
-    async function sheetsGet(sheetName) {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(sheetName)}!A:Z`;
-        const res = await fetch(url, { headers: { Authorization: `Bearer ${googleToken}` } });
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.error?.message || `Error ${res.status}`);
-        }
-        const data = await res.json();
-        const rows = data.values || [];
-        if (rows.length < 1) return [];
-        const headers = rows[0];
-        return rows.slice(1).map((row, i) => {
-            const obj = { _row: i + 2 }; // fila real en Sheets (1 cabecera + 1 base)
-            headers.forEach((h, j) => obj[h] = row[j] ?? '');
-            return obj;
-        });
-    }
-
-    async function sheetsAppend(sheetName, values) {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(sheetName)}!A:Z:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${googleToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ values: [values] })
-        });
-        return res.ok;
-    }
-
-    async function sheetsUpdate(sheetName, rowNum, values) {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(sheetName)}!A${rowNum}:Z${rowNum}?valueInputOption=USER_ENTERED`;
-        const res = await fetch(url, {
-            method: 'PUT',
-            headers: { Authorization: `Bearer ${googleToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ values: [values] })
-        });
-        return res.ok;
-    }
-
-    // ── LOAD DATA ─────────────────────────────────────────────
-    async function loadData() {
-        if (!googleToken) { handleGoogleAuth(); return; }
-        const container = document.getElementById('st-content');
-        container.innerHTML = '<div class="flex justify-center py-24"><div class="loading"></div></div>';
-        try {
-            const rows = await sheetsGet(currentTab);
-            if (!rows.length) {
-                container.innerHTML = `
-                    <div class="glass-card p-10 text-center">
-                        <p class="text-slate-400 text-sm mb-1">La pestaña <strong class="text-white">"${currentTab}"</strong> está vacía o no existe.</p>
-                        <p class="text-[11px] text-slate-500 mb-4">Asegúrate de que la pestaña <strong class="text-white">"${currentTab}"</strong> existe y que la primera fila tiene las cabeceras.</p>
-                        <button onclick="openAddModal('${currentTab}')" class="btn-primary px-5 py-2 rounded-xl text-xs font-bold text-white">➕ Añadir primer registro</button>
-                    </div>`;
-                return;
-            }
-            renderData(rows);
-        } catch(e) {
-            container.innerHTML = `<div class="glass-card p-10 text-center border-red-500/30"><p class="text-red-400 font-bold">❌ ${e.message}</p></div>`;
-        }
-    }
-
-    // ── RENDER ────────────────────────────────────────────────
-    // ── RENDER ────────────────────────────────────────────────
-    function renderData(rows) {
-        const container = document.getElementById('st-content');
-
-        if (currentTab === 'Agenda') {
-            const today = new Date().toLocaleDateString('es-ES');
-            const proximas = rows
-                .filter(r => r['Fecha Próxima Acción'])
-                .sort((a, b) => new Date(a['Fecha Próxima Acción']) - new Date(b['Fecha Próxima Acción']));
-            const mostrar = proximas.length ? proximas : rows.slice(0, 20);
-            container.innerHTML = `
-                <div class="flex justify-between items-center mb-4">
-                    <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest">
-                        ${rows.length} registros · ${proximas.length} con próxima acción
-                    </p>
-                    <button onclick="openAddModal('Agenda')" class="text-[10px] bg-emerald-600/20 text-emerald-400 px-3 py-1.5 rounded-lg hover:bg-emerald-600/30 font-bold">➕ Añadir</button>
                 </div>
-                ${mostrar.map(r => agendaCard(r)).join('')}`;
+
+                <!-- LINKEDIN CONTENT -->
+                <div id="pc-li" style="display:none;">
+                    <div id="sp-li" class="flex justify-center py-10"><div class="spin" style="border-top-color:#0a66c2;"></div></div>
+                    <div id="res-li" class="fade" style="display:none;">
+                        <div class="msg-body" id="li-msg"></div>
+                        <div class="flex gap-2 mt-3">
+                            <a id="btn-open-li" class="btn-send li" href="#" target="_blank">💼 Abrir LinkedIn</a>
+                            <button class="btn-sec" onclick="copyLi()">Copiar</button>
+                        </div>
+                        <button class="btn-ok" onclick="markEmailSent()">✓ Marcar mensaje enviado</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Sheets Tabs -->
+    <section class="lg:col-span-8">
+        <div class="flex gap-6 mb-5 font-bold text-[11px] uppercase border-b border-slate-800">
+            <button onclick="changeTab('Contactos')" id="tab-Contactos" class="pb-3 tab-on tracking-widest">👥 Contactos</button>
+            <button onclick="changeTab('Empresas')"  id="tab-Empresas"  class="pb-3 text-slate-500 hover:text-white tracking-widest">🏢 Empresas</button>
+            <button onclick="changeTab('Agenda')"    id="tab-Agenda"    class="pb-3 text-slate-500 hover:text-white tracking-widest">📅 Agenda</button>
+        </div>
+        <div id="sheets-content" class="min-h-[400px]">
+            <div class="glass p-10 text-center">
+                <p class="text-slate-400 text-sm mb-4">Conecta Google para ver tus datos</p>
+                <button onclick="handleAuth()" class="btn-p px-5 py-2.5 rounded-xl text-xs font-bold text-white">Conectar</button>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- CONFIG MODAL -->
+<div id="cfg-modal" class="fixed inset-0 modal-bg hidden flex items-center justify-center z-50 p-4">
+    <div class="glass max-w-md w-full p-7 shadow-2xl">
+        <h3 class="text-xl font-bold mb-5">⚙️ Configuración</h3>
+        <div class="space-y-4">
+            <div>
+                <label class="text-[10px] text-blue-400 font-bold uppercase ml-1">Google Client ID</label>
+                <input id="cfg-gid" type="text" placeholder="xxxxx.apps.googleusercontent.com" class="input-dark w-full px-4 py-3 mt-1.5 text-sm">
+                <p class="text-[9px] text-slate-500 mt-1 ml-1">Google Cloud Console → Credenciales → OAuth 2.0</p>
+            </div>
+            <div>
+                <label class="text-[10px] text-blue-400 font-bold uppercase ml-1">ID de Google Sheets</label>
+                <input id="cfg-sid" type="text" placeholder="1BxiMV..." class="input-dark w-full px-4 py-3 mt-1.5 text-sm">
+                <p class="text-[9px] text-slate-500 mt-1 ml-1">URL: /spreadsheets/d/<strong class="text-slate-300">ESTE-ID</strong>/edit</p>
+            </div>
+            <div class="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-[10px] text-slate-400 space-y-1">
+                <p class="text-blue-400 font-bold mb-1">📋 Pestañas de tu hoja:</p>
+                <p>· <code class="bg-black/30 px-1 rounded text-white">Contactos</code> → Email · Nombre · Apellido 1 · Apellido 2 · Nombre Empresa · Cargo · Teléfono Móvil · Teléfono Fijo · Linkedin · Notas</p>
+                <p>· <code class="bg-black/30 px-1 rounded text-white">Empresas</code>  → Nombre Empresa · Tipo Empresa · Dirección · Ciudad · Provincia · Código Postal · País</p>
+                <p>· <code class="bg-black/30 px-1 rounded text-white">Agenda</code>    → Fecha · Nombre · Apellido 1 · Apellido 2 · Empresa · Cargo · Descripción · Fecha Próxima Acción</p>
+            </div>
+            <button onclick="saveConfig()" class="w-full btn-p py-3.5 rounded-xl font-bold text-sm text-white mt-1">Guardar y Conectar</button>
+            <button onclick="toggleModal('cfg-modal',false)" class="w-full text-slate-500 text-xs mt-1">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div id="add-modal" class="fixed inset-0 modal-bg hidden flex items-center justify-center z-50 p-4">
+    <div class="glass max-w-lg w-full p-7 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <h3 class="text-xl font-bold mb-5" id="add-title">➕ Nuevo registro</h3>
+        <div id="add-fields" class="space-y-4"></div>
+        <div class="flex gap-3 mt-5">
+            <button onclick="saveRecord()" class="flex-1 btn-p py-3 rounded-xl font-bold text-sm text-white">💾 Guardar</button>
+            <button onclick="toggleModal('add-modal',false)" class="flex-1 bg-slate-800 py-3 rounded-xl font-bold text-sm text-slate-400 hover:bg-slate-700">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// CONFIG & STATE
+// ══════════════════════════════════════════════════════
+let cfg = JSON.parse(localStorage.getItem('mtte_cfg')) || {
+    googleId: '',
+    sheetId: '1nKeeV1mDqtaHKdWIljitlcmck4b11sm0-RlSdeQj0YI'
+};
+let gToken = null;
+let tokenClient = null;
+let currentTab = 'Contactos';
+let gcContacts = [];    // parsed contacts from Google
+let gcEstado   = {};    // runtime state: emailSentAt, wappSent, postponedUntil
+let selContact = null;  // currently selected contact
+let curPTab    = 'email';
+let emailAsunto='', emailCuerpo='', wappMsg='', liMsg='';
+let _editCtx   = null;
+
+const SCHEMA = {
+    Contactos: ['Email','Nombre','Apellido 1','Apellido 2','Nombre Empresa','Cargo','Teléfono Móvil','Teléfono Fijo','Linkedin','Notas'],
+    Empresas:  ['Nombre Empresa','Tipo Empresa','Dirección','Ciudad','Provincia','Código Postal','País'],
+    Agenda:    ['Fecha','Nombre','Apellido 1','Apellido 2','Empresa','Cargo','Descripción','Fecha Próxima Acción']
+};
+
+// ══════════════════════════════════════════════════════
+// STATUS
+// ══════════════════════════════════════════════════════
+function setStatus(msg, col, dot) {
+    document.getElementById('status-txt').innerText = msg;
+    document.getElementById('status-txt').className = `text-[10px] ${col} uppercase tracking-widest font-bold`;
+    document.getElementById('status-dot').className = `w-2 h-2 rounded-full ${dot}`;
+}
+
+// ══════════════════════════════════════════════════════
+// GOOGLE AUTH
+// ══════════════════════════════════════════════════════
+function handleAuth() {
+    if (!cfg.googleId || !cfg.sheetId) { toggleModal('cfg-modal',true); return; }
+    if (gToken) { loadSheets(); return; }
+    if (!tokenClient) initTokenClient();
+    tokenClient.requestAccessToken();
+}
+
+function initTokenClient() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: cfg.googleId,
+        // Write scope needed to update notes after sending email/wapp
+        scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/contacts',
+        callback: async (r) => {
+            if (r.error) { setStatus('Error auth','text-red-500','bg-red-500'); return; }
+            gToken = r.access_token;
+            window._gToken = r.access_token;
+            document.getElementById('auth-txt').textContent = 'Conectado ✓';
+            setStatus('Google · Conectado','text-emerald-500','bg-emerald-500');
+            loadGoogleContacts();
+            loadSheets();
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════
+// GOOGLE CONTACTS — LOAD & PARSE
+// ══════════════════════════════════════════════════════
+async function loadGoogleContacts() {
+    const list = document.getElementById('gc-list');
+    list.innerHTML = '<div class="flex justify-center py-10"><div class="spin"></div></div>';
+
+    // 1. Load contact groups (labels)
+    const grpRes = await fetch('https://people.googleapis.com/v1/contactGroups?pageSize=200',
+        {headers:{Authorization:`Bearer ${gToken}`}});
+    const grpData = await grpRes.json();
+    window._gruposMap = {};
+    (grpData.contactGroups||[]).forEach(g => {
+        if (g.groupType === 'USER_CONTACT_GROUP') window._gruposMap[g.resourceName] = g.name;
+    });
+
+    // 2. Load contacts with pagination
+    let all = [], nextPage = null, pages = 0;
+    do {
+        const url = 'https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,phoneNumbers,organizations,biographies,memberships,urls&pageSize=1000'
+            + (nextPage ? `&pageToken=${nextPage}` : '');
+        const res = await fetch(url, {headers:{Authorization:`Bearer ${gToken}`}});
+        const data = await res.json();
+        all = all.concat(data.connections || []);
+        nextPage = data.nextPageToken || null;
+        pages++;
+        document.getElementById('gc-count').textContent = all.length + '…';
+    } while (nextPage && pages < 20);
+
+    // 3. Parse & filter
+    gcContacts = all.map(mapContact).filter(c =>
+        !c.etiquetas.some(e => e.toUpperCase().includes('NO EMAILS COMERCIALES'))
+    );
+
+    // 4. Rebuild in-memory state from notes
+    gcEstado = {};
+    gcContacts.forEach(c => rebuildState(c));
+
+    document.getElementById('gc-count').textContent = gcContacts.length;
+    renderContactList();
+}
+
+function mapContact(p) {
+    const notas   = p.biographies?.[0]?.value || '';
+    const fechaU  = extraerFechas(notas);
+    const proxAcc = extraerProximaAccion(notas);
+    const telefonos = p.phoneNumbers || [];
+    const movil = telefonos.find(t => {
+        const n = t.value.replace(/\D/g,'');
+        return n.startsWith('6') || n.startsWith('7') || n.startsWith('346') || n.startsWith('347');
+    });
+    const telefono = (movil || telefonos[0])?.value || '';
+    const linkedin = (p.urls||[]).find(u => u.value?.includes('linkedin.com'))?.value || '';
+    const etiquetas = (p.memberships||[])
+        .map(m => (window._gruposMap||{})[m.contactGroupMembership?.contactGroupResourceName]||'')
+        .filter(Boolean);
+    return {
+        id:            p.resourceName || Math.random().toString(36).slice(2),
+        nombre:        p.names?.[0]?.displayName || 'Sin nombre',
+        empresa:       p.organizations?.[0]?.name || '',
+        cargo:         p.organizations?.[0]?.title || '',
+        email:         p.emailAddresses?.[0]?.value || '',
+        telefono,
+        linkedin,
+        etiquetas,
+        ultimoContacto: fechaU || '2020-01-01',
+        proximaAccion:  proxAcc || null,
+        historial:      notas || '',
+        fuenteG:        true
+    };
+}
+
+// ══════════════════════════════════════════════════════
+// NOTE PARSING
+// ══════════════════════════════════════════════════════
+function parseFechaES(d, m, y) { return new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`); }
+
+function extraerFechas(txt) {
+    const lineas = txt.split('\n');
+    let ultima = null, ultimaTs = 0;
+    for (const linea of lineas) {
+        if (/^pr[oó]xima.+acci[oó]n/i.test(linea)) continue;
+        if (/wapp previsto/i.test(linea)) continue;
+        if (/^env[íi]o/i.test(linea)) continue;
+        const re = /\b(\d{1,2})[\-\/\.](\d{1,2})[\-\/\.](\d{4})\b/g;
+        let m;
+        while ((m = re.exec(linea)) !== null) {
+            const ts = parseFechaES(m[1], m[2], m[3]).getTime();
+            if (!isNaN(ts) && ts > ultimaTs && ts <= Date.now()) {
+                ultimaTs = ts;
+                ultima = `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+            }
+        }
+    }
+    return ultima;
+}
+
+function extraerProximaAccion(txt) {
+    const lineas = txt.split('\n').map(l=>l.trim()).filter(l=>l.length);
+    const esFecha = l => /^(\d{1,2})[\-\/\.](\d{1,2})[\-\/\.](\d{4}):?$/.test(l);
+    const bloques = [];
+    let actual = [];
+    for (const linea of lineas) {
+        if (esFecha(linea) && actual.length) { bloques.push(actual); actual = [linea]; }
+        else actual.push(linea);
+    }
+    if (actual.length) bloques.push(actual);
+    const ultimo = bloques[bloques.length-1] || [];
+    for (const linea of ultimo) {
+        if (/pr[oó]xima/i.test(linea) && /acci[oó]n/i.test(linea)) {
+            const mF = linea.match(/(\d{1,2})[\-\/\.](\d{1,2})[\-\/\.](\d{4})/);
+            if (mF) {
+                const fecha = `${mF[3]}-${mF[2].padStart(2,'0')}-${mF[1].padStart(2,'0')}`;
+                if (!isNaN(new Date(fecha).getTime())) return fecha;
+            }
+        }
+    }
+    return null;
+}
+
+// Rebuild in-memory state from notes
+function rebuildState(c) {
+    if (!c.historial) return;
+    const lineas = c.historial.split('\n').map(l=>l.trim()).filter(l=>l);
+    let emailTs = null, wappSent = false, posHasta = null;
+    lineas.forEach((l,i) => {
+        if (l.includes('Envío email')) {
+            const prev = lineas[i-1]||'';
+            const mF = prev.match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
+            if (mF) { const ts=new Date(`${mF[3]}-${mF[2].padStart(2,'0')}-${mF[1].padStart(2,'0')}`).getTime(); if(!isNaN(ts)){emailTs=ts;wappSent=false;}}
+        }
+        if (l.includes('Envío WhatsApp')) { wappSent=true; emailTs=null; }
+        if (/pr[oó]xima/i.test(l) && /acci[oó]n/i.test(l)) {
+            const mF = l.match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
+            if (mF) posHasta = `${mF[3]}-${mF[2].padStart(2,'0')}-${mF[1].padStart(2,'0')}`;
+        }
+    });
+    gcEstado[c.id] = { emailTs, wappSent, posHasta };
+}
+
+function isPostponed(id) {
+    const h = gcEstado[id]?.posHasta;
+    return h && new Date(h) > new Date();
+}
+function needsWapp(id) {
+    const e = gcEstado[id];
+    if (!e?.emailTs || e.wappSent) return false;
+    return (Date.now() - e.emailTs) >= 2 * 86400000;
+}
+function daysSinceEmail(id) {
+    const ts = gcEstado[id]?.emailTs;
+    if (!ts) return null;
+    return Math.floor((Date.now()-ts)/86400000);
+}
+function daysAgo(dateStr) { return Math.floor((Date.now()-new Date(dateStr).getTime())/86400000); }
+function fmtDate(d) {
+    if (!d) return '';
+    const dt = new Date(d);
+    return dt.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'});
+}
+function urgencyOf(c) {
+    const d = daysAgo(c.ultimoContacto);
+    const pa = c.proximaAccion && new Date(c.proximaAccion) <= new Date();
+    if (pa || needsWapp(c.id)) return 'URG';
+    if (d >= 90) return 'URG';
+    if (d >= 30) return 'PROX';
+    return 'OK';
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER CONTACT LIST
+// ══════════════════════════════════════════════════════
+function renderContactList() {
+    const q = (document.getElementById('gc-search')?.value||'').toLowerCase();
+    const list = document.getElementById('gc-list');
+
+    let sorted = [...gcContacts]
+        .filter(c => !isPostponed(c.id))
+        .filter(c => !q || c.nombre.toLowerCase().includes(q) || c.empresa.toLowerCase().includes(q))
+        .sort((a,b) => {
+            const hoy = new Date(); hoy.setHours(0,0,0,0);
+            const aPA = a.proximaAccion && new Date(a.proximaAccion)<=hoy ? 1:0;
+            const bPA = b.proximaAccion && new Date(b.proximaAccion)<=hoy ? 1:0;
+            if (bPA!==aPA) return bPA-aPA;
+            const aW = needsWapp(a.id)?1:0, bW=needsWapp(b.id)?1:0;
+            if (bW!==aW) return bW-aW;
+            return daysAgo(b.ultimoContacto)-daysAgo(a.ultimoContacto);
+        })
+        .slice(0,150);
+
+    if (!sorted.length) {
+        list.innerHTML = '<div class="text-center py-10 opacity-30 text-xs">Sin contactos</div>';
+        return;
+    }
+
+    list.innerHTML = sorted.map(c => {
+        const d   = daysAgo(c.ultimoContacto);
+        const urg = urgencyOf(c);
+        const nW  = needsWapp(c.id);
+        const col = nW ? '#25d366' : urg==='URG' ? '#ff4444' : urg==='PROX' ? '#ffaa00' : '#00cc88';
+        const bc  = `badge-${nW?'URG':urg}`;
+        const sel = selContact?.id===c.id;
+        // Last action: last non-date, non-action line from notes
+        const lines = c.historial.split('\n').map(l=>l.trim()).filter(l=>l && !/^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}:?$/.test(l) && !/^pr[oó]xima/i.test(l) && !/^env[íi]o/i.test(l));
+        const lastAct = lines[lines.length-1] || '';
+
+        return `<div onclick="clickContact('${c.id}')"
+            class="p-3 rounded-xl cursor-pointer border transition-all ${sel ? 'bg-blue-500/10 border-blue-500/40' : 'bg-slate-800/50 hover:bg-slate-700/50 border-transparent hover:border-blue-500/20'}">
+            <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold text-xs flex-shrink-0 mt-0.5">
+                    ${c.nombre[0]?.toUpperCase()||'?'}
+                </div>
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between gap-1">
+                        <p class="font-bold text-xs truncate">${c.nombre}</p>
+                        <span class="dias-num" style="font-size:20px;font-weight:800;line-height:1;color:${col};flex-shrink:0;">${d}</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 truncate">${c.empresa || c.email || '—'}</p>
+                    ${c.etiquetas.length ? `<div class="flex flex-wrap gap-1 mt-1">${c.etiquetas.map(e=>`<span class="badge-u" style="background:#1a1030;color:#a78bfa;border:1px solid #a78bfa33;">${e}</span>`).join('')}</div>` : ''}
+                    ${lastAct ? `<p class="text-[9px] text-slate-500 mt-1 italic truncate">↳ ${lastAct}</p>` : ''}
+                    <div class="flex items-center justify-between mt-1.5">
+                        <span class="text-[9px] text-slate-600">${fmtDate(c.ultimoContacto)}</span>
+                        <span class="badge-u ${bc}">${nW ? '💬 WApp' : urg==='URG' ? 'URGENTE' : urg==='PROX' ? 'PRÓXIMO' : 'OK'}</span>
+                    </div>
+                    ${c.proximaAccion ? `<p class="text-[9px] text-purple-400 mt-0.5">⏭ ${fmtDate(c.proximaAccion)}</p>` : ''}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// ACTION PANEL
+// ══════════════════════════════════════════════════════
+function clickContact(id) {
+    selContact = gcContacts.find(c=>c.id===id);
+    renderContactList();
+    openPanel(selContact);
+}
+
+function openPanel(c) {
+    document.getElementById('action-panel').classList.add('open');
+    document.getElementById('ap-name').textContent = c.nombre;
+    document.getElementById('ap-sub').textContent  = [c.cargo, c.empresa].filter(Boolean).join(' · ');
+
+    document.getElementById('ap-info').innerHTML = `
+        ${c.email    ? `<span class="text-slate-500">Email:</span><span class="text-blue-400">${c.email}</span>` : ''}
+        ${c.telefono ? `<span class="text-slate-500">Tel:</span><span>${c.telefono}</span>` : ''}
+        ${c.linkedin ? `<span class="text-slate-500">LinkedIn:</span><a href="${c.linkedin}" target="_blank" class="text-[#0a66c2]">💼 Ver perfil</a>` : ''}
+    `;
+    if (c.telefono) document.getElementById('wapp-tel').value = c.telefono;
+
+    // Próxima acción alert
+    const pa = document.getElementById('ap-proxima');
+    if (c.proximaAccion) {
+        const diff = Math.ceil((new Date(c.proximaAccion)-new Date())/86400000);
+        pa.innerHTML = diff<=0
+            ? `📅 <strong>Acción prevista para hoy</strong> (${fmtDate(c.proximaAccion)})`
+            : `📅 Próxima acción: <strong>${fmtDate(c.proximaAccion)}</strong> — en ${diff} día${diff!==1?'s':''}`;
+        pa.style.display='block';
+    } else pa.style.display='none';
+
+    // Decide starting tab
+    const tab = needsWapp(c.id) ? 'wapp' : (!c.email && c.linkedin) ? 'li' : 'email';
+    switchPTab(tab, true);
+}
+
+function closePanel() {
+    document.getElementById('action-panel').classList.remove('open');
+    selContact = null;
+    renderContactList();
+}
+
+function switchPTab(tab, autoGen=false) {
+    curPTab = tab;
+    ['email','wapp','li'].forEach(t => {
+        document.getElementById(`pc-${t}`).style.display  = t===tab ? 'block' : 'none';
+        document.getElementById(`ptab-${t}`).classList.toggle('on', t===tab);
+    });
+    const tags = {email:'✉ Email · IA', wapp:'💬 WhatsApp · IA', li:'💼 LinkedIn · IA'};
+    document.getElementById('ap-tag').textContent = tags[tab];
+
+    if (!autoGen && !selContact) return;
+    if (tab==='email' && autoGen) {
+        if (selContact?.email) genEmail(selContact); else genLi(selContact);
+    } else if (tab==='wapp') {
+        updateWappPanel();
+        if (needsWapp(selContact?.id)) genWapp(selContact);
+    } else if (tab==='li') {
+        if (autoGen || !liMsg) genLi(selContact);
+    } else if (tab==='email' && !emailCuerpo) {
+        genEmail(selContact);
+    }
+}
+
+function updateWappPanel() {
+    const locked = document.getElementById('wapp-locked');
+    const open   = document.getElementById('wapp-open');
+    if (needsWapp(selContact?.id)) {
+        locked.style.display='none'; open.style.display='block';
+    } else {
+        const d = daysSinceEmail(selContact?.id);
+        locked.innerHTML = d!==null
+            ? `⏳ Email enviado hace <strong style="color:#ffaa00;">${d} día${d!==1?'s':''}</strong>.<br>El WhatsApp se activa a los <strong style="color:#25d366;">2 días</strong> sin respuesta.`
+            : `💬 Genera primero el email y márcalo como enviado.<br>El WhatsApp se activa si en <strong style="color:#25d366;">2 días</strong> no hay respuesta.`;
+        locked.style.display='block'; open.style.display='none';
+    }
+}
+
+// ══════════════════════════════════════════════════════
+// AI GENERATION
+// ══════════════════════════════════════════════════════
+async function callClaude(prompt, maxTok=1000) {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+            model:'claude-sonnet-4-20250514',
+            max_tokens: maxTok,
+            messages:[{role:'user', content:prompt}]
+        })
+    });
+    const data = await res.json();
+    return (data.content||[]).map(b=>b.text||'').join('\n').trim();
+}
+
+async function genEmail(c) {
+    document.getElementById('sp-email').style.display='flex';
+    document.getElementById('res-email').style.display='none';
+    emailAsunto=''; emailCuerpo='';
+    const d = daysAgo(c.ultimoContacto);
+    try {
+        const txt = await callClaude(
+`Eres el asistente comercial de MTTE Industrial (Mitsubishi Equipos Frigoríficos para Transporte en España).
+Hoy es ${new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'})}.
+
+CLIENTE:
+- Nombre: ${c.nombre}${c.cargo?` (${c.cargo})`:''}
+- Empresa: ${c.empresa||'Desconocida'}
+- Último contacto: hace ${d} días (${fmtDate(c.ultimoContacto)})
+- Etiquetas: ${c.etiquetas.join(', ')||'General'}
+- Historial/notas: ${c.historial||'Sin historial'}
+
+Redacta un email de seguimiento comercial personalizado.
+Tono: director senior, cercano, no agresivo. Máximo 150 palabras. SIN firma ni despedida formal.
+
+Formato exacto (sin markdown):
+ASUNTO: [asunto]
+
+[cuerpo del email]`
+        );
+        const ls = txt.split('\n');
+        const al = ls.find(l=>l.startsWith('ASUNTO:'));
+        emailAsunto = al ? al.replace('ASUNTO:','').trim() : 'Seguimiento comercial';
+        emailCuerpo = ls.filter(l=>!l.startsWith('ASUNTO:')).join('\n').trim();
+    } catch(e) { emailCuerpo='Error al generar. Verifica la conexión.'; }
+    document.getElementById('em-asunto').textContent = emailAsunto;
+    document.getElementById('em-cuerpo').textContent = emailCuerpo;
+    document.getElementById('btn-open-email').href = `mailto:${c.email}?subject=${encodeURIComponent(emailAsunto)}&body=${encodeURIComponent(emailCuerpo)}`;
+    document.getElementById('btn-open-email').onclick = () => { registerEmailInGoogle(c); };
+    document.getElementById('sp-email').style.display='none';
+    document.getElementById('res-email').style.display='block';
+}
+
+async function genWapp(c) {
+    document.getElementById('sp-wapp').style.display='flex';
+    document.getElementById('res-wapp').style.display='none';
+    wappMsg='';
+    const d = daysSinceEmail(c.id);
+    try {
+        wappMsg = await callClaude(
+`Eres el director comercial de MTTE Industrial (Mitsubishi Equipos Frigoríficos para Transporte).
+Hace ${d||2} días enviaste un email a ${c.nombre} de ${c.empresa||'su empresa'} sin respuesta.
+
+Redacta un WhatsApp de seguimiento:
+- Breve, natural, sin presión (3-4 líneas)
+- Haz referencia al email enviado
+- Pregunta si lo recibieron o si tienen un momento
+- Sin asteriscos, texto plano
+Solo el mensaje.`, 400
+        );
+    } catch(e) { wappMsg='Error al generar.'; }
+    document.getElementById('wapp-msg').textContent = wappMsg;
+    const tel = (document.getElementById('wapp-tel').value||c.telefono||'').replace(/\D/g,'');
+    document.getElementById('btn-wapp').href = `https://wa.me/${tel}?text=${encodeURIComponent(wappMsg)}`;
+    document.getElementById('sp-wapp').style.display='none';
+    document.getElementById('res-wapp').style.display='block';
+}
+
+async function genLi(c) {
+    document.getElementById('sp-li').style.display='flex';
+    document.getElementById('res-li').style.display='none';
+    liMsg='';
+    try {
+        liMsg = await callClaude(
+`Eres el director comercial de MTTE Industrial.
+Redacta un mensaje de LinkedIn para retomar contacto con ${c.nombre}${c.cargo?` (${c.cargo})`:''}${c.empresa?` de ${c.empresa}`:''}.
+Historial: ${c.historial||'Sin historial'}.
+- Tono cercano y profesional, sin ser agresivo
+- 4-5 líneas máximo
+- Sin asteriscos, texto plano
+Solo el mensaje.`, 400
+        );
+    } catch(e) { liMsg='Error al generar.'; }
+    document.getElementById('li-msg').textContent = liMsg;
+    if (c.linkedin) {
+        document.getElementById('btn-open-li').href = c.linkedin;
+    }
+    document.getElementById('sp-li').style.display='none';
+    document.getElementById('res-li').style.display='block';
+}
+
+function regenEmail() { if(selContact) genEmail(selContact); }
+function regenWapp()  { if(selContact) genWapp(selContact); }
+function copyEmail()  { navigator.clipboard.writeText(`Asunto: ${emailAsunto}\n\n${emailCuerpo}`); }
+function copyWapp()   { navigator.clipboard.writeText(wappMsg); }
+function copyLi()     { navigator.clipboard.writeText(liMsg); }
+
+function openWapp() {
+    const tel = document.getElementById('wapp-tel').value.replace(/\D/g,'');
+    document.getElementById('btn-wapp').href = `https://wa.me/${tel}?text=${encodeURIComponent(wappMsg)}`;
+    setTimeout(()=>{ registerWappInGoogle(selContact); }, 300);
+}
+
+// ══════════════════════════════════════════════════════
+// MARK SENT
+// ══════════════════════════════════════════════════════
+async function markEmailSent() {
+    if (!selContact) return;
+    gcEstado[selContact.id] = { emailTs: Date.now(), wappSent: false, posHasta: null };
+    await registerEmailInGoogle(selContact);
+    closePanel(); renderContactList();
+}
+
+async function markWappSent() {
+    if (!selContact) return;
+    gcEstado[selContact.id] = { emailTs: null, wappSent: true, posHasta: null };
+    await registerWappInGoogle(selContact);
+    closePanel(); renderContactList();
+}
+
+// ══════════════════════════════════════════════════════
+// POSTPONE
+// ══════════════════════════════════════════════════════
+function togglePostpone() {
+    const r = document.getElementById('postpone-row');
+    r.style.display = r.style.display==='none' ? 'flex' : 'none';
+}
+function showDateInput() {
+    document.getElementById('date-row').style.display='flex';
+    document.getElementById('custom-date').focus();
+}
+async function doPostpone(days) {
+    const d = new Date(); d.setDate(d.getDate()+days);
+    await doPostponeToDate(d.toISOString().split('T')[0]);
+}
+async function doPostponeCustom() {
+    const txt = document.getElementById('custom-date').value.trim();
+    const mF = txt.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (!mF) { alert('Usa el formato DD-MM-AAAA'); return; }
+    await doPostponeToDate(`${mF[3]}-${mF[2].padStart(2,'0')}-${mF[1].padStart(2,'0')}`);
+}
+async function doPostponeToDate(iso) {
+    if (!selContact) return;
+    gcEstado[selContact.id] = { emailTs:null, wappSent:false, posHasta:iso };
+    const hoy = new Date();
+    const dd=String(hoy.getDate()).padStart(2,'0'), mm=String(hoy.getMonth()+1).padStart(2,'0'), yy=hoy.getFullYear();
+    const [y2,m2,d2] = iso.split('-');
+    const nota = `\n${dd}-${mm}-${yy}\nPróxima acción llamarle en ${d2}-${m2}-${y2}`;
+    await updateNotesGoogle(selContact.id, nota);
+    closePanel(); renderContactList();
+}
+
+// ══════════════════════════════════════════════════════
+// WRITE BACK TO GOOGLE CONTACTS
+// ══════════════════════════════════════════════════════
+async function calcProximaAccionIA(historial, esWapp) {
+    const hoy = new Date();
+    const dd=String(hoy.getDate()).padStart(2,'0'), mm=String(hoy.getMonth()+1).padStart(2,'0'), yy=hoy.getFullYear();
+    try {
+        const txt = await callClaude(
+`Analiza las notas de este contacto y determina la fecha de próxima acción comercial.
+
+NOTAS: ${historial}
+
+Hoy es ${dd}-${mm}-${yy}. Acabamos de enviar ${esWapp?'un WhatsApp':'un email'}.
+REGLAS:
+- Oferta pendiente o interés reciente → 2 días hábiles
+- Seguimiento concreto → plazo razonable
+- Sin urgencia → 3 meses desde hoy
+- Evita fines de semana
+
+Responde SOLO con la fecha DD-MM-YYYY, sin explicación.`, 80
+        );
+        if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(txt.trim())) return txt.trim();
+    } catch(e) {}
+    const fb = new Date(); fb.setMonth(fb.getMonth()+3);
+    return `${String(fb.getDate()).padStart(2,'0')}-${String(fb.getMonth()+1).padStart(2,'0')}-${fb.getFullYear()}`;
+}
+
+async function registerEmailInGoogle(c) {
+    if (!window._gToken || !c.fuenteG) return;
+    const hoy=new Date(), dd=String(hoy.getDate()).padStart(2,'0'), mm=String(hoy.getMonth()+1).padStart(2,'0'), yy=hoy.getFullYear();
+    const prox = await calcProximaAccionIA(c.historial, false);
+    const nota = `\n${dd}-${mm}-${yy}\nEnvío email de seguimiento\nPróxima acción llamarle en ${prox}`;
+    await updateNotesGoogle(c.id, nota);
+}
+
+async function registerWappInGoogle(c) {
+    if (!window._gToken || !c.fuenteG) return;
+    const hoy=new Date(), dd=String(hoy.getDate()).padStart(2,'0'), mm=String(hoy.getMonth()+1).padStart(2,'0'), yy=hoy.getFullYear();
+    const prox = await calcProximaAccionIA(c.historial, true);
+    const nota = `\n${dd}-${mm}-${yy}\nEnvío WhatsApp de seguimiento\nPróxima acción llamarle en ${prox}`;
+    await updateNotesGoogle(c.id, nota);
+}
+
+async function updateNotesGoogle(contactId, nuevaLinea) {
+    if (!window._gToken) return;
+    for (let i=0; i<2; i++) {
+        try {
+            const gRes = await fetch(`https://people.googleapis.com/v1/${contactId}?personFields=biographies,metadata`,
+                {headers:{Authorization:`Bearer ${window._gToken}`}});
+            if (gRes.status===401) { await renewToken(); continue; }
+            if (!gRes.ok) return;
+            const gData = await gRes.json();
+            const notas = (gData.biographies?.[0]?.value||'') + nuevaLinea;
+            await fetch(`https://people.googleapis.com/v1/${contactId}:updateContact?updatePersonFields=biographies`, {
+                method:'PATCH',
+                headers:{Authorization:`Bearer ${window._gToken}`,'Content-Type':'application/json'},
+                body: JSON.stringify({etag:gData.etag, biographies:[{value:notas,contentType:'TEXT_PLAIN'}]})
+            });
+            return;
+        } catch(e) { return; }
+    }
+}
+
+async function renewToken() {
+    return new Promise(resolve => {
+        if (!window.google?.accounts) { resolve(false); return; }
+        google.accounts.oauth2.initTokenClient({
+            client_id: cfg.googleId,
+            scope:'https://www.googleapis.com/auth/contacts',
+            prompt:'',
+            callback: r => { if(r.error){resolve(false);return;} window._gToken=r.access_token; gToken=r.access_token; resolve(true); }
+        }).requestAccessToken();
+    });
+}
+
+// ══════════════════════════════════════════════════════
+// GOOGLE SHEETS
+// ══════════════════════════════════════════════════════
+async function sheetsGet(sheetName) {
+    const url=`https://sheets.googleapis.com/v4/spreadsheets/${cfg.sheetId}/values/${encodeURIComponent(sheetName)}!A:Z`;
+    const res=await fetch(url,{headers:{Authorization:`Bearer ${gToken}`}});
+    if(!res.ok){const e=await res.json();throw new Error(e.error?.message||`Error ${res.status}`);}
+    const data=await res.json();
+    const rows=data.values||[];
+    if(!rows.length) return [];
+    const headers=rows[0];
+    return rows.slice(1).map((row,i)=>{const o={_row:i+2};headers.forEach((h,j)=>o[h]=row[j]??'');return o;});
+}
+async function sheetsAppend(sheetName,values) {
+    const url=`https://sheets.googleapis.com/v4/spreadsheets/${cfg.sheetId}/values/${encodeURIComponent(sheetName)}!A:Z:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+    const res=await fetch(url,{method:'POST',headers:{Authorization:`Bearer ${gToken}`,'Content-Type':'application/json'},body:JSON.stringify({values:[values]})});
+    return res.ok;
+}
+async function sheetsUpdate(sheetName,rowNum,values) {
+    const url=`https://sheets.googleapis.com/v4/spreadsheets/${cfg.sheetId}/values/${encodeURIComponent(sheetName)}!A${rowNum}:Z${rowNum}?valueInputOption=USER_ENTERED`;
+    const res=await fetch(url,{method:'PUT',headers:{Authorization:`Bearer ${gToken}`,'Content-Type':'application/json'},body:JSON.stringify({values:[values]})});
+    return res.ok;
+}
+
+async function loadSheets() {
+    if (!gToken) { handleAuth(); return; }
+    const c = document.getElementById('sheets-content');
+    c.innerHTML='<div class="flex justify-center py-24"><div class="spin"></div></div>';
+    try {
+        const rows = await sheetsGet(currentTab);
+        if (!rows.length) {
+            c.innerHTML=`<div class="glass p-10 text-center"><p class="text-slate-400 text-sm mb-1">La pestaña <strong class="text-white">"${currentTab}"</strong> está vacía.</p><p class="text-[11px] text-slate-500 mb-4">Asegúrate de que existe con cabeceras en la primera fila.</p><button onclick="openAddModal('${currentTab}')" class="btn-p px-5 py-2 rounded-xl text-xs font-bold text-white">➕ Añadir primer registro</button></div>`;
             return;
         }
+        renderSheets(rows);
+    } catch(e) {
+        c.innerHTML=`<div class="glass p-10 text-center"><p class="text-red-400 font-bold">❌ ${e.message}</p></div>`;
+    }
+}
 
-        const cols = Object.keys(rows[0]).filter(k => !k.startsWith('_'));
-        container.innerHTML = `
-            <div class="flex justify-end mb-4">
-                <button onclick="openAddModal('${currentTab}')" class="text-[10px] bg-emerald-600/20 text-emerald-400 px-3 py-1.5 rounded-lg hover:bg-emerald-600/30 font-bold">➕ Añadir</button>
+function renderSheets(rows) {
+    const c = document.getElementById('sheets-content');
+
+    if (currentTab==='Agenda') {
+        const proximas = rows.filter(r=>r['Fecha Próxima Acción']).sort((a,b)=>new Date(a['Fecha Próxima Acción'])-new Date(b['Fecha Próxima Acción']));
+        const shown = proximas.length ? proximas : rows.slice(0,20);
+        c.innerHTML=`
+            <div class="flex justify-between items-center mb-4">
+                <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest">${rows.length} registros · ${proximas.length} con próxima acción</p>
+                <button onclick="openAddModal('Agenda')" class="text-[10px] bg-emerald-600/20 text-emerald-400 px-3 py-1.5 rounded-lg hover:bg-emerald-600/30 font-bold">➕ Añadir</button>
             </div>
-            <div class="glass-card overflow-hidden">
-                <div class="overflow-x-auto custom-scrollbar">
-                    <table class="w-full text-[10px] text-left">
-                        <thead class="bg-slate-800 text-blue-400 uppercase font-black">
-                            <tr>${cols.map(c => `<th class="p-4 whitespace-nowrap">${c}</th>`).join('')}<th class="p-4"></th></tr>
-                        </thead>
-                        <tbody class="divide-y divide-white/5">
-                            ${rows.map(r => `
-                                <tr class="hover:bg-white/[0.02] group">
-                                    ${cols.map(c => `<td class="p-4 text-slate-300 whitespace-nowrap">${r[c] || '-'}</td>`).join('')}
-                                    <td class="p-4">
-                                        <button onclick='openEditModal("${currentTab}", ${r._row}, ${JSON.stringify(r)})'
-                                            class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-1 rounded hover:bg-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity font-bold">
-                                            ✏️ Editar
-                                        </button>
-                                    </td>
-                                </tr>`).join('')}
-                        </tbody>
-                    </table>
+            ${shown.map(r=>agendaCard(r)).join('')}`;
+        return;
+    }
+
+    const cols = Object.keys(rows[0]).filter(k=>!k.startsWith('_'));
+    c.innerHTML=`
+        <div class="flex justify-end mb-4">
+            <button onclick="openAddModal('${currentTab}')" class="text-[10px] bg-emerald-600/20 text-emerald-400 px-3 py-1.5 rounded-lg hover:bg-emerald-600/30 font-bold">➕ Añadir</button>
+        </div>
+        <div class="glass overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-[10px] text-left">
+                    <thead class="bg-slate-800 text-blue-400 uppercase font-black">
+                        <tr>${cols.map(col=>`<th class="p-4 whitespace-nowrap">${col}</th>`).join('')}<th class="p-4"></th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5">
+                        ${rows.map(r=>`
+                            <tr class="hover:bg-white/[0.02] group">
+                                ${cols.map(col=>`<td class="p-4 text-slate-300 whitespace-nowrap">${r[col]||'-'}</td>`).join('')}
+                                <td class="p-4">
+                                    <button onclick='openEditModal("${currentTab}",${r._row},${JSON.stringify(r)})'
+                                        class="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition font-bold">✏️ Editar</button>
+                                </td>
+                            </tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+}
+
+function agendaCard(r) {
+    const nombre = [r['Nombre'],r['Apellido 1'],r['Apellido 2']].filter(Boolean).join(' ');
+    const proxima = r['Fecha Próxima Acción']||'';
+    let borderCol='border-slate-600';
+    if (proxima) {
+        const dias=Math.ceil((new Date(proxima)-new Date())/(1000*60*60*24));
+        borderCol=dias<0?'border-red-500':dias<=7?'border-yellow-500':'border-emerald-500';
+    }
+    return `<div class="glass p-4 mb-3 border-l-4 ${borderCol} hover:bg-white/5 transition">
+        <div class="flex justify-between items-start gap-4">
+            <div class="flex items-start gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold text-xs flex-shrink-0">${(r['Nombre']||'?')[0]?.toUpperCase()}</div>
+                <div class="min-w-0">
+                    <h3 class="font-bold text-sm">${nombre||'Sin nombre'}</h3>
+                    <p class="text-[10px] text-slate-400">${[r['Cargo'],r['Empresa']].filter(Boolean).join(' · ')}</p>
+                    ${r['Descripción']?`<p class="text-[10px] text-blue-300 mt-1.5 leading-relaxed">${r['Descripción']}</p>`:''}
                 </div>
-            </div>`;
-    }
+            </div>
+            <div class="text-right flex-shrink-0 space-y-1">
+                ${r['Fecha']?`<p class="text-[9px] text-slate-500">📅 <span class="text-slate-300">${r['Fecha']}</span></p>`:''}
+                ${proxima?`<p class="text-[9px] text-slate-500">⏭ <span class="text-yellow-300 font-bold">${proxima}</span></p>`:''}
+                <button onclick='openEditModal("Agenda",${r._row},${JSON.stringify(r)})' class="text-[9px] bg-slate-700 text-slate-400 px-2 py-0.5 rounded hover:bg-slate-600 font-bold">✏️</button>
+            </div>
+        </div>
+    </div>`;
+}
 
-    function agendaCard(r) {
-        const nombre    = [r['Nombre'], r['Apellido 1'], r['Apellido 2']].filter(Boolean).join(' ');
-        const empresa   = r['Empresa'] || '';
-        const cargo     = r['Cargo'] || '';
-        const desc      = r['Descripción'] || '';
-        const fecha     = r['Fecha'] || '';
-        const proxima   = r['Fecha Próxima Acción'] || '';
+// ══════════════════════════════════════════════════════
+// SHEETS TABS
+// ══════════════════════════════════════════════════════
+function changeTab(t) {
+    currentTab=t;
+    ['Contactos','Empresas','Agenda'].forEach(id=>{
+        document.getElementById('tab-'+id).className = id===t
+            ? 'pb-3 tab-on tracking-widest transition' : 'pb-3 text-slate-500 hover:text-white tracking-widest transition';
+    });
+    loadSheets();
+}
 
-        // Colorear borde según urgencia de próxima acción
-        let borderColor = 'border-slate-600';
-        if (proxima) {
-            const dias = Math.ceil((new Date(proxima) - new Date()) / (1000*60*60*24));
-            borderColor = dias < 0 ? 'border-red-500' : dias <= 7 ? 'border-yellow-500' : 'border-emerald-500';
-        }
+// ══════════════════════════════════════════════════════
+// ADD / EDIT FORMS
+// ══════════════════════════════════════════════════════
+function openAddModal(sn, prefill={}) {
+    _editCtx=null;
+    document.getElementById('add-title').textContent=`➕ Nuevo en ${sn}`;
+    buildForm(sn,prefill);
+    toggleModal('add-modal',true);
+}
+function openEditModal(sn,rowNum,rowData) {
+    _editCtx={sn,rowNum};
+    document.getElementById('add-title').textContent=`✏️ Editar en ${sn}`;
+    buildForm(sn,rowData);
+    toggleModal('add-modal',true);
+}
+function buildForm(sn,prefill={}) {
+    const cols=SCHEMA[sn]||Object.keys(prefill).filter(k=>!k.startsWith('_'));
+    const dateCols=['Fecha','Fecha Próxima Acción'];
+    document.getElementById('add-fields').innerHTML=cols.map(col=>`
+        <div>
+            <label class="text-[10px] text-blue-400 font-bold uppercase ml-1">${col}</label>
+            <input type="${dateCols.includes(col)?'date':'text'}" id="field-${col}"
+                value="${(prefill[col]||'').replace(/"/g,'&quot;')}"
+                placeholder="${col}" class="input-dark w-full px-4 py-3 mt-1.5 text-sm">
+        </div>`).join('');
+}
+async function saveRecord() {
+    const sn=_editCtx?.sn||currentTab;
+    const cols=SCHEMA[sn]||[];
+    const values=cols.map(col=>(document.getElementById(`field-${col}`)?.value||'').trim());
+    const ok=_editCtx ? await sheetsUpdate(_editCtx.sn,_editCtx.rowNum,values) : await sheetsAppend(sn,values);
+    if(ok){toggleModal('add-modal',false);await loadSheets();}
+    else alert('❌ Error al guardar. Verifica los permisos de la hoja.');
+}
 
-        return `
-            <div class="glass-card p-5 mb-3 border-l-4 ${borderColor} hover:bg-white/5 transition-all">
-                <div class="flex justify-between items-start gap-4">
-                    <div class="flex items-start gap-4 min-w-0">
-                        <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold text-sm flex-shrink-0">
-                            ${(r['Nombre'] || '?')[0]?.toUpperCase()}
-                        </div>
-                        <div class="min-w-0">
-                            <h3 class="font-bold text-sm">${nombre || 'Sin nombre'}</h3>
-                            <p class="text-[10px] text-slate-400 mt-0.5">${cargo}${cargo && empresa ? ' · ' : ''}${empresa}</p>
-                            ${desc ? `<p class="text-[10px] text-blue-300 mt-2 leading-relaxed">${desc}</p>` : ''}
-                        </div>
-                    </div>
-                    <div class="text-right flex-shrink-0 space-y-1.5">
-                        ${fecha ? `<p class="text-[9px] text-slate-500">📅 Contacto: <span class="text-slate-300">${fecha}</span></p>` : ''}
-                        ${proxima ? `<p class="text-[9px] text-slate-500">⏭ Próxima: <span class="text-yellow-300 font-bold">${proxima}</span></p>` : ''}
-                        <button onclick='openEditModal("Agenda", ${r._row}, ${JSON.stringify(r)})'
-                            class="text-[9px] bg-slate-700 text-slate-400 px-2 py-0.5 rounded hover:bg-slate-600 font-bold block ml-auto mt-1">✏️ Editar</button>
-                    </div>
-                </div>
-            </div>`;
-    }
+// ══════════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════════
+function toggleModal(id,show){document.getElementById(id).classList.toggle('hidden',!show);}
 
-    // ── ADD / EDIT ────────────────────────────────────────────
-    function openAddModal(sheetName, prefill = {}) {
-        _editContext = null;
-        document.getElementById('add-modal-title').textContent = `➕ Nuevo en ${sheetName}`;
-        buildForm(sheetName, prefill);
-        toggleModal('add-modal', true);
-    }
+function saveConfig() {
+    cfg.googleId=document.getElementById('cfg-gid').value.trim();
+    cfg.sheetId =document.getElementById('cfg-sid').value.trim();
+    if(!cfg.googleId||!cfg.sheetId){alert('⚠️ Rellena el Client ID y el ID de la hoja');return;}
+    localStorage.setItem('mtte_cfg',JSON.stringify(cfg));
+    tokenClient=null; gToken=null;
+    toggleModal('cfg-modal',false);
+    initTokenClient(); tokenClient.requestAccessToken();
+}
 
-    function openEditModal(sheetName, rowNumber, rowData) {
-        _editContext = { sheetName, rowNumber };
-        document.getElementById('add-modal-title').textContent = `✏️ Editar en ${sheetName}`;
-        buildForm(sheetName, rowData);
-        toggleModal('add-modal', true);
-    }
-
-    function buildForm(sheetName, prefill = {}) {
-        const cols = SCHEMA[sheetName] || Object.keys(prefill).filter(k => !k.startsWith('_'));
-        const dateCols = ['Fecha', 'Fecha Próxima Acción'];
-        document.getElementById('add-form-fields').innerHTML = cols.map(col => `
-            <div>
-                <label class="text-[10px] text-blue-400 font-bold uppercase ml-1">${col}</label>
-                <input type="${dateCols.includes(col) ? 'date' : 'text'}" id="field-${col}"
-                    value="${(prefill[col]||'').replace(/"/g,'&quot;')}"
-                    placeholder="${col}"
-                    class="w-full input-dark px-4 py-3 mt-1.5 text-sm outline-none">
-            </div>`).join('');
-    }
-
-    async function saveRecord() {
-        const sheetName = _editContext ? _editContext.sheetName : currentTab;
-        const cols = SCHEMA[sheetName] || [];
-        const values = cols.map(col => (document.getElementById(`field-${col}`)?.value || '').trim());
-
-        const ok = _editContext
-            ? await sheetsUpdate(_editContext.sheetName, _editContext.rowNumber, values)
-            : await sheetsAppend(sheetName, values);
-
-        if (ok) { toggleModal('add-modal', false); await loadData(); }
-        else    { alert('❌ Error al guardar. Verifica los permisos de la hoja.'); }
-    }
-
-    // ── TABS ──────────────────────────────────────────────────
-    function changeTab(t) {
-        currentTab = t;
-        ['Contactos','Empresas','Agenda'].forEach(id => {
-            document.getElementById('tab-'+id).className = id===t
-                ? 'pb-3 tab-active tracking-widest transition-all'
-                : 'pb-3 text-slate-500 hover:text-white tracking-widest transition-all';
-        });
-        loadData();
-    }
-
-    // ── UTILS ─────────────────────────────────────────────────
-    function toggleModal(id, show) { document.getElementById(id).classList.toggle('hidden', !show); }
-
-    function saveConfig() {
-        config.googleId = document.getElementById('cfg-google-id').value.trim();
-        config.sheetId  = document.getElementById('cfg-sheet-id').value.trim();
-        if (!config.googleId || !config.sheetId) { alert('⚠️ Rellena el Client ID y el ID de la hoja'); return; }
-        localStorage.setItem('mtte_crm_config', JSON.stringify(config));
-        tokenClient = null; googleToken = null;
-        toggleModal('config-modal', false);
-        initTokenClient();
-        tokenClient.requestAccessToken();
-    }
-
-    // ── INIT ──────────────────────────────────────────────────
-    window.onload = () => {
-        if (config.googleId) document.getElementById('cfg-google-id').value = config.googleId;
-        if (config.sheetId)  document.getElementById('cfg-sheet-id').value  = config.sheetId;
-        if (!config.googleId || !config.sheetId) { toggleModal('config-modal', true); }
-    };
-    </script>
+window.onload=()=>{
+    if(cfg.googleId) document.getElementById('cfg-gid').value=cfg.googleId;
+    if(cfg.sheetId)  document.getElementById('cfg-sid').value=cfg.sheetId;
+    if(!cfg.googleId||!cfg.sheetId) toggleModal('cfg-modal',true);
+};
+</script>
 </body>
 </html>
