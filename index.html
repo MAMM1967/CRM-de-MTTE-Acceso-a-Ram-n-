@@ -70,9 +70,9 @@
 
         <section class="lg:col-span-8">
             <div class="flex gap-8 mb-6 font-bold text-[11px] uppercase border-b border-slate-800">
-                <button onclick="changeTab('Agenda')"    id="tab-Agenda"    class="pb-3 tab-active tracking-widest">📅 Agenda</button>
+                <button onclick="changeTab('Contactos')" id="tab-Contactos" class="pb-3 tab-active tracking-widest">👥 Contactos</button>
                 <button onclick="changeTab('Empresas')"  id="tab-Empresas"  class="pb-3 text-slate-500 hover:text-white tracking-widest">🏢 Empresas</button>
-                <button onclick="changeTab('Contactos')" id="tab-Contactos" class="pb-3 text-slate-500 hover:text-white tracking-widest">👥 Contactos</button>
+                <button onclick="changeTab('Agenda')"    id="tab-Agenda"    class="pb-3 text-slate-500 hover:text-white tracking-widest">📅 Agenda</button>
             </div>
             <div id="st-content" class="min-h-[400px]">
                 <div class="glass-card p-10 text-center">
@@ -99,11 +99,11 @@
                     <p class="text-[9px] text-slate-500 mt-1 ml-1">El ID largo en la URL de tu hoja: /spreadsheets/d/<strong class="text-slate-300">ESTE-ID</strong>/edit</p>
                 </div>
                 <div class="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-[10px] text-slate-400 space-y-1.5">
-                    <p class="text-blue-400 font-bold mb-2">📋 Crea estas pestañas en tu hoja:</p>
-                    <p>· <code class="bg-black/30 px-1 rounded text-white">Contactos</code> → Nombre · Apellido 1 · Nombre Empresa · Teléfono · Email · Notas</p>
-                    <p>· <code class="bg-black/30 px-1 rounded text-white">Empresas</code>  → Nombre Empresa · Teléfono · Email · Web · Notas</p>
-                    <p>· <code class="bg-black/30 px-1 rounded text-white">Agenda</code>    → Fecha · Contacto · Empresa · Asunto · Estado</p>
-                    <p class="text-yellow-400/80 mt-2">⚠ La primera fila de cada pestaña debe ser la cabecera.</p>
+                    <p class="text-blue-400 font-bold mb-2">📋 Estructura de tu hoja:</p>
+                    <p>· <code class="bg-black/30 px-1 rounded text-white">Contactos</code> → Email · Nombre · Apellido 1 · Apellido 2 · Nombre Empresa · Cargo · Teléfono Móvil · Teléfono Fijo · Linkedin · Notas</p>
+                    <p>· <code class="bg-black/30 px-1 rounded text-white">Empresas</code>  → Nombre Empresa · Tipo Empresa · Dirección · Ciudad · Provincia · Código Postal · País</p>
+                    <p>· <code class="bg-black/30 px-1 rounded text-white">Agenda</code>    → Fecha · Nombre · Apellido 1 · Apellido 2 · Empresa · Cargo · Descripción · Fecha Próxima Acción</p>
+                    <p class="text-yellow-400/80 mt-2">⚠ Los nombres de pestaña deben coincidir exactamente.</p>
                 </div>
                 <div class="pt-2">
                     <button onclick="saveConfig()" class="w-full btn-primary py-4 rounded-xl font-bold text-sm text-white">Guardar y Conectar</button>
@@ -127,16 +127,20 @@
 
     <script>
     // ── CONFIG ────────────────────────────────────────────────
-    let config = JSON.parse(localStorage.getItem('mtte_crm_config')) || { googleId: '', sheetId: '' };
-    let currentTab = 'Agenda';
+    let config = JSON.parse(localStorage.getItem('mtte_crm_config')) || {
+        googleId: '',
+        sheetId: '1nKeeV1mDqtaHKdWIljitlcmck4b11sm0-RlSdeQj0YI'
+    };
+    let currentTab = 'Contactos';
     let googleToken = null;
     let tokenClient = null;
     let _editContext = null; // { sheetName, rowNumber } cuando editamos
 
+    // Nombres de columna EXACTOS de tu Google Sheet
     const SCHEMA = {
-        Contactos: ['Nombre', 'Apellido 1', 'Nombre Empresa', 'Teléfono', 'Email', 'Notas'],
-        Empresas:  ['Nombre Empresa', 'Teléfono', 'Email', 'Web', 'Notas'],
-        Agenda:    ['Fecha', 'Contacto', 'Empresa', 'Asunto', 'Estado']
+        Contactos: ['Email', 'Nombre', 'Apellido 1', 'Apellido 2', 'Nombre Empresa', 'Cargo', 'Teléfono Móvil', 'Teléfono Fijo', 'Linkedin', 'Notas'],
+        Empresas:  ['Nombre Empresa', 'Tipo Empresa', 'Dirección', 'Ciudad', 'Provincia', 'Código Postal', 'País'],
+        Agenda:    ['Fecha', 'Nombre', 'Apellido 1', 'Apellido 2', 'Empresa', 'Cargo', 'Descripción', 'Fecha Próxima Acción']
     };
 
     // ── STATUS ────────────────────────────────────────────────
@@ -207,11 +211,12 @@
     function importContact(c) {
         const parts = c.name.split(' ');
         openAddModal('Contactos', {
-            'Nombre': parts[0] || '',
-            'Apellido 1': parts.slice(1).join(' '),
+            'Email':          c.email,
+            'Nombre':         parts[0] || '',
+            'Apellido 1':     parts[1] || '',
+            'Apellido 2':     parts.slice(2).join(' ') || '',
             'Nombre Empresa': c.org,
-            'Teléfono': c.phone,
-            'Email': c.email
+            'Teléfono Móvil': c.phone
         });
     }
 
@@ -265,7 +270,7 @@
                 container.innerHTML = `
                     <div class="glass-card p-10 text-center">
                         <p class="text-slate-400 text-sm mb-1">La pestaña <strong class="text-white">"${currentTab}"</strong> está vacía o no existe.</p>
-                        <p class="text-[11px] text-slate-500 mb-4">Asegúrate de que la hoja tiene esa pestaña con la primera fila como cabecera.</p>
+                        <p class="text-[11px] text-slate-500 mb-4">Asegúrate de que la pestaña <strong class="text-white">"${currentTab}"</strong> existe y que la primera fila tiene las cabeceras.</p>
                         <button onclick="openAddModal('${currentTab}')" class="btn-primary px-5 py-2 rounded-xl text-xs font-bold text-white">➕ Añadir primer registro</button>
                     </div>`;
                 return;
@@ -277,20 +282,24 @@
     }
 
     // ── RENDER ────────────────────────────────────────────────
+    // ── RENDER ────────────────────────────────────────────────
     function renderData(rows) {
         const container = document.getElementById('st-content');
 
         if (currentTab === 'Agenda') {
             const today = new Date().toLocaleDateString('es-ES');
-            const shown = rows.filter(r => r['Fecha'] === today);
-            const upcoming = shown.length ? shown : rows.slice(0, 15);
+            const proximas = rows
+                .filter(r => r['Fecha Próxima Acción'])
+                .sort((a, b) => new Date(a['Fecha Próxima Acción']) - new Date(b['Fecha Próxima Acción']));
+            const mostrar = proximas.length ? proximas : rows.slice(0, 20);
             container.innerHTML = `
                 <div class="flex justify-between items-center mb-4">
-                    <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest">${shown.length} eventos hoy · ${new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})}</p>
+                    <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest">
+                        ${rows.length} registros · ${proximas.length} con próxima acción
+                    </p>
                     <button onclick="openAddModal('Agenda')" class="text-[10px] bg-emerald-600/20 text-emerald-400 px-3 py-1.5 rounded-lg hover:bg-emerald-600/30 font-bold">➕ Añadir</button>
                 </div>
-                ${upcoming.map(r => agendaCard(r)).join('')}
-                ${!shown.length ? '<p class="text-[10px] text-slate-600 text-center mt-4">Sin eventos hoy · Mostrando todos</p>' : ''}`;
+                ${mostrar.map(r => agendaCard(r)).join('')}`;
             return;
         }
 
@@ -323,27 +332,38 @@
     }
 
     function agendaCard(r) {
-        const estado = r['Estado'] || 'Pendiente';
-        const borderColor = { Completado: 'border-emerald-500', Cancelado: 'border-red-500' }[estado] || 'border-blue-500';
-        const badgeClass  = { Completado: 'bg-emerald-500/20 text-emerald-400', Cancelado: 'bg-red-500/20 text-red-400' }[estado] || 'bg-blue-500/20 text-blue-400';
+        const nombre    = [r['Nombre'], r['Apellido 1'], r['Apellido 2']].filter(Boolean).join(' ');
+        const empresa   = r['Empresa'] || '';
+        const cargo     = r['Cargo'] || '';
+        const desc      = r['Descripción'] || '';
+        const fecha     = r['Fecha'] || '';
+        const proxima   = r['Fecha Próxima Acción'] || '';
+
+        // Colorear borde según urgencia de próxima acción
+        let borderColor = 'border-slate-600';
+        if (proxima) {
+            const dias = Math.ceil((new Date(proxima) - new Date()) / (1000*60*60*24));
+            borderColor = dias < 0 ? 'border-red-500' : dias <= 7 ? 'border-yellow-500' : 'border-emerald-500';
+        }
+
         return `
-            <div class="glass-card p-5 mb-3 flex justify-between items-center border-l-4 ${borderColor} hover:bg-white/5 transition-all">
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold text-xs flex-shrink-0">
-                        ${(r['Contacto'] || '?')[0]?.toUpperCase()}
+            <div class="glass-card p-5 mb-3 border-l-4 ${borderColor} hover:bg-white/5 transition-all">
+                <div class="flex justify-between items-start gap-4">
+                    <div class="flex items-start gap-4 min-w-0">
+                        <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold text-sm flex-shrink-0">
+                            ${(r['Nombre'] || '?')[0]?.toUpperCase()}
+                        </div>
+                        <div class="min-w-0">
+                            <h3 class="font-bold text-sm">${nombre || 'Sin nombre'}</h3>
+                            <p class="text-[10px] text-slate-400 mt-0.5">${cargo}${cargo && empresa ? ' · ' : ''}${empresa}</p>
+                            ${desc ? `<p class="text-[10px] text-blue-300 mt-2 leading-relaxed">${desc}</p>` : ''}
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="font-bold text-sm">${r['Contacto'] || ''}</h3>
-                        <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">${r['Empresa'] || 'PARTICULAR'}</p>
-                        <p class="text-[10px] text-blue-400 mt-1">${r['Asunto'] || ''}</p>
-                    </div>
-                </div>
-                <div class="text-right flex-shrink-0 ml-4">
-                    <p class="text-[10px] text-slate-400 mb-1">${r['Fecha'] || ''}</p>
-                    <span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${badgeClass}">${estado}</span>
-                    <div class="mt-2">
+                    <div class="text-right flex-shrink-0 space-y-1.5">
+                        ${fecha ? `<p class="text-[9px] text-slate-500">📅 Contacto: <span class="text-slate-300">${fecha}</span></p>` : ''}
+                        ${proxima ? `<p class="text-[9px] text-slate-500">⏭ Próxima: <span class="text-yellow-300 font-bold">${proxima}</span></p>` : ''}
                         <button onclick='openEditModal("Agenda", ${r._row}, ${JSON.stringify(r)})'
-                            class="text-[9px] bg-slate-700 text-slate-400 px-2 py-0.5 rounded hover:bg-slate-600 font-bold">✏️</button>
+                            class="text-[9px] bg-slate-700 text-slate-400 px-2 py-0.5 rounded hover:bg-slate-600 font-bold block ml-auto mt-1">✏️ Editar</button>
                     </div>
                 </div>
             </div>`;
@@ -366,19 +386,14 @@
 
     function buildForm(sheetName, prefill = {}) {
         const cols = SCHEMA[sheetName] || Object.keys(prefill).filter(k => !k.startsWith('_'));
+        const dateCols = ['Fecha', 'Fecha Próxima Acción'];
         document.getElementById('add-form-fields').innerHTML = cols.map(col => `
             <div>
                 <label class="text-[10px] text-blue-400 font-bold uppercase ml-1">${col}</label>
-                ${col === 'Estado'
-                    ? `<select id="field-${col}" class="w-full input-dark px-4 py-3 mt-1.5 text-sm outline-none">
-                          <option value="Pendiente"  ${(prefill[col]||'Pendiente')==='Pendiente'?'selected':''}>Pendiente</option>
-                          <option value="Completado" ${prefill[col]==='Completado'?'selected':''}>Completado</option>
-                          <option value="Cancelado"  ${prefill[col]==='Cancelado'?'selected':''}>Cancelado</option>
-                       </select>`
-                    : `<input type="${col==='Fecha'?'date':'text'}" id="field-${col}"
-                           value="${(prefill[col]||'').replace(/"/g,'&quot;')}"
-                           placeholder="${col}"
-                           class="w-full input-dark px-4 py-3 mt-1.5 text-sm outline-none">`}
+                <input type="${dateCols.includes(col) ? 'date' : 'text'}" id="field-${col}"
+                    value="${(prefill[col]||'').replace(/"/g,'&quot;')}"
+                    placeholder="${col}"
+                    class="w-full input-dark px-4 py-3 mt-1.5 text-sm outline-none">
             </div>`).join('');
     }
 
@@ -398,7 +413,7 @@
     // ── TABS ──────────────────────────────────────────────────
     function changeTab(t) {
         currentTab = t;
-        ['Agenda','Empresas','Contactos'].forEach(id => {
+        ['Contactos','Empresas','Agenda'].forEach(id => {
             document.getElementById('tab-'+id).className = id===t
                 ? 'pb-3 tab-active tracking-widest transition-all'
                 : 'pb-3 text-slate-500 hover:text-white tracking-widest transition-all';
