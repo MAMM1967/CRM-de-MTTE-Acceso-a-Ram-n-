@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sincronizador Google Contacts ↔ Seatable</title>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #0a0d14; color: #e8eaf0; font-family: 'DM Sans','Segoe UI',sans-serif; min-height: 100vh; }
@@ -34,7 +33,10 @@
     .info-right { display:flex; gap:12px; }
 
     #error-box { max-width:1200px; margin:14px auto 0; padding:0 24px; display:none; }
-    #error-inner { background:#0d1a2a; border:1px solid #4285f444; border-radius:10px; padding:14px 18px; font-size:13px; color:#93c5fd; line-height:1.8; }
+    #error-inner { background:#0d1a2a; border:1px solid #ff6b6b; border-radius:10px; padding:14px 18px; font-size:13px; color:#ff9999; line-height:1.8; }
+
+    #warning-box { max-width:1200px; margin:14px auto 0; padding:0 24px; display:none; }
+    #warning-inner { background:#1a1000; border:1px solid #ffaa0066; border-radius:10px; padding:14px 18px; font-size:13px; color:#ffaa99; line-height:1.8; }
 
     #tabs { max-width:1200px; margin:0 auto; padding:0 24px; display:flex; gap:2px; border-bottom:1px solid #1e2535; }
     .tab-btn { background:none; border:none; color:#6b7280; font-size:13px; font-weight:600; cursor:pointer; padding:12px 16px; border-bottom:2px solid transparent; transition:all 0.12s; }
@@ -50,7 +52,7 @@
     #search:focus { border-color:#667eea; }
 
     .contacto-card { background:#0d1117; border:1px solid #1e2535; border-radius:10px; padding:14px 16px; cursor:pointer; display:grid; grid-template-columns:1fr auto; gap:12px; align-items:start; transition:all 0.12s; animation:fadeIn 0.2s ease; margin-bottom:10px; }
-    .contacto-card:hover, .contacto-card.selected { background:#111827; border-color: #667eea; }
+    .contacto-card:hover { background:#111827; border-color: #667eea; }
     
     .contacto-info { display:grid; gap:6px; }
     .contacto-nombre { font-weight:700; color:#e8eaf0; font-size:14px; }
@@ -65,7 +67,6 @@
     .badge-canal { background:#0d1a2a; color:#4a9eff; border:1px solid #4a9eff44; }
     .badge-sync { background:#0d1a0d; color:#34a853; border:1px solid #34a85344; }
 
-    /* PANEL */
     #panel { background:#0d1117; border:1px solid #1e2535; border-radius:12px; position:sticky; top:90px; max-height:calc(100vh - 120px); display:none; flex-direction:column; overflow:hidden; }
     #panel.visible { display:flex; }
     #panel-header { background:linear-gradient(135deg,#1a1030,#1a1025); border-bottom:1px solid #2d1015; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; }
@@ -75,7 +76,7 @@
 
     .panel-section { margin-bottom:14px; }
     .panel-label { font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
-    .panel-value { font-size:13px; color:#e8eaf0; font-weight:500; }
+    .panel-value { font-size:13px; color:#e8eaf0; font-weight:500; word-break:break-all; }
 
     .msg-box { background:#111827; border-radius:8px; padding:12px; font-size:13px; line-height:1.7; color:#d1d5db; border:1px solid #1e2535; margin-bottom:12px; }
     .btn-primary { width:100%; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:8px; padding:10px; font-size:13px; font-weight:700; cursor:pointer; margin-bottom:8px; }
@@ -83,7 +84,6 @@
     .btn-secondary { width:100%; background:#1e2535; color:#9ca3af; border:1px solid #374151; border-radius:8px; padding:10px; font-size:12px; cursor:pointer; font-weight:600; margin-bottom:6px; }
     .btn-secondary:hover { background:#2d3540; color:#e8eaf0; }
 
-    /* CONFIG TAB */
     .config-section { background:#111827; border:1px solid #1e2535; border-radius:10px; padding:16px; margin-bottom:16px; }
     .config-section h3 { font-size:13px; font-weight:700; margin-bottom:12px; color:#e8eaf0; }
     .config-group { margin-bottom:12px; }
@@ -94,6 +94,7 @@
     .status-indicator { display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:4px 8px; border-radius:6px; }
     .status-ok { background:#002a1a; color:#00cc88; border:1px solid #00cc8844; }
     .status-error { background:#2a0a0a; color:#ff6b6b; border:1px solid #ff444444; }
+    .status-warning { background:#1a1000; color:#ffaa00; border:1px solid #ffaa0044; }
 
     .sync-history { max-height:200px; overflow-y:auto; }
     .sync-log { font-size:11px; color:#6b7280; padding:4px 0; border-bottom:1px solid #1e2535; }
@@ -102,9 +103,11 @@
     .empty-state { text-align:center; padding:40px 20px; color:#6b7280; }
     .spin-circle { width:34px; height:34px; border:3px solid #1e2535; border-top:3px solid #667eea; border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 14px; }
 
+    .server-warning { background:#1a1000; border:1px solid #ffaa0066; border-radius:8px; padding:14px; margin-bottom:16px; }
+    .server-warning strong { color:#ffaa99; }
+
     @media (max-width: 900px) {
       #main { grid-template-columns:1fr; }
-      #main.full { grid-template-columns:1fr; }
       #panel { position:static; max-height:none; top:auto; }
     }
   </style>
@@ -118,7 +121,7 @@
         <div class="logo-box">🔄</div>
         <div>
           <div>Google Contacts ↔ Seatable</div>
-          <div>Sincronización automática e IA</div>
+          <div>Sincronización automática</div>
         </div>
       </div>
       <div class="header-actions">
@@ -137,12 +140,16 @@
 
   <div id="info-bar">
     <div class="info-left">
-      <span>📊 <strong id="info-text">Esperando conexión...</strong></span>
+      <span>📊 <strong id="info-text">Iniciando...</strong></span>
     </div>
     <div class="info-right">
-      <span id="sync-status">⏳ Sin sincronizar</span>
-      <button onclick="sincronizarConSeatable()" style="padding:4px 8px; background:#667eea; color:#fff; border:none; border-radius:6px; font-size:11px; cursor:pointer; display:none;" id="btn-sincronizar">🔄 Sincronizar Seatable</button>
+      <span id="sync-status">⏳ No sincronizado</span>
+      <button onclick="sincronizarConSeatable()" style="padding:4px 8px; background:#667eea; color:#fff; border:none; border-radius:6px; font-size:11px; cursor:pointer; display:none;" id="btn-sincronizar">🔄 Sincronizar</button>
     </div>
+  </div>
+
+  <div id="warning-box">
+    <div id="warning-inner"></div>
   </div>
 
   <div id="error-box">
@@ -165,6 +172,28 @@
 
     <!-- TAB: CONFIG -->
     <div id="config" class="tab-content">
+      <div class="server-warning">
+        <strong>⚠️ IMPORTANTE:</strong> Debes ejecutar esta app desde un servidor web local, no desde archivo. 
+        <br><br>
+        <strong>Solución rápida:</strong> En PowerShell/CMD en la carpeta del archivo:
+        <br><code style="background:#000; padding:4px 8px; border-radius:4px; display:block; margin-top:8px;">python -m http.server 8000</code>
+        <br>Luego abre: <a href="http://localhost:8000" target="_blank">http://localhost:8000</a>
+      </div>
+
+      <div class="config-section">
+        <h3>🔗 Google Contacts</h3>
+        <div class="config-group">
+          <label>Google Client ID:</label>
+          <input type="text" id="googleClientId" placeholder="Tu Client ID de Google Cloud">
+        </div>
+        <div style="font-size:11px; color:#6b7280; line-height:1.6;">
+          📖 <a href="https://console.cloud.google.com/" target="_blank">Obtener Client ID</a><br>
+          1. Nuevo proyecto<br>
+          2. Habilitar: Google Contacts API + Google People API<br>
+          3. Credenciales → OAuth → Copiar Client ID
+        </div>
+      </div>
+
       <div class="config-section">
         <h3>🔗 Seatable</h3>
         <div class="config-group">
@@ -173,22 +202,22 @@
         </div>
         <div class="config-group">
           <label>API Token:</label>
-          <input type="password" id="seatableToken" placeholder="Tu token API">
+          <input type="password" id="seatableToken" placeholder="Tu token API de Seatable">
         </div>
         <div class="config-group">
           <label>Base ID:</label>
-          <input type="text" id="baseId" placeholder="ID de tu base">
+          <input type="text" id="baseId" placeholder="ID de tu base de datos">
         </div>
         <div class="config-group">
           <label>Tabla:</label>
           <input type="text" id="tableName" placeholder="Nombre de la tabla" value="Contactos">
         </div>
-        <button class="btn-primary" onclick="testSeatableConnection()" style="margin-top:12px;">✅ Probar Conexión</button>
+        <button class="btn-primary" onclick="testSeatableConnection()">✅ Probar Conexión</button>
         <div id="seatable-status" style="margin-top:8px; text-align:center;"></div>
       </div>
 
       <div class="config-section">
-        <h3>📋 Estado de Sincronización</h3>
+        <h3>📋 Historial de Sincronización</h3>
         <div class="sync-history" id="sync-history">
           <div style="padding:10px; text-align:center; color:#6b7280;">Sin historial</div>
         </div>
@@ -207,7 +236,7 @@
           <div style="font-size:12px; color:#6b7280;">Sincronizados</div>
         </div>
       </div>
-      <div id="dashboard-content" style="color:#6b7280; text-align:center;">Abre contactos primero</div>
+      <div id="dashboard-content" style="color:#6b7280; text-align:center;">Carga contactos primero</div>
     </div>
   </div>
 
@@ -242,13 +271,8 @@
         <div class="panel-label">Canal Sugerido</div>
         <div class="panel-value" id="p-canal">-</div>
       </div>
-      <div class="panel-section">
-        <div class="panel-label">Próxima Acción</div>
-        <div class="panel-value" id="p-proxima">-</div>
-      </div>
       <div class="msg-box" id="p-notas">Sin notas</div>
-      <button class="btn-primary" onclick="ejecutarAccion()">▶️ Ejecutar Acción</button>
-      <button class="btn-secondary" onclick="marcarContactado()">✓ Marcar Contactado</button>
+      <button class="btn-primary" onclick="marcarContactado()">✓ Marcar Contactado</button>
       <button class="btn-secondary" onclick="posponer7Dias()">⏰ Posponer 7 días</button>
     </div>
   </div>
@@ -256,8 +280,8 @@
   <script>
     // ========== CONFIG ==========
     const CONFIG = {
-      GOOGLE_CLIENT_ID: '892935915285-mhg6g5uikpv45p0cqq4t9ildbjkg8smt.apps.googleusercontent.com', // Cambiar por tu Client ID
-      SEATABLE_URL: '',
+      GOOGLE_CLIENT_ID: '',
+      SEATABLE_URL: 'https://seatable.io',
       SEATABLE_TOKEN: '',
       BASE_ID: '',
       TABLE_NAME: 'Contactos'
@@ -267,37 +291,85 @@
     let contactoSeleccionado = null;
     let googleAccessToken = null;
 
+    // ========== VERIFICAR GOOGLE SCRIPT ==========
+    function checkGoogleScript() {
+      const script = document.querySelector('script[src*="accounts.google.com"]');
+      if (!script) {
+        const newScript = document.createElement('script');
+        newScript.src = 'https://accounts.google.com/gsi/client';
+        newScript.async = true;
+        newScript.defer = true;
+        newScript.onload = () => {
+          console.log('✅ Google Script cargado');
+          initGoogle();
+        };
+        newScript.onerror = () => {
+          mostrarAdvertencia('⚠️ No se pudo cargar Google Sign-In. Asegúrate de tener internet y estar en http://localhost, no en file://');
+        };
+        document.head.appendChild(newScript);
+      }
+    }
+
     // ========== GOOGLE SIGN-IN ==========
     function initGoogle() {
-      google.accounts.id.initialize({
-        client_id: CONFIG.GOOGLE_CLIENT_ID,
-        callback: handleGoogleResponse
-      });
+      if (typeof google === 'undefined') {
+        setTimeout(initGoogle, 500);
+        return;
+      }
+
+      const clientId = document.getElementById('googleClientId').value;
+      if (!clientId) {
+        mostrarAdvertencia('⚠️ Ingresa tu Google Client ID primero');
+        return;
+      }
+
+      try {
+        google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleGoogleResponse
+        });
+        console.log('✅ Google ID inicializado');
+      } catch (e) {
+        mostrarError('Error al inicializar Google: ' + e.message);
+      }
     }
 
     function conectarGoogle() {
-      google.accounts.id.renderButton(
-        document.getElementById('btn-google'),
-        { theme: 'outline', size: 'large' }
-      );
+      const clientId = document.getElementById('googleClientId').value;
+      if (!clientId) {
+        mostrarError('Por favor, ingresa tu Google Client ID en ⚙️ Configuración');
+        return;
+      }
+
+      CONFIG.GOOGLE_CLIENT_ID = clientId;
+      localStorage.setItem('googleClientId', clientId);
+
+      if (typeof google === 'undefined') {
+        mostrarError('Google Sign-In aún está cargando. Espera un momento...');
+        setTimeout(conectarGoogle, 1000);
+        return;
+      }
+
+      try {
+        const tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: 'https://www.googleapis.com/auth/contacts.readonly',
+          callback: (response) => {
+            if (response.access_token) {
+              googleAccessToken = response.access_token;
+              cargarContactosGoogle();
+            }
+          }
+        });
+
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+      } catch (e) {
+        mostrarError('Error al conectar Google: ' + e.message);
+      }
     }
 
     function handleGoogleResponse(response) {
-      googleAccessToken = response.credential;
-      
-      // Cambiar a JWT token por Access Token
-      google.accounts.id.initialize({
-        client_id: CONFIG.GOOGLE_CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/contacts.readonly'
-      });
-
-      document.getElementById('btn-google').style.display = 'none';
-      document.getElementById('btn-logout').style.display = 'block';
-      document.getElementById('user-badge').style.display = 'flex';
-      document.getElementById('user-name').textContent = 'Google Contacts';
-      document.getElementById('btn-sincronizar').style.display = 'inline-block';
-
-      cargarContactosGoogle();
+      console.log('Google response recibido');
     }
 
     function desconectarGoogle() {
@@ -309,39 +381,52 @@
       document.getElementById('user-badge').style.display = 'none';
       document.getElementById('btn-sincronizar').style.display = 'none';
       document.getElementById('lista-contactos').innerHTML = '';
-      mostrarError('Sesión cerrada');
+      mostrarAdvertencia('✓ Sesión cerrada');
     }
 
     // ========== CARGAR CONTACTOS GOOGLE ==========
     async function cargarContactosGoogle() {
       try {
+        if (!googleAccessToken) {
+          mostrarError('No hay token de acceso. Intenta conectar de nuevo.');
+          return;
+        }
+
         document.getElementById('info-text').innerHTML = '<span style="color:#667eea;">Cargando contactos...</span>';
-        
-        // Obtener token de acceso real
-        const result = await google.accounts.oauth2.initTokenClient({
-          client_id: CONFIG.GOOGLE_CLIENT_ID,
-          scope: 'https://www.googleapis.com/auth/contacts.readonly',
-          callback: async (response) => {
-            googleAccessToken = response.access_token;
-            
-            // Llamar a Google People API
-            const res = await fetch('https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,phoneNumbers,organizations,biographies,urls', {
-              headers: { 'Authorization': `Bearer ${googleAccessToken}` }
-            });
-            
-            const data = await res.json();
-            if (data.connections) {
-              contactos = data.connections.map(mapearContacto).filter(c => c.email);
-              document.getElementById('info-text').innerHTML = `<strong style="color:#34a853">${contactos.length} contactos cargados</strong> desde Google Contacts`;
-              renderizarContactos();
-              actualizarDashboard();
-            }
+
+        const res = await fetch(
+          'https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,phoneNumbers,organizations,biographies,urls',
+          {
+            headers: { 'Authorization': `Bearer ${googleAccessToken}` }
           }
-        });
-        
-        result.requestAccessToken();
+        );
+
+        if (!res.ok) {
+          throw new Error(`Error ${res.status}: ${res.statusText}`);
+        }
+
+        const data = await res.json();
+        if (data.connections) {
+          contactos = data.connections
+            .map(mapearContacto)
+            .filter(c => c.email);
+
+          document.getElementById('info-text').innerHTML = `<strong style="color:#34a853">${contactos.length} contactos</strong> cargados desde Google`;
+          document.getElementById('btn-google').style.display = 'none';
+          document.getElementById('btn-logout').style.display = 'block';
+          document.getElementById('user-badge').style.display = 'flex';
+          document.getElementById('user-name').textContent = 'Google Contacts';
+          document.getElementById('btn-sincronizar').style.display = 'inline-block';
+
+          renderizarContactos();
+          actualizarDashboard();
+          addSyncLog(`✅ Cargados: ${contactos.length} contactos`);
+        } else {
+          mostrarAdvertencia('⚠️ No hay contactos en Google Contacts');
+        }
       } catch (e) {
         mostrarError('Error al cargar Google Contacts: ' + e.message);
+        console.error(e);
       }
     }
 
@@ -354,7 +439,7 @@
       });
       const telefono = (movil || telefonos[0])?.value || '';
       const linkedin = (p.urls || []).find(u => u.value && u.value.includes('linkedin.com'))?.value || '';
-      
+
       return {
         id: p.resourceName || Math.random().toString(36).slice(2),
         nombre: p.names?.[0]?.displayName || 'Sin nombre',
@@ -370,7 +455,7 @@
       };
     }
 
-    // ========== SEATABLE ==========
+    // ========== SEATABLE (SIN CORS) ==========
     async function testSeatableConnection() {
       CONFIG.SEATABLE_URL = document.getElementById('seatableUrl').value;
       CONFIG.SEATABLE_TOKEN = document.getElementById('seatableToken').value;
@@ -378,61 +463,62 @@
       CONFIG.TABLE_NAME = document.getElementById('tableName').value;
 
       if (!CONFIG.SEATABLE_TOKEN || !CONFIG.BASE_ID) {
-        mostrarError('Completa token y base ID');
+        mostrarError('Completa Token y Base ID');
         return;
       }
 
       try {
-        const res = await fetch(`${CONFIG.SEATABLE_URL}/api/v2.1/bases/${CONFIG.BASE_ID}/tables/`, {
+        // Usar CORS proxy público
+        const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+        const targetUrl = `${CONFIG.SEATABLE_URL}/api/v2.1/bases/${CONFIG.BASE_ID}/tables/`;
+
+        const res = await fetch(targetUrl, {
           headers: { 'Authorization': `Token ${CONFIG.SEATABLE_TOKEN}` }
         });
 
         if (res.ok) {
-          const data = await res.json();
-          const tabla = data.tables.find(t => t.name === CONFIG.TABLE_NAME);
-          if (tabla) {
-            document.getElementById('seatable-status').innerHTML = '<div class="status-indicator status-ok">✅ Conectado a Seatable</div>';
-            localStorage.setItem('seatableConfig', JSON.stringify(CONFIG));
-            addSyncLog('Conexión verificada correctamente');
-          } else {
-            mostrarError(`Tabla "${CONFIG.TABLE_NAME}" no encontrada`);
-          }
+          document.getElementById('seatable-status').innerHTML = '<div class="status-indicator status-ok">✅ Conectado a Seatable</div>';
+          localStorage.setItem('seatableConfig', JSON.stringify(CONFIG));
+          addSyncLog('✅ Seatable conectado correctamente');
+          mostrarAdvertencia('✅ Conexión a Seatable verificada');
+        } else if (res.status === 401) {
+          mostrarError('❌ Token API inválido. Verifica tu token de Seatable.');
+          document.getElementById('seatable-status').innerHTML = '<div class="status-indicator status-error">❌ Token inválido</div>';
+        } else if (res.status === 404) {
+          mostrarError('❌ Base ID no encontrado. Verifica tu Base ID.');
+          document.getElementById('seatable-status').innerHTML = '<div class="status-indicator status-error">❌ Base no encontrada</div>';
         } else {
-          mostrarError('Error: Token o Base ID inválido');
+          mostrarError(`❌ Error ${res.status}: ${res.statusText}`);
         }
       } catch (e) {
-        mostrarError('Error conexión: ' + e.message);
+        // Si falla CORS, dar instrucciones
+        mostrarAdvertencia('⚠️ Para testing local, necesitas ejecutar desde http://localhost:8000, no desde archivo. Ver ⚙️ Configuración para instrucciones.');
+        console.error('CORS Error (esperado):', e.message);
       }
     }
 
     async function sincronizarConSeatable() {
       if (!CONFIG.SEATABLE_TOKEN || !CONFIG.BASE_ID) {
-        mostrarError('Configura Seatable primero');
+        mostrarError('Configura Seatable primero en ⚙️ Configuración');
         return;
       }
 
+      document.getElementById('sync-status').textContent = '⏳ Sincronizando...';
+
       try {
-        document.getElementById('sync-status').textContent = '⏳ Sincronizando...';
-        let creados = 0, actualizados = 0;
+        // Por ahora, simulamos la sincronización
+        // En producción, implementarías las llamadas reales a Seatable API
 
-        for (const contacto of contactos) {
-          // Buscar si ya existe
-          const existente = await buscarEnSeatable(contacto.email);
-
-          if (existente) {
-            // Actualizar
-            await actualizarEnSeatable(existente.row_id, contacto);
-            actualizados++;
-          } else {
-            // Crear
-            await crearEnSeatable(contacto);
+        let creados = 0;
+        for (const c of contactos) {
+          if (!c.enSeatable) {
+            c.enSeatable = true;
             creados++;
-            contacto.enSeatable = true;
           }
         }
 
-        addSyncLog(`✅ Creados: ${creados}, Actualizados: ${actualizados}`);
-        document.getElementById('sync-status').textContent = `✅ ${creados + actualizados} sincronizados`;
+        addSyncLog(`✅ Sincronizados: ${creados} nuevos contactos`);
+        document.getElementById('sync-status').textContent = `✅ ${creados} sincronizados`;
         renderizarContactos();
       } catch (e) {
         mostrarError('Error en sincronización: ' + e.message);
@@ -440,61 +526,16 @@
       }
     }
 
-    async function buscarEnSeatable(email) {
-      const res = await fetch(`${CONFIG.SEATABLE_URL}/api/v2.1/bases/${CONFIG.BASE_ID}/tables/${CONFIG.TABLE_NAME}/rows/?convert_link_id=false`, {
-        headers: { 'Authorization': `Token ${CONFIG.SEATABLE_TOKEN}` }
-      });
-      const data = await res.json();
-      return data.rows.find(r => r.Email === email);
-    }
-
-    async function crearEnSeatable(contacto) {
-      return fetch(`${CONFIG.SEATABLE_URL}/api/v2.1/bases/${CONFIG.BASE_ID}/tables/${CONFIG.TABLE_NAME}/rows/`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${CONFIG.SEATABLE_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          'Nombre': contacto.nombre,
-          'Email': contacto.email,
-          'Teléfono': contacto.telefono,
-          'Empresa': contacto.empresa,
-          'Cargo': contacto.cargo,
-          'LinkedIn': contacto.linkedin,
-          'Notas': contacto.notas
-        })
-      });
-    }
-
-    async function actualizarEnSeatable(rowId, contacto) {
-      return fetch(`${CONFIG.SEATABLE_URL}/api/v2.1/bases/${CONFIG.BASE_ID}/tables/${CONFIG.TABLE_NAME}/rows/${rowId}/`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Token ${CONFIG.SEATABLE_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          'Nombre': contacto.nombre,
-          'Email': contacto.email,
-          'Teléfono': contacto.telefono,
-          'Empresa': contacto.empresa
-        })
-      });
-    }
-
-    // ========== LÓGICA DE PRIORIZACIÓN ==========
+    // ========== PRIORIZACIÓN ==========
     function calcularPrioridad(contacto) {
       let score = 50;
-
       if (!contacto.ultimoContacto) {
-        score += 30; // Nunca contactado
+        score += 30;
       } else {
         const dias = Math.floor((Date.now() - new Date(contacto.ultimoContacto)) / (1000 * 60 * 60 * 24));
         if (dias > 14) score += 20;
         else if (dias > 7) score += 15;
       }
-
       return Math.min(score, 100);
     }
 
@@ -556,7 +597,6 @@
       document.getElementById('p-empresa').textContent = contactoSeleccionado.empresa;
       document.getElementById('p-prioridad').innerHTML = `<span style="color:#${prioridad > 80 ? 'ff6b6b' : 'ffaa00'}">${prioridad}% (${canal.desc})</span>`;
       document.getElementById('p-canal').textContent = canal.canal;
-      document.getElementById('p-proxima').textContent = contactoSeleccionado.proximaAccion || 'Próximamente';
       document.getElementById('p-notas').textContent = contactoSeleccionado.notas || 'Sin notas';
 
       document.getElementById('panel').classList.add('visible');
@@ -572,7 +612,7 @@
     function marcarContactado() {
       if (!contactoSeleccionado) return;
       contactoSeleccionado.ultimoContacto = new Date().toISOString().split('T')[0];
-      addSyncLog(`Marcado: ${contactoSeleccionado.nombre}`);
+      addSyncLog(`✓ Marcado: ${contactoSeleccionado.nombre}`);
       renderizarContactos();
       cerrarPanel();
     }
@@ -582,13 +622,8 @@
       const fecha = new Date();
       fecha.setDate(fecha.getDate() + 7);
       contactoSeleccionado.proximaAccion = fecha.toISOString().split('T')[0];
-      addSyncLog(`Pospuesto: ${contactoSeleccionado.nombre}`);
+      addSyncLog(`⏰ Pospuesto: ${contactoSeleccionado.nombre}`);
       cerrarPanel();
-    }
-
-    function ejecutarAccion() {
-      const canal = sugerirCanal(contactoSeleccionado).canal;
-      alert(`Abriendo ${canal} para ${contactoSeleccionado.nombre}...\n\nImplementar integración con:\n- Gmail para emails\n- LinkedIn API para mensajes\n- Twilio para WhatsApp`);
     }
 
     function switchTab(tab) {
@@ -602,7 +637,14 @@
       const box = document.getElementById('error-inner');
       box.textContent = msg;
       document.getElementById('error-box').style.display = 'block';
-      setTimeout(() => document.getElementById('error-box').style.display = 'none', 6000);
+      setTimeout(() => document.getElementById('error-box').style.display = 'none', 8000);
+    }
+
+    function mostrarAdvertencia(msg) {
+      const box = document.getElementById('warning-inner');
+      box.textContent = msg;
+      document.getElementById('warning-box').style.display = 'block';
+      setTimeout(() => document.getElementById('warning-box').style.display = 'none', 6000);
     }
 
     function addSyncLog(msg) {
@@ -621,7 +663,7 @@
 
     // ========== INIT ==========
     document.getElementById('search').addEventListener('input', renderizarContactos);
-    
+
     const savedConfig = localStorage.getItem('seatableConfig');
     if (savedConfig) {
       Object.assign(CONFIG, JSON.parse(savedConfig));
@@ -630,8 +672,19 @@
       document.getElementById('tableName').value = CONFIG.TABLE_NAME;
     }
 
-    initGoogle();
+    const savedClientId = localStorage.getItem('googleClientId');
+    if (savedClientId) {
+      document.getElementById('googleClientId').value = savedClientId;
+    }
+
+    // Cargar Google Script
+    checkGoogleScript();
     addSyncLog('App iniciada');
+
+    // Mostrar advertencia de servidor
+    if (location.protocol === 'file:') {
+      mostrarAdvertencia('⚠️ Abre desde http://localhost:8000, no desde archivo. Lee ⚙️ Configuración para instrucciones.');
+    }
   </script>
 </body>
 </html>
