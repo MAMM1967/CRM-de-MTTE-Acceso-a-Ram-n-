@@ -15,6 +15,9 @@
         .loading { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-8">
@@ -55,7 +58,7 @@
                         <div class="mb-4 flex justify-center">
                             <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                         </div>
-                        <p class="text-xs">Conecta con Google para importar contactos</p>
+                        <p class="text-xs">Conecta con Google para importar</p>
                     </div>
                 </div>
             </div>
@@ -63,9 +66,9 @@
 
         <section class="lg:col-span-8">
             <div class="flex gap-8 mb-6 font-bold text-[11px] uppercase border-b border-slate-800">
-                <button onclick="changeTab('agenda')" id="tab-agenda" class="pb-3 tab-active tracking-widest transition-all">📅 Agenda Hoy</button>
-                <button onclick="changeTab('empresas')" id="tab-empresas" class="pb-3 text-slate-500 hover:text-white tracking-widest transition-all">🏢 Empresas</button>
-                <button onclick="changeTab('contactos')" id="tab-contactos" class="pb-3 text-slate-500 hover:text-white tracking-widest transition-all">👥 Todos los Contactos</button>
+                <button onclick="changeTab('Agenda')" id="tab-Agenda" class="pb-3 tab-active tracking-widest transition-all">📅 Agenda Hoy</button>
+                <button onclick="changeTab('Empresas')" id="tab-Empresas" class="pb-3 text-slate-500 hover:text-white tracking-widest transition-all">🏢 Empresas</button>
+                <button onclick="changeTab('Contactos')" id="tab-Contactos" class="pb-3 text-slate-500 hover:text-white tracking-widest transition-all">👥 Todos los Contactos</button>
             </div>
             <div id="st-content" class="min-h-[400px]"></div>
         </section>
@@ -74,20 +77,19 @@
     <!-- CONFIG MODAL -->
     <div id="config-modal" class="fixed inset-0 bg-slate-950/90 hidden flex items-center justify-center z-[100] p-4 backdrop-blur-md">
         <div class="glass-card max-w-md w-full p-8 shadow-2xl border-blue-500/30">
-            <h3 class="text-xl font-bold mb-2">Configuración de Enlace</h3>
-            <p class="text-xs text-slate-400 mb-8 uppercase tracking-widest font-semibold">Credenciales SeaTable & Google</p>
+            <h3 class="text-xl font-bold mb-2">Configuración</h3>
             <div class="space-y-5">
                 <div>
                     <label class="text-[10px] text-blue-400 font-bold uppercase ml-1">SeaTable App Token</label>
-                    <input type="password" id="st-token" placeholder="Pega el token largo aquí..." class="w-full input-dark px-4 py-3 mt-1.5 text-sm focus:ring-2 ring-blue-500 outline-none transition-all">
+                    <input type="password" id="st-token" placeholder="Token de la Base de Datos..." class="w-full input-dark px-4 py-3 mt-1.5 text-sm focus:ring-2 ring-blue-500 outline-none">
                 </div>
                 <div>
                     <label class="text-[10px] text-blue-400 font-bold uppercase ml-1">Google Client ID</label>
-                    <input type="text" id="google-id" placeholder="ID de cliente de Google Cloud..." class="w-full input-dark px-4 py-3 mt-1.5 text-sm focus:ring-2 ring-blue-500 outline-none transition-all">
+                    <input type="text" id="google-id" placeholder="ID de cliente de Google Cloud..." class="w-full input-dark px-4 py-3 mt-1.5 text-sm focus:ring-2 ring-blue-500 outline-none">
                 </div>
                 <div class="pt-4">
-                    <button onclick="saveConfig()" class="w-full btn-primary py-4 rounded-xl font-bold text-sm text-white shadow-lg shadow-blue-600/30">Guardar Configuración</button>
-                    <button onclick="toggleModal('config-modal', false)" class="w-full mt-4 text-slate-500 text-xs hover:text-white transition-colors">Cerrar sin guardar</button>
+                    <button onclick="saveConfig()" class="w-full btn-primary py-4 rounded-xl font-bold text-sm text-white shadow-lg">Guardar y Recargar</button>
+                    <button onclick="toggleModal('config-modal', false)" class="w-full mt-4 text-slate-500 text-xs">Cerrar</button>
                 </div>
             </div>
         </div>
@@ -99,14 +101,14 @@
             <div class="flex justify-between items-start mb-8">
                 <div>
                     <h3 class="text-2xl font-bold">Vincular a SeaTable</h3>
-                    <p class="text-xs text-slate-400 uppercase tracking-[0.2em] mt-1 font-bold">Nuevo Registro en MTTE CRM</p>
+                    <p class="text-xs text-slate-400 uppercase tracking-widest mt-1 font-bold">Nuevo Registro en MTTE CRM</p>
                 </div>
                 <button onclick="toggleModal('import-modal', false)" class="p-2 hover:bg-white/5 rounded-full">✕</button>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div class="space-y-4">
-                    <h4 class="text-blue-400 text-[10px] font-black uppercase tracking-widest pb-2 border-b border-blue-500/20">Información del Contacto</h4>
+                    <h4 class="text-blue-400 text-[10px] font-black uppercase border-b border-blue-500/20 pb-2">Información del Contacto</h4>
                     <div class="grid grid-cols-2 gap-3">
                         <input type="text" id="imp-nombre" placeholder="Nombre" class="input-dark px-4 py-3 text-sm">
                         <input type="text" id="imp-ap1" placeholder="Apellido 1" class="input-dark px-4 py-3 text-sm">
@@ -118,19 +120,19 @@
                         <input type="text" id="imp-tel-fix" placeholder="Fijo" class="input-dark px-4 py-3 text-sm">
                     </div>
                     <input type="text" id="imp-cargo" placeholder="Cargo" class="w-full input-dark px-4 py-3 text-sm">
-                    <input type="text" id="imp-linkedin" placeholder="URL Perfil LinkedIn" class="w-full input-dark px-4 py-3 text-sm">
-                    <textarea id="imp-notas" placeholder="Notas adicionales..." class="w-full input-dark px-4 py-3 text-sm h-24 resize-none"></textarea>
+                    <input type="text" id="imp-linkedin" placeholder="LinkedIn" class="w-full input-dark px-4 py-3 text-sm">
+                    <textarea id="imp-notas" placeholder="Notas..." class="w-full input-dark px-4 py-3 text-sm h-24 resize-none"></textarea>
                 </div>
 
                 <div class="space-y-4">
-                    <h4 class="text-emerald-400 text-[10px] font-black uppercase tracking-widest pb-2 border-b border-emerald-500/20">Asignación de Empresa</h4>
+                    <h4 class="text-emerald-400 text-[10px] font-black uppercase border-b border-emerald-500/20 pb-2">Empresa</h4>
                     <select id="imp-select-empresa" onchange="toggleNuevaEmpresa(this.value)" class="w-full input-dark px-4 py-3 text-sm cursor-pointer">
                         <option value="NEW">+ Crear Nueva Empresa</option>
                     </select>
                     
                     <div id="new-emp-fields" class="space-y-4 pt-4 bg-emerald-500/5 p-4 rounded-2xl border border-emerald-500/10">
-                        <input type="text" id="imp-emp-nombre" placeholder="Nombre Comercial Empresa" class="w-full input-dark px-4 py-3 text-sm">
-                        <select id="imp-emp-tipo" class="w-full input-dark px-4 py-3 text-sm cursor-pointer">
+                        <input type="text" id="imp-emp-nombre" placeholder="Nombre Empresa" class="w-full input-dark px-4 py-3 text-sm">
+                        <select id="imp-emp-tipo" class="w-full input-dark px-4 py-3 text-sm">
                             <option value="CLIENTES FINAL">CLIENTES FINAL</option>
                             <option value="ALMACÉN FRÍO">ALMACÉN FRÍO</option>
                             <option value="CARROCERO">CARROCERO</option>
@@ -144,32 +146,34 @@
                             <option value="PROVEEDOR">PROVEEDOR</option>
                             <option value="RECAMBIOS">RECAMBIOS</option>
                         </select>
-                        <input type="text" id="imp-emp-dir" placeholder="Dirección Postal" class="w-full input-dark px-4 py-3 text-sm">
+                        <input type="text" id="imp-emp-dir" placeholder="Dirección" class="w-full input-dark px-4 py-3 text-sm">
                         <div class="grid grid-cols-2 gap-3">
                             <input type="text" id="imp-emp-ciu" placeholder="Ciudad" class="input-dark px-4 py-3 text-sm">
                             <input type="text" id="imp-emp-pro" placeholder="Provincia" class="input-dark px-4 py-3 text-sm">
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <input type="text" id="imp-emp-cp" placeholder="C.P." class="input-dark px-4 py-3 text-sm">
-                            <input type="text" id="imp-emp-pais" placeholder="País" value="España" class="input-dark px-4 py-3 text-sm">
                         </div>
                     </div>
                 </div>
             </div>
             
-            <div class="mt-12 flex gap-4">
-                <button onclick="executeImport()" id="btn-import" class="flex-1 btn-primary py-5 rounded-2xl font-bold text-white shadow-xl shadow-blue-600/30 hover:scale-[1.02] active:scale-95 transition-all">Sincronizar ahora en SeaTable</button>
+            <div class="mt-8 flex gap-4">
+                <button onclick="executeImport()" id="btn-import" class="flex-1 btn-primary py-5 rounded-2xl font-bold text-white shadow-xl">Sincronizar en SeaTable</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Configuración persistente
+        // Configuración y variables de estado
         let config = JSON.parse(localStorage.getItem('mtte_crm_v3')) || { token: '', googleId: '' };
-        let currentTab = 'agenda';
+        let currentTab = 'Agenda'; // Coincide con nombres de SeaTable
         let googleToken = null;
         let tokenClient = null;
         let session = { accessToken: null, dtableUuid: null, serverUrl: 'https://dtable-server.seatable.io' };
+
+        // Centralización de nombres de tablas (Case Sensitive)
+        const TABLES = {
+            CONTACTOS: 'Contactos',
+            EMPRESAS: 'Empresas'
+        };
 
         function updateStatus(msg, colorClass, dotColor) {
             const el = document.getElementById('connection-status');
@@ -179,10 +183,7 @@
         }
 
         async function authenticateSeaTable() {
-            if (!config.token) {
-                updateStatus('Configuración Pendiente', 'text-yellow-500', 'bg-yellow-500');
-                return false;
-            }
+            if (!config.token) return false;
             try {
                 updateStatus('Conectando...', 'text-blue-400', 'bg-blue-400 animate-pulse');
                 const res = await fetch('https://cloud.seatable.io/api/v2.1/dtable/app-access-token/', {
@@ -193,7 +194,7 @@
                 session.accessToken = data.access_token;
                 session.dtableUuid = data.dtable_uuid;
                 session.serverUrl = data.dtable_server.replace(/\/$/, ""); 
-                updateStatus('SeaTable Conectado', 'text-emerald-500', 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]');
+                updateStatus('SeaTable Conectado', 'text-emerald-500', 'bg-emerald-500 shadow-md');
                 return true;
             } catch (e) {
                 updateStatus('Error de Token', 'text-red-500', 'bg-red-500');
@@ -212,8 +213,7 @@
                     method,
                     headers: { 
                         'Authorization': `Token ${session.accessToken}`, 
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
+                        'Content-Type': 'application/json'
                     },
                     body: body ? JSON.stringify(body) : null
                 });
@@ -225,14 +225,15 @@
             const container = document.getElementById('st-content');
             container.innerHTML = '<div class="flex justify-center py-24"><div class="loading"></div></div>';
             
-            const table = (currentTab === 'empresas') ? 'Empresas' : 'Contactos';
-            const data = await stRequest(table);
+            // Si la pestaña es "Agenda", cargamos de la tabla "Contactos"
+            const tableToFetch = (currentTab === 'Empresas') ? TABLES.EMPRESAS : TABLES.CONTACTOS;
+            const data = await stRequest(tableToFetch);
             
             if (data.error || !data.rows) {
                 container.innerHTML = `
                     <div class="glass-card p-12 text-center border-red-500/20">
-                        <p class="text-red-400 font-bold mb-2">Error de Sincronización</p>
-                        <p class="text-xs text-slate-500">Asegúrate de que la tabla se llame "${table}" en SeaTable.</p>
+                        <p class="text-red-400 font-bold mb-2">Error: No se encontró la tabla "${tableToFetch}"</p>
+                        <p class="text-[10px] text-slate-500 uppercase tracking-widest">Verifica que el nombre en SeaTable sea idéntico</p>
                         <button onclick="loadData()" class="mt-6 px-6 py-2 bg-slate-800 rounded-lg text-xs font-bold">Reintentar</button>
                     </div>`;
                 return;
@@ -243,12 +244,12 @@
         function renderData(rows) {
             const container = document.getElementById('st-content');
             if (!rows.length) { 
-                container.innerHTML = '<div class="text-center py-24 opacity-20"><p class="text-xs italic">No hay registros para mostrar</p></div>'; 
+                container.innerHTML = '<div class="text-center py-24 opacity-20"><p class="text-xs italic">Sin registros</p></div>'; 
                 return; 
             }
 
-            if (currentTab === 'agenda') {
-                container.innerHTML = rows.slice(0, 20).map(r => `
+            if (currentTab === 'Agenda') {
+                container.innerHTML = rows.slice(0, 15).map(r => `
                     <div class="glass-card p-6 mb-4 flex justify-between items-center border-l-4 border-blue-500 hover:bg-white/5 transition-colors group">
                         <div class="flex items-center gap-4">
                             <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold text-xs">
@@ -260,22 +261,21 @@
                             </div>
                         </div>
                         <div class="flex gap-2">
-                            ${r.Email ? `<a href="mailto:${r.Email}" title="Enviar Email" class="p-2.5 bg-blue-600/10 text-blue-400 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></a>` : ''}
-                            ${r['Teléfono móvil'] ? `<a href="https://wa.me/${r['Teléfono móvil'].replace(/\s+/g, '')}" target="_blank" title="WhatsApp" class="p-2.5 bg-emerald-600/10 text-emerald-400 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg></a>` : ''}
+                             ${r.Email ? `<a href="mailto:${r.Email}" class="p-2.5 bg-blue-600/10 text-blue-400 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></a>` : ''}
                         </div>
                     </div>
                 `).join('');
             } else {
                 const cols = Object.keys(rows[0]).filter(k => !k.startsWith('_'));
                 container.innerHTML = `
-                    <div class="glass-card overflow-hidden shadow-2xl border border-white/5">
+                    <div class="glass-card overflow-hidden">
                         <div class="overflow-x-auto custom-scrollbar">
                             <table class="w-full text-[10px] text-left">
-                                <thead class="bg-slate-800 text-blue-400 uppercase font-black tracking-widest">
+                                <thead class="bg-slate-800 text-blue-400 uppercase font-black">
                                     <tr>${cols.map(c => `<th class="p-5 whitespace-nowrap">${c}</th>`).join('')}</tr>
                                 </thead>
                                 <tbody class="divide-y divide-white/5">
-                                    ${rows.map(r => `<tr class="hover:bg-white/[0.02] transition-colors">${cols.map(c => `<td class="p-5 text-slate-300 whitespace-nowrap">${r[c] || '-'}</td>`).join('')}</tr>`).join('')}
+                                    ${rows.map(r => `<tr class="hover:bg-white/[0.02]">${cols.map(c => `<td class="p-5 text-slate-300 whitespace-nowrap">${r[c] || '-'}</td>`).join('')}</tr>`).join('')}
                                 </tbody>
                             </table>
                         </div>
@@ -306,27 +306,20 @@
                     headers: { 'Authorization': `Bearer ${googleToken}` }
                 });
                 const data = await res.json();
-                const total = data.connections?.length || 0;
-                document.getElementById('google-count').innerText = total;
-                
+                document.getElementById('google-count').innerText = data.connections?.length || 0;
                 list.innerHTML = data.connections?.map(p => {
                     const cleanObj = JSON.stringify(p).replace(/'/g, "&apos;");
-                    return `
-                    <div onclick='openImport(${cleanObj})' class="bg-slate-800/40 p-4 rounded-xl border border-white/5 hover:border-blue-500/50 cursor-pointer transition-all hover:translate-x-1">
+                    return `<div onclick='openImport(${cleanObj})' class="bg-slate-800/40 p-4 rounded-xl border border-white/5 hover:border-blue-500 cursor-pointer transition-all">
                         <div class="font-bold text-xs">${p.names?.[0]?.displayName || 'Sin nombre'}</div>
-                        <div class="flex justify-between items-center mt-1">
-                            <span class="text-[9px] text-slate-500 uppercase font-bold tracking-tighter">${p.organizations?.[0]?.name || 'PARTICULAR'}</span>
-                            <span class="text-[8px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded uppercase font-bold">Importar</span>
-                        </div>
+                        <div class="text-[9px] text-slate-500 uppercase mt-1">${p.organizations?.[0]?.name || 'PARTICULAR'}</div>
                     </div>`;
-                }).join('') || '<p class="text-center py-10 opacity-30 text-xs">No se encontraron contactos.</p>';
-            } catch (e) { list.innerHTML = '<p class="text-red-400 text-center text-xs">Error al conectar con Google.</p>'; }
+                }).join('') || '<p class="text-xs opacity-30 text-center py-10">No hay contactos</p>';
+            } catch (e) { list.innerHTML = '<p class="text-red-400 text-center text-xs">Error Google API</p>'; }
         }
 
         async function openImport(p) {
             const fullName = p.names?.[0]?.displayName || '';
             const nameParts = fullName.split(' ');
-            
             document.getElementById('imp-nombre').value = nameParts[0] || '';
             document.getElementById('imp-ap1').value = nameParts.slice(1).join(' ') || '';
             document.getElementById('imp-email').value = p.emailAddresses?.[0]?.value || '';
@@ -335,37 +328,31 @@
             document.getElementById('imp-cargo').value = p.organizations?.[0]?.title || '';
             
             toggleModal('import-modal', true);
-            
             const sel = document.getElementById('imp-select-empresa');
             sel.innerHTML = '<option value="">Cargando empresas...</option>';
-            const emps = await stRequest('Empresas');
+            const emps = await stRequest(TABLES.EMPRESAS);
             sel.innerHTML = '<option value="NEW">+ Crear Nueva Empresa</option>' + (emps.rows || []).map(e => `<option value="${e['Nombre Empresa']}">${e['Nombre Empresa']}</option>`).join('');
         }
 
         async function executeImport() {
             const btn = document.getElementById('btn-import');
-            const originalText = btn.innerText;
-            btn.innerText = "Sincronizando..."; btn.disabled = true;
+            btn.disabled = true; btn.innerText = "Sincronizando...";
 
             let empNom = document.getElementById('imp-emp-nombre').value;
             let empSel = document.getElementById('imp-select-empresa').value;
             let finalEmpresa = (empSel === 'NEW') ? empNom : empSel;
 
-            // 1. Crear Empresa si es nueva
             if (empSel === 'NEW' && empNom) {
-                await stRequest('Empresas', 'POST', { row: {
+                await stRequest(TABLES.EMPRESAS, 'POST', { row: {
                     "Nombre Empresa": empNom,
                     "Tipo Empresa": document.getElementById('imp-emp-tipo').value,
                     "Dirección": document.getElementById('imp-emp-dir').value,
                     "Ciudad": document.getElementById('imp-emp-ciu').value,
-                    "Provincia": document.getElementById('imp-emp-pro').value,
-                    "Código Postal": document.getElementById('imp-emp-cp').value,
-                    "País": document.getElementById('imp-emp-pais').value
+                    "Provincia": document.getElementById('imp-emp-pro').value
                 }});
             }
 
-            // 2. Crear Contacto
-            await stRequest('Contactos', 'POST', { row: {
+            await stRequest(TABLES.CONTACTOS, 'POST', { row: {
                 "Nombre": document.getElementById('imp-nombre').value,
                 "Apellido 1": document.getElementById('imp-ap1').value,
                 "Apellido 2": document.getElementById('imp-ap2').value,
@@ -378,26 +365,26 @@
                 "Notas": document.getElementById('imp-notas').value
             }});
 
-            btn.innerText = originalText; btn.disabled = false;
+            btn.disabled = false; btn.innerText = "Sincronizar en SeaTable";
             toggleModal('import-modal', false);
             loadData();
         }
 
-        // --- UTILIDADES ---
         function saveConfig() {
             config.token = document.getElementById('st-token').value.trim();
             config.googleId = document.getElementById('google-id').value.trim();
             localStorage.setItem('mtte_crm_v3', JSON.stringify(config));
-            toggleModal('config-modal', false);
             location.reload();
         }
 
         function toggleModal(id, show) { document.getElementById(id).classList.toggle('hidden', !show); }
         function toggleNuevaEmpresa(v) { document.getElementById('new-emp-fields').classList.toggle('hidden', v !== 'NEW'); }
+        
         function changeTab(t) { 
             currentTab = t; 
-            ['agenda','empresas','contactos'].forEach(id => {
-                document.getElementById('tab-'+id).className = (id === t) ? 'pb-3 tab-active tracking-widest transition-all' : 'pb-3 text-slate-500 hover:text-white tracking-widest transition-all';
+            ['Agenda','Empresas','Contactos'].forEach(id => {
+                const btn = document.getElementById('tab-'+id);
+                if(btn) btn.className = (id === t) ? 'pb-3 tab-active tracking-widest transition-all' : 'pb-3 text-slate-500 hover:text-white tracking-widest transition-all';
             });
             loadData(); 
         }
