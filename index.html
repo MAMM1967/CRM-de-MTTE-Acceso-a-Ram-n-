@@ -1,596 +1,413 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sincronizador Google Contacts ↔ Seatable (Inteligente)</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #0a0d14; color: #e8eaf0; font-family: 'DM Sans','Segoe UI',sans-serif; min-height: 100vh; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
-
-    #header { background: linear-gradient(135deg,#0d1117,#111827); border-bottom: 1px solid #1e2535; padding: 0 24px; }
-    #header-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 64px; }
-    .logo-box { width:36px; height:36px; border-radius:8px; background:linear-gradient(135deg,#667eea,#764ba2); display:flex; align-items:center; justify-content:center; font-weight:900; font-size:18px; color:#fff; }
-
-    .header-title { display:flex; align-items:center; gap:12px; }
-    .header-title div:first-child { font-size:15px; font-weight:700; }
-    .header-title div:last-child { font-size:11px; color:#6b7280; text-transform:uppercase; }
-
-    .header-actions { display:flex; align-items:center; gap:10px; }
-    #btn-google { background:#fff; color:#3c4043; border:1px solid #dadce0; border-radius:8px; padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; }
-    #user-badge { display:none; align-items:center; gap:7px; background:#0d1a0d; border:1px solid #34a85344; border-radius:20px; padding:6px 14px; font-size:12px; color:#34a853; font-weight:600; }
-    #btn-logout { background:#1e2535; color:#9ca3af; border:1px solid #374151; border-radius:6px; padding:6px 12px; font-size:12px; cursor:pointer; display:none; }
-
-    #info-bar { max-width:1200px; margin:10px auto 0; padding:0 24px; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#6b7280; }
-
-    #error-box, #success-box { max-width:1200px; margin:14px auto 0; padding:0 24px; display:none; }
-    #error-inner { background:#2a0a0a; border:1px solid #ff6b6b; border-radius:10px; padding:14px 18px; font-size:13px; color:#ff9999; }
-    #success-inner { background:#0a2a0a; border:1px solid #34a853; border-radius:10px; padding:14px 18px; font-size:13px; color:#66cc99; }
-
-    #tabs { max-width:1200px; margin:0 auto; padding:0 24px; display:flex; gap:2px; border-bottom:1px solid #1e2535; }
-    .tab-btn { background:none; border:none; color:#6b7280; font-size:13px; font-weight:600; cursor:pointer; padding:12px 16px; border-bottom:2px solid transparent; }
-    .tab-btn.active { color:#667eea; border-bottom-color:#667eea; }
-
-    #main { max-width:1200px; margin:0 auto; padding:18px 24px; }
-    .tab-content { display:none; }
-    .tab-content.active { display:block; animation:fadeIn 0.3s ease; }
-
-    .config-section { background:#111827; border:1px solid #1e2535; border-radius:10px; padding:16px; margin-bottom:16px; }
-    .config-section h3 { font-size:14px; font-weight:700; margin-bottom:12px; color:#e8eaf0; }
-    
-    .config-group { margin-bottom:12px; }
-    .config-group label { display:block; font-size:12px; color:#9ca3af; margin-bottom:6px; font-weight:600; }
-    .config-group input { width:100%; background:#0d1117; border:1px solid #1e2535; border-radius:6px; padding:8px 10px; color:#e8eaf0; font-size:12px; outline:none; }
-    .config-group input:focus { border-color:#667eea; }
-
-    .two-columns { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-    
-    .status-indicator { display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:6px 10px; border-radius:6px; }
-    .status-ok { background:#002a1a; color:#00cc88; }
-    .status-error { background:#2a0a0a; color:#ff6b6b; }
-
-    .btn-primary { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:8px; padding:10px 20px; font-size:13px; font-weight:700; cursor:pointer; }
-    .btn-primary:hover { opacity:0.9; }
-    .btn-secondary { background:#1e2535; color:#9ca3af; border:1px solid #374151; border-radius:8px; padding:10px 20px; font-size:12px; cursor:pointer; }
-
-    .contacto-card { background:#0d1117; border:1px solid #1e2535; border-radius:10px; padding:14px; margin-bottom:10px; }
-    .contacto-nombre { font-weight:700; color:#e8eaf0; }
-    .contacto-empresa { font-size:12px; color:#9ca3af; margin-top:4px; }
-
-    .info-box { background:#0d1a2a; border:1px solid #4285f444; border-radius:8px; padding:12px; margin-bottom:12px; font-size:12px; color:#93c5fd; line-height:1.6; }
-
-    .sync-history { max-height:300px; overflow-y:auto; margin-top:8px; }
-    .sync-log { font-size:11px; color:#6b7280; padding:6px 0; border-bottom:1px solid #1e2535; }
-    .sync-log.success { color:#00cc88; }
-    .sync-log.error { color:#ff6b6b; }
-    .sync-log.info { color:#667eea; }
-
-    .empty-state { text-align:center; padding:40px 20px; color:#6b7280; }
-
-    .loading { animation:spin 0.8s linear infinite; }
-
-    @media (max-width: 900px) {
-      .two-columns { grid-template-columns:1fr; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTTE · CRM Comercial</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+        body { font-family: 'Outfit', sans-serif; background-color: #050a15; color: #e2e8f0; overflow-x: hidden; }
+        .glass-card { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1.5rem; }
+        .input-dark { background: #0f172a !important; border: 1px solid #3b82f6 !important; color: white !important; border-radius: 0.75rem !important; }
+        .btn-primary { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); transition: all 0.3s ease; }
+        .loading { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
+    </style>
 </head>
-<body>
+<body class="min-h-screen p-4 md:p-8">
 
-  <div id="header">
-    <div id="header-inner">
-      <div class="header-title">
-        <div class="logo-box">🧠</div>
-        <div>
-          <div>Sincronizador Inteligente</div>
-          <div>Google Contacts ↔ Seatable</div>
+    <header class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-6 glass-card p-6">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <span class="text-white font-bold text-xl italic">M</span>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight">MTTE <span class="text-blue-500 italic">INDUSTRIAL</span></h1>
+                <div class="flex items-center gap-2">
+                    <div id="status-dot" class="w-2 h-2 rounded-full bg-yellow-500"></div>
+                    <p id="connection-status" class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Esperando Configuración</p>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class="header-actions">
-        <div id="user-badge">
-          <div style="width:7px; height:7px; border-radius:50%; background:#34a853;"></div>
-          <span id="user-name"></span>
+        <div class="flex items-center gap-3">
+            <button id="auth-btn" onclick="handleAuthClick()" class="bg-white text-slate-900 px-6 py-2.5 rounded-xl font-bold text-xs hover:bg-blue-50 transition-colors shadow-sm">Google Contacts</button>
+            <button onclick="toggleModal('config-modal', true)" class="p-2.5 bg-slate-800 rounded-xl border border-blue-500/30 hover:bg-slate-700 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </button>
         </div>
-        <button id="btn-google" onclick="conectarGoogle()">
-          <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-          Conectar Google
-        </button>
-        <button id="btn-logout" onclick="desconectarGoogle()">Cerrar</button>
-      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <aside class="lg:col-span-4 space-y-6">
+            <div class="glass-card p-6 min-h-[500px] flex flex-col">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em]">Google Contacts</h2>
+                    <span id="google-count" class="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold">0</span>
+                </div>
+                <div id="google-list" class="space-y-3 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar">
+                    <div class="text-center py-20 opacity-30">
+                        <div class="mb-4 flex justify-center">
+                            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        </div>
+                        <p class="text-xs">Conecta con Google para importar contactos</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <section class="lg:col-span-8">
+            <div class="flex gap-8 mb-6 font-bold text-[11px] uppercase border-b border-slate-800">
+                <button onclick="changeTab('agenda')" id="tab-agenda" class="pb-3 tab-active tracking-widest transition-all">📅 Agenda Hoy</button>
+                <button onclick="changeTab('empresas')" id="tab-empresas" class="pb-3 text-slate-500 hover:text-white tracking-widest transition-all">🏢 Empresas</button>
+                <button onclick="changeTab('contactos')" id="tab-contactos" class="pb-3 text-slate-500 hover:text-white tracking-widest transition-all">👥 Todos los Contactos</button>
+            </div>
+            <div id="st-content" class="min-h-[400px]"></div>
+        </section>
+    </main>
+
+    <!-- CONFIG MODAL -->
+    <div id="config-modal" class="fixed inset-0 bg-slate-950/90 hidden flex items-center justify-center z-[100] p-4 backdrop-blur-md">
+        <div class="glass-card max-w-md w-full p-8 shadow-2xl border-blue-500/30">
+            <h3 class="text-xl font-bold mb-2">Configuración de Enlace</h3>
+            <p class="text-xs text-slate-400 mb-8 uppercase tracking-widest font-semibold">Credenciales SeaTable & Google</p>
+            <div class="space-y-5">
+                <div>
+                    <label class="text-[10px] text-blue-400 font-bold uppercase ml-1">SeaTable App Token</label>
+                    <input type="password" id="st-token" placeholder="Pega el token largo aquí..." class="w-full input-dark px-4 py-3 mt-1.5 text-sm focus:ring-2 ring-blue-500 outline-none transition-all">
+                </div>
+                <div>
+                    <label class="text-[10px] text-blue-400 font-bold uppercase ml-1">Google Client ID</label>
+                    <input type="text" id="google-id" placeholder="ID de cliente de Google Cloud..." class="w-full input-dark px-4 py-3 mt-1.5 text-sm focus:ring-2 ring-blue-500 outline-none transition-all">
+                </div>
+                <div class="pt-4">
+                    <button onclick="saveConfig()" class="w-full btn-primary py-4 rounded-xl font-bold text-sm text-white shadow-lg shadow-blue-600/30">Guardar Configuración</button>
+                    <button onclick="toggleModal('config-modal', false)" class="w-full mt-4 text-slate-500 text-xs hover:text-white transition-colors">Cerrar sin guardar</button>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <div id="info-bar">
-    <span>📊 <strong id="info-text">Iniciando...</strong></span>
-  </div>
+    <!-- MODAL IMPORTACIÓN -->
+    <div id="import-modal" class="fixed inset-0 bg-slate-950/95 hidden flex items-center justify-center z-[100] p-4 backdrop-blur-xl overflow-y-auto">
+        <div class="glass-card max-w-5xl w-full p-8 border-blue-500/20 shadow-2xl my-8">
+            <div class="flex justify-between items-start mb-8">
+                <div>
+                    <h3 class="text-2xl font-bold">Vincular a SeaTable</h3>
+                    <p class="text-xs text-slate-400 uppercase tracking-[0.2em] mt-1 font-bold">Nuevo Registro en MTTE CRM</p>
+                </div>
+                <button onclick="toggleModal('import-modal', false)" class="p-2 hover:bg-white/5 rounded-full">✕</button>
+            </div>
 
-  <div id="error-box">
-    <div id="error-inner"></div>
-  </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div class="space-y-4">
+                    <h4 class="text-blue-400 text-[10px] font-black uppercase tracking-widest pb-2 border-b border-blue-500/20">Información del Contacto</h4>
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="text" id="imp-nombre" placeholder="Nombre" class="input-dark px-4 py-3 text-sm">
+                        <input type="text" id="imp-ap1" placeholder="Apellido 1" class="input-dark px-4 py-3 text-sm">
+                    </div>
+                    <input type="text" id="imp-ap2" placeholder="Apellido 2" class="w-full input-dark px-4 py-3 text-sm">
+                    <input type="email" id="imp-email" placeholder="Email" class="w-full input-dark px-4 py-3 text-sm">
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="text" id="imp-tel-mov" placeholder="Móvil" class="input-dark px-4 py-3 text-sm">
+                        <input type="text" id="imp-tel-fix" placeholder="Fijo" class="input-dark px-4 py-3 text-sm">
+                    </div>
+                    <input type="text" id="imp-cargo" placeholder="Cargo" class="w-full input-dark px-4 py-3 text-sm">
+                    <input type="text" id="imp-linkedin" placeholder="URL Perfil LinkedIn" class="w-full input-dark px-4 py-3 text-sm">
+                    <textarea id="imp-notas" placeholder="Notas adicionales..." class="w-full input-dark px-4 py-3 text-sm h-24 resize-none"></textarea>
+                </div>
 
-  <div id="success-box">
-    <div id="success-inner"></div>
-  </div>
-
-  <div id="tabs">
-    <button class="tab-btn active" onclick="switchTab('contactos')">👥 Contactos</button>
-    <button class="tab-btn" onclick="switchTab('config')">⚙️ Configuración</button>
-  </div>
-
-  <div id="main">
-    <!-- TAB: CONTACTOS -->
-    <div id="contactos" class="tab-content active">
-      <input type="text" id="search" placeholder="🔍 Buscar..." style="width:100%; padding:10px; background:#0d1117; border:1px solid #1e2535; border-radius:8px; color:#e8eaf0; margin-bottom:16px; outline:none;">
-      <div id="lista-contactos"></div>
+                <div class="space-y-4">
+                    <h4 class="text-emerald-400 text-[10px] font-black uppercase tracking-widest pb-2 border-b border-emerald-500/20">Asignación de Empresa</h4>
+                    <select id="imp-select-empresa" onchange="toggleNuevaEmpresa(this.value)" class="w-full input-dark px-4 py-3 text-sm cursor-pointer">
+                        <option value="NEW">+ Crear Nueva Empresa</option>
+                    </select>
+                    
+                    <div id="new-emp-fields" class="space-y-4 pt-4 bg-emerald-500/5 p-4 rounded-2xl border border-emerald-500/10">
+                        <input type="text" id="imp-emp-nombre" placeholder="Nombre Comercial Empresa" class="w-full input-dark px-4 py-3 text-sm">
+                        <select id="imp-emp-tipo" class="w-full input-dark px-4 py-3 text-sm cursor-pointer">
+                            <option value="CLIENTES FINAL">CLIENTES FINAL</option>
+                            <option value="ALMACÉN FRÍO">ALMACÉN FRÍO</option>
+                            <option value="CARROCERO">CARROCERO</option>
+                            <option value="FABRICANTES">FABRICANTES</option>
+                            <option value="SERVICIO TÉCNICO">SERVICIO TÉCNICO</option>
+                            <option value="SERVICIO FRÍO">SERVICIO FRÍO</option>
+                            <option value="SERVICIO OFICIAL">SERVICIO OFICIAL</option>
+                            <option value="COMPRA VENTA">COMPRA VENTA</option>
+                            <option value="RENTING LC">RENTING LC</option>
+                            <option value="RENTING TRA">RENTING TRA</option>
+                            <option value="PROVEEDOR">PROVEEDOR</option>
+                            <option value="RECAMBIOS">RECAMBIOS</option>
+                        </select>
+                        <input type="text" id="imp-emp-dir" placeholder="Dirección Postal" class="w-full input-dark px-4 py-3 text-sm">
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="text" id="imp-emp-ciu" placeholder="Ciudad" class="input-dark px-4 py-3 text-sm">
+                            <input type="text" id="imp-emp-pro" placeholder="Provincia" class="input-dark px-4 py-3 text-sm">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="text" id="imp-emp-cp" placeholder="C.P." class="input-dark px-4 py-3 text-sm">
+                            <input type="text" id="imp-emp-pais" placeholder="País" value="España" class="input-dark px-4 py-3 text-sm">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-12 flex gap-4">
+                <button onclick="executeImport()" id="btn-import" class="flex-1 btn-primary py-5 rounded-2xl font-bold text-white shadow-xl shadow-blue-600/30 hover:scale-[1.02] active:scale-95 transition-all">Sincronizar ahora en SeaTable</button>
+            </div>
+        </div>
     </div>
 
-    <!-- TAB: CONFIG -->
-    <div id="config" class="tab-content">
-      <div class="info-box">
-        ℹ️ <strong>Lógica inteligente:</strong><br>
-        • Contactos: Si existe → Actualiza notas. Si no existe → Crea<br>
-        • Empresas: Si existe → NO se duplica. Si no existe → Crea
-      </div>
+    <script>
+        // Configuración persistente
+        let config = JSON.parse(localStorage.getItem('mtte_crm_v3')) || { token: '', googleId: '' };
+        let currentTab = 'agenda';
+        let googleToken = null;
+        let tokenClient = null;
+        let session = { accessToken: null, dtableUuid: null, serverUrl: 'https://dtable-server.seatable.io' };
 
-      <div class="config-section">
-        <h3>🔗 Google Contacts</h3>
-        <div class="config-group">
-          <label>Google Client ID:</label>
-          <input type="text" id="googleClientId" placeholder="Tu Client ID">
-        </div>
-      </div>
-
-      <div class="two-columns">
-        <!-- TABLA 1: CONTACTOS -->
-        <div class="config-section">
-          <h3>📇 Tabla: Contactos</h3>
-          <div class="config-group">
-            <label>API Token:</label>
-            <input type="password" id="seatable1Token" placeholder="Token API">
-          </div>
-          <div class="config-group">
-            <label>Base ID:</label>
-            <input type="text" id="base1Id" placeholder="Base ID">
-          </div>
-          <div class="config-group">
-            <label>Tabla ID:</label>
-            <input type="text" id="table1Id" placeholder="lYb8" value="lYb8">
-          </div>
-          <button class="btn-primary" style="width:100%;" onclick="testConnection(1)">✅ Probar</button>
-          <div id="status1" style="margin-top:8px; text-align:center;"></div>
-        </div>
-
-        <!-- TABLA 2: EMPRESAS -->
-        <div class="config-section">
-          <h3>🏢 Tabla: Empresas</h3>
-          <div class="config-group">
-            <label>API Token:</label>
-            <input type="password" id="seatable2Token" placeholder="Token (puede ser igual)">
-          </div>
-          <div class="config-group">
-            <label>Base ID:</label>
-            <input type="text" id="base2Id" placeholder="Base ID (puede ser igual)">
-          </div>
-          <div class="config-group">
-            <label>Tabla ID:</label>
-            <input type="text" id="table2Id" placeholder="deGa" value="deGa">
-          </div>
-          <button class="btn-primary" style="width:100%;" onclick="testConnection(2)">✅ Probar</button>
-          <div id="status2" style="margin-top:8px; text-align:center;"></div>
-        </div>
-      </div>
-
-      <div class="config-section">
-        <h3>🔄 Sincronización</h3>
-        <button class="btn-primary" style="width:100%; margin-bottom:10px;" onclick="sincronizarContactos()">
-          <span id="btn-sync-text">🔄 Sincronizar Contactos</span>
-        </button>
-        <button class="btn-primary" style="width:100%; margin-bottom:10px; background:linear-gradient(135deg,#34a853,#00cc88);" onclick="sincronizarEmpresas()">
-          <span id="btn-sync-emp-text">🏢 Sincronizar Empresas</span>
-        </button>
-        
-        <h3 style="font-size:13px; margin:16px 0 8px 0;">📋 Historial:</h3>
-        <div class="sync-history" id="sync-history">
-          <div style="text-align:center; color:#6b7280; padding:10px;">Sin historial</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const CONFIG = {
-      GOOGLE_CLIENT_ID: '',
-      TABLA_CONTACTOS: {
-        TOKEN: '',
-        BASE_ID: '',
-        TABLE_ID: 'lYb8',
-        URL: 'https://seatable.io'
-      },
-      TABLA_EMPRESAS: {
-        TOKEN: '',
-        BASE_ID: '',
-        TABLE_ID: 'deGa',
-        URL: 'https://seatable.io'
-      }
-    };
-
-    let contactos = [];
-    let googleAccessToken = null;
-    let sincronizando = false;
-
-    // Cargar Google Script
-    function loadGoogleScript() {
-      if (typeof google !== 'undefined') return;
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      document.head.appendChild(script);
-    }
-
-    loadGoogleScript();
-
-    function conectarGoogle() {
-      const clientId = document.getElementById('googleClientId').value;
-      if (!clientId) {
-        mostrarError('Ingresa Google Client ID primero');
-        return;
-      }
-
-      CONFIG.GOOGLE_CLIENT_ID = clientId;
-      localStorage.setItem('config', JSON.stringify(CONFIG));
-
-      setTimeout(() => {
-        if (typeof google === 'undefined') {
-          mostrarError('Google aún cargando...');
-          return;
+        function updateStatus(msg, colorClass, dotColor) {
+            const el = document.getElementById('connection-status');
+            const dot = document.getElementById('status-dot');
+            if (el) { el.innerText = msg; el.className = `text-[10px] ${colorClass} uppercase tracking-widest font-bold`; }
+            if (dot) { dot.className = `w-2 h-2 rounded-full ${dotColor}`; }
         }
 
-        const tokenClient = google.accounts.oauth2.initTokenClient({
-          client_id: clientId,
-          scope: 'https://www.googleapis.com/auth/contacts.readonly',
-          callback: (response) => {
-            if (response.access_token) {
-              googleAccessToken = response.access_token;
-              cargarContactos();
+        async function authenticateSeaTable() {
+            if (!config.token) {
+                updateStatus('Configuración Pendiente', 'text-yellow-500', 'bg-yellow-500');
+                return false;
             }
-          }
-        });
-
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-      }, 500);
-    }
-
-    async function cargarContactos() {
-      try {
-        document.getElementById('info-text').innerHTML = '<span style="color:#667eea;">Cargando contactos...</span>';
-
-        const res = await fetch(
-          'https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,phoneNumbers,organizations',
-          { headers: { 'Authorization': `Bearer ${googleAccessToken}` } }
-        );
-
-        const data = await res.json();
-        contactos = (data.connections || []).map(p => ({
-          id: p.resourceName,
-          nombre: p.names?.[0]?.displayName || 'Sin nombre',
-          email: p.emailAddresses?.[0]?.value || '',
-          telefono: (p.phoneNumbers || []).find(t => t.value.replace(/\D/g, '').match(/^[67]/))?.value || '',
-          empresa: p.organizations?.[0]?.name || '',
-          cargo: p.organizations?.[0]?.title || ''
-        })).filter(c => c.email);
-
-        document.getElementById('info-text').innerHTML = `<strong style="color:#34a853">${contactos.length} contactos</strong> cargados`;
-        document.getElementById('btn-google').style.display = 'none';
-        document.getElementById('btn-logout').style.display = 'block';
-        document.getElementById('user-badge').style.display = 'flex';
-
-        renderizarContactos();
-        addLog(`✅ Cargados: ${contactos.length} contactos`, 'success');
-      } catch (e) {
-        mostrarError('Error al cargar contactos: ' + e.message);
-      }
-    }
-
-    function renderizarContactos() {
-      const search = document.getElementById('search').value.toLowerCase();
-      const filtrados = contactos.filter(c =>
-        c.nombre.toLowerCase().includes(search) ||
-        c.email.toLowerCase().includes(search) ||
-        c.empresa.toLowerCase().includes(search)
-      );
-
-      const html = filtrados.map(c => `
-        <div class="contacto-card">
-          <div class="contacto-nombre">${c.nombre}</div>
-          <div class="contacto-empresa">${c.empresa || '(sin empresa)'}</div>
-          <div style="font-size:12px; color:#6b7280; margin-top:6px;">
-            📧 ${c.email} ${c.telefono ? '| 📱 ' + c.telefono : ''}
-          </div>
-        </div>
-      `).join('');
-
-      document.getElementById('lista-contactos').innerHTML = html || '<div class="empty-state">No hay contactos</div>';
-    }
-
-    async function testConnection(tabla) {
-      const token = document.getElementById(`seatable${tabla}Token`).value;
-      const baseId = document.getElementById(`base${tabla}Id`).value;
-
-      if (!token || !baseId) {
-        mostrarError('Completa Token y Base ID');
-        return;
-      }
-
-      try {
-        const res = await fetch(`https://seatable.io/api/v2.1/bases/${baseId}/tables/`, {
-          headers: { 'Authorization': `Token ${token}` }
-        });
-
-        if (res.ok) {
-          document.getElementById(`status${tabla}`).innerHTML = '<div class="status-indicator status-ok">✅ Conectado</div>';
-          const config = tabla === 1 ? CONFIG.TABLA_CONTACTOS : CONFIG.TABLA_EMPRESAS;
-          config.TOKEN = token;
-          config.BASE_ID = baseId;
-          localStorage.setItem('config', JSON.stringify(CONFIG));
-          addLog(`✅ Tabla ${tabla} conectada`, 'success');
-        } else {
-          document.getElementById(`status${tabla}`).innerHTML = '<div class="status-indicator status-error">❌ Error</div>';
-          mostrarError(`Error ${res.status} en tabla ${tabla}`);
+            try {
+                updateStatus('Conectando...', 'text-blue-400', 'bg-blue-400 animate-pulse');
+                const res = await fetch('https://cloud.seatable.io/api/v2.1/dtable/app-access-token/', {
+                    headers: { 'Authorization': `Token ${config.token.trim()}` }
+                });
+                if (!res.ok) throw new Error('Auth fail');
+                const data = await res.json();
+                session.accessToken = data.access_token;
+                session.dtableUuid = data.dtable_uuid;
+                session.serverUrl = data.dtable_server.replace(/\/$/, ""); 
+                updateStatus('SeaTable Conectado', 'text-emerald-500', 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]');
+                return true;
+            } catch (e) {
+                updateStatus('Error de Token', 'text-red-500', 'bg-red-500');
+                return false;
+            }
         }
-      } catch (e) {
-        mostrarError('Error: ' + e.message);
-      }
-    }
 
-    // ========== SINCRONIZAR CONTACTOS CON LÓGICA INTELIGENTE ==========
-    async function sincronizarContactos() {
-      if (!contactos.length) {
-        mostrarError('Carga contactos primero');
-        return;
-      }
+        async function stRequest(tableName, method = 'GET', body = null) {
+            if (!session.accessToken) {
+                const ok = await authenticateSeaTable();
+                if (!ok) return { error: 401 };
+            }
+            const url = `${session.serverUrl}/api/v1/dtables/${session.dtableUuid}/rows/?table_name=${encodeURIComponent(tableName)}`;
+            try {
+                const res = await fetch(url, {
+                    method,
+                    headers: { 
+                        'Authorization': `Token ${session.accessToken}`, 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: body ? JSON.stringify(body) : null
+                });
+                return await res.json();
+            } catch (e) { return { error: 500 }; }
+        }
 
-      if (sincronizando) return;
-      sincronizando = true;
-      document.getElementById('btn-sync-text').innerHTML = '⏳ Sincronizando...';
+        async function loadData() {
+            const container = document.getElementById('st-content');
+            container.innerHTML = '<div class="flex justify-center py-24"><div class="loading"></div></div>';
+            
+            const table = (currentTab === 'empresas') ? 'Empresas' : 'Contactos';
+            const data = await stRequest(table);
+            
+            if (data.error || !data.rows) {
+                container.innerHTML = `
+                    <div class="glass-card p-12 text-center border-red-500/20">
+                        <p class="text-red-400 font-bold mb-2">Error de Sincronización</p>
+                        <p class="text-xs text-slate-500">Asegúrate de que la tabla se llame "${table}" en SeaTable.</p>
+                        <button onclick="loadData()" class="mt-6 px-6 py-2 bg-slate-800 rounded-lg text-xs font-bold">Reintentar</button>
+                    </div>`;
+                return;
+            }
+            renderData(data.rows);
+        }
 
-      try {
-        const config = CONFIG.TABLA_CONTACTOS;
-        let creados = 0, actualizados = 0, errores = 0;
+        function renderData(rows) {
+            const container = document.getElementById('st-content');
+            if (!rows.length) { 
+                container.innerHTML = '<div class="text-center py-24 opacity-20"><p class="text-xs italic">No hay registros para mostrar</p></div>'; 
+                return; 
+            }
 
-        for (const contacto of contactos) {
-          try {
-            // 1. Buscar si el contacto ya existe por email
-            const existente = await buscarContactoPorEmail(contacto.email, config);
-
-            if (existente) {
-              // Contacto existe: ACTUALIZAR NOTAS
-              await actualizarNotasContacto(existente, contacto, config);
-              actualizados++;
-              addLog(`📝 Actualizado: ${contacto.nombre}`, 'info');
+            if (currentTab === 'agenda') {
+                container.innerHTML = rows.slice(0, 20).map(r => `
+                    <div class="glass-card p-6 mb-4 flex justify-between items-center border-l-4 border-blue-500 hover:bg-white/5 transition-colors group">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold text-xs">
+                                ${r.Nombre ? r.Nombre[0] : '?'}
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-sm group-hover:text-blue-400 transition-colors">${r.Nombre || ''} ${r['Apellido 1'] || ''}</h3>
+                                <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">${r['Nombre Empresa'] || 'PARTICULAR'}</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            ${r.Email ? `<a href="mailto:${r.Email}" title="Enviar Email" class="p-2.5 bg-blue-600/10 text-blue-400 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></a>` : ''}
+                            ${r['Teléfono móvil'] ? `<a href="https://wa.me/${r['Teléfono móvil'].replace(/\s+/g, '')}" target="_blank" title="WhatsApp" class="p-2.5 bg-emerald-600/10 text-emerald-400 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg></a>` : ''}
+                        </div>
+                    </div>
+                `).join('');
             } else {
-              // Contacto no existe: CREAR
-              await crearContacto(contacto, config);
-              creados++;
-              addLog(`✅ Creado: ${contacto.nombre}`, 'success');
+                const cols = Object.keys(rows[0]).filter(k => !k.startsWith('_'));
+                container.innerHTML = `
+                    <div class="glass-card overflow-hidden shadow-2xl border border-white/5">
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table class="w-full text-[10px] text-left">
+                                <thead class="bg-slate-800 text-blue-400 uppercase font-black tracking-widest">
+                                    <tr>${cols.map(c => `<th class="p-5 whitespace-nowrap">${c}</th>`).join('')}</tr>
+                                </thead>
+                                <tbody class="divide-y divide-white/5">
+                                    ${rows.map(r => `<tr class="hover:bg-white/[0.02] transition-colors">${cols.map(c => `<td class="p-5 text-slate-300 whitespace-nowrap">${r[c] || '-'}</td>`).join('')}</tr>`).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>`;
             }
-          } catch (e) {
-            errores++;
-            addLog(`❌ Error en ${contacto.nombre}: ${e.message}`, 'error');
-          }
         }
 
-        mostrarExito(`✅ Contactos sincronizados\n📊 Creados: ${creados} | Actualizados: ${actualizados} | Errores: ${errores}`);
-        addLog(`✅ Sincronización completada: ${creados} creados, ${actualizados} actualizados`, 'success');
-      } catch (e) {
-        mostrarError('Error en sincronización: ' + e.message);
-      } finally {
-        sincronizando = false;
-        document.getElementById('btn-sync-text').innerHTML = '🔄 Sincronizar Contactos';
-      }
-    }
+        // --- GOOGLE API ---
+        function handleAuthClick() {
+            if (!config.googleId) { toggleModal('config-modal', true); return; }
+            if (!tokenClient) initGoogle();
+            tokenClient.requestAccessToken();
+        }
 
-    // ========== SINCRONIZAR EMPRESAS CON LÓGICA INTELIGENTE ==========
-    async function sincronizarEmpresas() {
-      if (!contactos.length) {
-        mostrarError('Carga contactos primero');
-        return;
-      }
+        function initGoogle() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: config.googleId.trim(),
+                scope: 'https://www.googleapis.com/auth/contacts.readonly',
+                callback: (resp) => { if(resp.access_token) { googleToken = resp.access_token; fetchGoogleContacts(); } }
+            });
+        }
 
-      if (sincronizando) return;
-      sincronizando = true;
-      document.getElementById('btn-sync-emp-text').innerHTML = '⏳ Sincronizando...';
+        async function fetchGoogleContacts() {
+            const list = document.getElementById('google-list');
+            list.innerHTML = '<div class="flex justify-center py-12"><div class="loading"></div></div>';
+            try {
+                const res = await fetch('https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,phoneNumbers,organizations', {
+                    headers: { 'Authorization': `Bearer ${googleToken}` }
+                });
+                const data = await res.json();
+                const total = data.connections?.length || 0;
+                document.getElementById('google-count').innerText = total;
+                
+                list.innerHTML = data.connections?.map(p => {
+                    const cleanObj = JSON.stringify(p).replace(/'/g, "&apos;");
+                    return `
+                    <div onclick='openImport(${cleanObj})' class="bg-slate-800/40 p-4 rounded-xl border border-white/5 hover:border-blue-500/50 cursor-pointer transition-all hover:translate-x-1">
+                        <div class="font-bold text-xs">${p.names?.[0]?.displayName || 'Sin nombre'}</div>
+                        <div class="flex justify-between items-center mt-1">
+                            <span class="text-[9px] text-slate-500 uppercase font-bold tracking-tighter">${p.organizations?.[0]?.name || 'PARTICULAR'}</span>
+                            <span class="text-[8px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded uppercase font-bold">Importar</span>
+                        </div>
+                    </div>`;
+                }).join('') || '<p class="text-center py-10 opacity-30 text-xs">No se encontraron contactos.</p>';
+            } catch (e) { list.innerHTML = '<p class="text-red-400 text-center text-xs">Error al conectar con Google.</p>'; }
+        }
 
-      try {
-        const config = CONFIG.TABLA_EMPRESAS;
-        const empresasUnicas = [...new Set(contactos.filter(c => c.empresa).map(c => c.empresa))];
-        
-        let creadas = 0, duplicadas = 0, errores = 0;
+        async function openImport(p) {
+            const fullName = p.names?.[0]?.displayName || '';
+            const nameParts = fullName.split(' ');
+            
+            document.getElementById('imp-nombre').value = nameParts[0] || '';
+            document.getElementById('imp-ap1').value = nameParts.slice(1).join(' ') || '';
+            document.getElementById('imp-email').value = p.emailAddresses?.[0]?.value || '';
+            document.getElementById('imp-tel-mov').value = p.phoneNumbers?.[0]?.value || '';
+            document.getElementById('imp-emp-nombre').value = p.organizations?.[0]?.name || '';
+            document.getElementById('imp-cargo').value = p.organizations?.[0]?.title || '';
+            
+            toggleModal('import-modal', true);
+            
+            const sel = document.getElementById('imp-select-empresa');
+            sel.innerHTML = '<option value="">Cargando empresas...</option>';
+            const emps = await stRequest('Empresas');
+            sel.innerHTML = '<option value="NEW">+ Crear Nueva Empresa</option>' + (emps.rows || []).map(e => `<option value="${e['Nombre Empresa']}">${e['Nombre Empresa']}</option>`).join('');
+        }
 
-        for (const empresa of empresasUnicas) {
-          try {
-            // 1. Buscar si la empresa ya existe
-            const existente = await buscarEmpresaPorNombre(empresa, config);
+        async function executeImport() {
+            const btn = document.getElementById('btn-import');
+            const originalText = btn.innerText;
+            btn.innerText = "Sincronizando..."; btn.disabled = true;
 
-            if (existente) {
-              // Empresa existe: NO HACER NADA (no duplicar, no actualizar)
-              duplicadas++;
-              addLog(`⏭️ Ya existe: ${empresa}`, 'info');
-            } else {
-              // Empresa no existe: CREAR
-              await crearEmpresa(empresa, config);
-              creadas++;
-              addLog(`✅ Creada: ${empresa}`, 'success');
+            let empNom = document.getElementById('imp-emp-nombre').value;
+            let empSel = document.getElementById('imp-select-empresa').value;
+            let finalEmpresa = (empSel === 'NEW') ? empNom : empSel;
+
+            // 1. Crear Empresa si es nueva
+            if (empSel === 'NEW' && empNom) {
+                await stRequest('Empresas', 'POST', { row: {
+                    "Nombre Empresa": empNom,
+                    "Tipo Empresa": document.getElementById('imp-emp-tipo').value,
+                    "Dirección": document.getElementById('imp-emp-dir').value,
+                    "Ciudad": document.getElementById('imp-emp-ciu').value,
+                    "Provincia": document.getElementById('imp-emp-pro').value,
+                    "Código Postal": document.getElementById('imp-emp-cp').value,
+                    "País": document.getElementById('imp-emp-pais').value
+                }});
             }
-          } catch (e) {
-            errores++;
-            addLog(`❌ Error en ${empresa}: ${e.message}`, 'error');
-          }
+
+            // 2. Crear Contacto
+            await stRequest('Contactos', 'POST', { row: {
+                "Nombre": document.getElementById('imp-nombre').value,
+                "Apellido 1": document.getElementById('imp-ap1').value,
+                "Apellido 2": document.getElementById('imp-ap2').value,
+                "Email": document.getElementById('imp-email').value,
+                "Teléfono móvil": document.getElementById('imp-tel-mov').value,
+                "Teléfono Fijo": document.getElementById('imp-tel-fix').value,
+                "Nombre Empresa": finalEmpresa,
+                "Cargo": document.getElementById('imp-cargo').value,
+                "Linkedin": document.getElementById('imp-linkedin').value,
+                "Notas": document.getElementById('imp-notas').value
+            }});
+
+            btn.innerText = originalText; btn.disabled = false;
+            toggleModal('import-modal', false);
+            loadData();
         }
 
-        mostrarExito(`✅ Empresas sincronizadas\n📊 Creadas: ${creadas} | Duplicadas: ${duplicadas} | Errores: ${errores}`);
-        addLog(`✅ Sync empresas: ${creadas} creadas, ${duplicadas} ya existían`, 'success');
-      } catch (e) {
-        mostrarError('Error: ' + e.message);
-      } finally {
-        sincronizando = false;
-        document.getElementById('btn-sync-emp-text').innerHTML = '🏢 Sincronizar Empresas';
-      }
-    }
-
-    // ========== FUNCIONES DE API ==========
-
-    async function buscarContactoPorEmail(email, config) {
-      try {
-        const res = await fetch(
-          `${config.URL}/api/v2.1/bases/${config.BASE_ID}/tables/${config.TABLE_ID}/rows/`,
-          { headers: { 'Authorization': `Token ${config.TOKEN}` } }
-        );
-        const data = await res.json();
-        return data.rows?.find(row => row.Email === email) || null;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    async function buscarEmpresaPorNombre(nombre, config) {
-      try {
-        const res = await fetch(
-          `${config.URL}/api/v2.1/bases/${config.BASE_ID}/tables/${config.TABLE_ID}/rows/`,
-          { headers: { 'Authorization': `Token ${config.TOKEN}` } }
-        );
-        const data = await res.json();
-        return data.rows?.find(row => row.Nombre === nombre || row.Empresa === nombre) || null;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    async function crearContacto(contacto, config) {
-      const res = await fetch(
-        `${config.URL}/api/v2.1/bases/${config.BASE_ID}/tables/${config.TABLE_ID}/rows/`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Token ${config.TOKEN}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            'Nombre': contacto.nombre,
-            'Email': contacto.email,
-            'Teléfono': contacto.telefono || '',
-            'Empresa': contacto.empresa || '',
-            'Cargo': contacto.cargo || '',
-            'Notas': `Sincronizado desde Google Contacts: ${new Date().toLocaleString('es-ES')}`
-          })
+        // --- UTILIDADES ---
+        function saveConfig() {
+            config.token = document.getElementById('st-token').value.trim();
+            config.googleId = document.getElementById('google-id').value.trim();
+            localStorage.setItem('mtte_crm_v3', JSON.stringify(config));
+            toggleModal('config-modal', false);
+            location.reload();
         }
-      );
-      if (!res.ok) throw new Error(`Error ${res.status}`);
-      return await res.json();
-    }
 
-    async function actualizarNotasContacto(rowExistente, contactoNuevo, config) {
-      const notasActuales = rowExistente.Notas || '';
-      const notasNuevas = `${notasActuales}\n\n[${new Date().toLocaleString('es-ES')}] Actualizado desde Google: Cargo: ${contactoNuevo.cargo || 'N/A'}`;
-
-      const res = await fetch(
-        `${config.URL}/api/v2.1/bases/${config.BASE_ID}/tables/${config.TABLE_ID}/rows/${rowExistente._id}/`,
-        {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Token ${config.TOKEN}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            'Notas': notasNuevas,
-            'Teléfono': contactoNuevo.telefono || rowExistente.Teléfono,
-            'Cargo': contactoNuevo.cargo || rowExistente.Cargo
-          })
+        function toggleModal(id, show) { document.getElementById(id).classList.toggle('hidden', !show); }
+        function toggleNuevaEmpresa(v) { document.getElementById('new-emp-fields').classList.toggle('hidden', v !== 'NEW'); }
+        function changeTab(t) { 
+            currentTab = t; 
+            ['agenda','empresas','contactos'].forEach(id => {
+                document.getElementById('tab-'+id).className = (id === t) ? 'pb-3 tab-active tracking-widest transition-all' : 'pb-3 text-slate-500 hover:text-white tracking-widest transition-all';
+            });
+            loadData(); 
         }
-      );
-      if (!res.ok) throw new Error(`Error ${res.status}`);
-      return await res.json();
-    }
 
-    async function crearEmpresa(nombre, config) {
-      const res = await fetch(
-        `${config.URL}/api/v2.1/bases/${config.BASE_ID}/tables/${config.TABLE_ID}/rows/`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Token ${config.TOKEN}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            'Nombre': nombre,
-            'Notas': `Sincronizada desde Google Contacts: ${new Date().toLocaleString('es-ES')}`
-          })
-        }
-      );
-      if (!res.ok) throw new Error(`Error ${res.status}`);
-      return await res.json();
-    }
-
-    // ========== UI ==========
-
-    function desconectarGoogle() {
-      contactos = [];
-      googleAccessToken = null;
-      document.getElementById('btn-google').style.display = 'block';
-      document.getElementById('btn-logout').style.display = 'none';
-      document.getElementById('user-badge').style.display = 'none';
-      document.getElementById('lista-contactos').innerHTML = '';
-    }
-
-    function switchTab(tab) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-      document.getElementById(tab).classList.add('active');
-      event.target.classList.add('active');
-    }
-
-    function mostrarError(msg) {
-      const box = document.getElementById('error-inner');
-      box.textContent = msg;
-      document.getElementById('error-box').style.display = 'block';
-      setTimeout(() => document.getElementById('error-box').style.display = 'none', 8000);
-    }
-
-    function mostrarExito(msg) {
-      const box = document.getElementById('success-inner');
-      box.textContent = msg;
-      document.getElementById('success-box').style.display = 'block';
-      setTimeout(() => document.getElementById('success-box').style.display = 'none', 8000);
-    }
-
-    function addLog(msg, tipo = 'info') {
-      const log = document.getElementById('sync-history');
-      const entry = document.createElement('div');
-      entry.className = `sync-log ${tipo}`;
-      entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-      log.insertBefore(entry, log.firstChild);
-      if (log.children.length > 20) log.removeChild(log.lastChild);
-    }
-
-    document.getElementById('search').addEventListener('input', renderizarContactos);
-
-    // Cargar config
-    const saved = localStorage.getItem('config');
-    if (saved) {
-      Object.assign(CONFIG, JSON.parse(saved));
-      document.getElementById('googleClientId').value = CONFIG.GOOGLE_CLIENT_ID;
-      document.getElementById('seatable1Token').value = CONFIG.TABLA_CONTACTOS.TOKEN;
-      document.getElementById('base1Id').value = CONFIG.TABLA_CONTACTOS.BASE_ID;
-      document.getElementById('table1Id').value = CONFIG.TABLA_CONTACTOS.TABLE_ID;
-      document.getElementById('seatable2Token').value = CONFIG.TABLA_EMPRESAS.TOKEN;
-      document.getElementById('base2Id').value = CONFIG.TABLA_EMPRESAS.BASE_ID;
-      document.getElementById('table2Id').value = CONFIG.TABLA_EMPRESAS.TABLE_ID;
-    }
-
-    addLog('App iniciada', 'info');
-  </script>
+        window.onload = () => {
+            document.getElementById('st-token').value = config.token || '';
+            document.getElementById('google-id').value = config.googleId || '';
+            if (config.token) loadData(); else toggleModal('config-modal', true);
+            if (config.googleId) setTimeout(initGoogle, 500);
+        };
+    </script>
 </body>
 </html>
