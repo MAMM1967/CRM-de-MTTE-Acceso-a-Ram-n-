@@ -1,400 +1,293 @@
-<!DOCTYPE html>
-<html lang="es">
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTTE · CRM Comercial</title>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
-        body { font-family: 'Outfit', sans-serif; background-color: #050a15; color: #e2e8f0; overflow-x: hidden; }
-        .glass-card { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1.5rem; }
-        .input-dark { background: #0f172a !important; border: 1px solid #3b82f6 !important; color: white !important; border-radius: 0.75rem !important; }
-        .btn-primary { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); transition: all 0.3s ease; }
-        .loading { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
-    </style>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2487.7">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px Menlo; color: #6d6d6d; -webkit-text-stroke: #6d6d6d}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px Menlo; color: #6b0001; -webkit-text-stroke: #6b0001}
+    p.p3 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px Menlo; color: #fb0007; -webkit-text-stroke: #fb0007}
+    p.p4 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px Menlo; color: #0000ff; -webkit-text-stroke: #0000ff}
+    p.p5 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px Menlo; -webkit-text-stroke: #000000}
+    p.p6 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px Menlo; color: #18702b; -webkit-text-stroke: #18702b}
+    p.p7 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px Menlo; color: #6f0ec3; -webkit-text-stroke: #6f0ec3}
+    p.p8 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px Menlo; color: #093c94; -webkit-text-stroke: #093c94}
+    p.p9 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px Menlo; -webkit-text-stroke: #000000; min-height: 16.0px}
+    p.p10 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px Menlo; color: #4d5055; -webkit-text-stroke: #4d5055}
+    span.s1 {font-kerning: none; background-color: #ecf1f7}
+    span.s2 {font-kerning: none; color: #fb0007; background-color: #ecf1f7; -webkit-text-stroke: 0px #fb0007}
+    span.s3 {font-kerning: none; color: #2a2a2a; background-color: #ecf1f7; -webkit-text-stroke: 0px #2a2a2a}
+    span.s4 {font-kerning: none; color: #000000; background-color: #ecf1f7; -webkit-text-stroke: 0px #000000}
+    span.s5 {font-kerning: none; color: #0000ff; background-color: #ecf1f7; -webkit-text-stroke: 0px #0000ff}
+    span.s6 {font-kerning: none; color: #6b0001; background-color: #ecf1f7; -webkit-text-stroke: 0px #6b0001}
+    span.s7 {font-kerning: none; color: #6f0ec3; background-color: #ecf1f7; -webkit-text-stroke: 0px #6f0ec3}
+    span.s8 {font-kerning: none; color: #093c94; background-color: #ecf1f7; -webkit-text-stroke: 0px #093c94}
+    span.s9 {font-kerning: none; color: #18702b; background-color: #ecf1f7; -webkit-text-stroke: 0px #18702b}
+    span.s10 {font-kerning: none; color: #137646; background-color: #ecf1f7; -webkit-text-stroke: 0px #137646}
+    span.s11 {font-kerning: none}
+    span.s12 {font-kerning: none; color: #0e6e6d; background-color: #ecf1f7; -webkit-text-stroke: 0px #0e6e6d}
+    span.s13 {font-kerning: none; color: #a4450b; background-color: #ecf1f7; -webkit-text-stroke: 0px #a4450b}
+  </style>
 </head>
-<body class="min-h-screen p-4 md:p-8">
-
-    <header class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-6 glass-card p-6">
-        <div class="flex items-center gap-4">
-            <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <span class="text-white font-bold text-xl italic">M</span>
-            </div>
-            <div>
-                <h1 class="text-xl font-bold tracking-tight">MTTE <span class="text-blue-500 italic">INDUSTRIAL</span></h1>
-                <div class="flex items-center gap-2">
-                    <div id="status-dot" class="w-2 h-2 rounded-full bg-yellow-500"></div>
-                    <p id="connection-status" class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Esperando Configuración</p>
-                </div>
-            </div>
-        </div>
-        <div class="flex items-center gap-3">
-            <button id="auth-btn" onclick="handleAuthClick()" class="bg-white text-slate-900 px-6 py-2.5 rounded-xl font-bold text-xs hover:bg-blue-50 transition-colors shadow-sm">Google Contacts</button>
-            <button onclick="toggleModal('config-modal', true)" class="p-2.5 bg-slate-800 rounded-xl border border-blue-500/30 hover:bg-slate-700 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-            </button>
-        </div>
-    </header>
-
-    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <aside class="lg:col-span-4 space-y-6">
-            <div class="glass-card p-6 min-h-[500px] flex flex-col">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em]">Google Contacts</h2>
-                    <span id="google-count" class="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold">0</span>
-                </div>
-                <div id="google-list" class="space-y-3 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar">
-                    <div class="text-center py-20 opacity-30">
-                        <div class="mb-4 flex justify-center">
-                            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                        </div>
-                        <p class="text-xs">Conecta con Google para importar</p>
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <section class="lg:col-span-8">
-            <div class="flex gap-8 mb-6 font-bold text-[11px] uppercase border-b border-slate-800">
-                <button onclick="changeTab('Agenda')" id="tab-Agenda" class="pb-3 tab-active tracking-widest transition-all">📅 Agenda Hoy</button>
-                <button onclick="changeTab('Empresas')" id="tab-Empresas" class="pb-3 text-slate-500 hover:text-white tracking-widest transition-all">🏢 Empresas</button>
-                <button onclick="changeTab('Contactos')" id="tab-Contactos" class="pb-3 text-slate-500 hover:text-white tracking-widest transition-all">👥 Todos los Contactos</button>
-            </div>
-            <div id="st-content" class="min-h-[400px]"></div>
-        </section>
-    </main>
-
-    <!-- CONFIG MODAL -->
-    <div id="config-modal" class="fixed inset-0 bg-slate-950/90 hidden flex items-center justify-center z-[100] p-4 backdrop-blur-md">
-        <div class="glass-card max-w-md w-full p-8 shadow-2xl border-blue-500/30">
-            <h3 class="text-xl font-bold mb-2">Configuración</h3>
-            <div class="space-y-5">
-                <div>
-                    <label class="text-[10px] text-blue-400 font-bold uppercase ml-1">SeaTable App Token</label>
-                    <input type="password" id="st-token" placeholder="Token de la Base de Datos..." class="w-full input-dark px-4 py-3 mt-1.5 text-sm focus:ring-2 ring-blue-500 outline-none">
-                </div>
-                <div>
-                    <label class="text-[10px] text-blue-400 font-bold uppercase ml-1">Google Client ID</label>
-                    <input type="text" id="google-id" placeholder="ID de cliente de Google Cloud..." class="w-full input-dark px-4 py-3 mt-1.5 text-sm focus:ring-2 ring-blue-500 outline-none">
-                </div>
-                <div class="pt-4">
-                    <button onclick="saveConfig()" class="w-full btn-primary py-4 rounded-xl font-bold text-sm text-white shadow-lg">Guardar y Recargar</button>
-                    <button onclick="toggleModal('config-modal', false)" class="w-full mt-4 text-slate-500 text-xs">Cerrar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL IMPORTACIÓN -->
-    <div id="import-modal" class="fixed inset-0 bg-slate-950/95 hidden flex items-center justify-center z-[100] p-4 backdrop-blur-xl overflow-y-auto">
-        <div class="glass-card max-w-5xl w-full p-8 border-blue-500/20 shadow-2xl my-8">
-            <div class="flex justify-between items-start mb-8">
-                <div>
-                    <h3 class="text-2xl font-bold">Vincular a SeaTable</h3>
-                    <p class="text-xs text-slate-400 uppercase tracking-widest mt-1 font-bold">Nuevo Registro en MTTE CRM</p>
-                </div>
-                <button onclick="toggleModal('import-modal', false)" class="p-2 hover:bg-white/5 rounded-full">✕</button>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div class="space-y-4">
-                    <h4 class="text-blue-400 text-[10px] font-black uppercase border-b border-blue-500/20 pb-2">Información del Contacto</h4>
-                    <div class="grid grid-cols-2 gap-3">
-                        <input type="text" id="imp-nombre" placeholder="Nombre" class="input-dark px-4 py-3 text-sm">
-                        <input type="text" id="imp-ap1" placeholder="Apellido 1" class="input-dark px-4 py-3 text-sm">
-                    </div>
-                    <input type="text" id="imp-ap2" placeholder="Apellido 2" class="w-full input-dark px-4 py-3 text-sm">
-                    <input type="email" id="imp-email" placeholder="Email" class="w-full input-dark px-4 py-3 text-sm">
-                    <div class="grid grid-cols-2 gap-3">
-                        <input type="text" id="imp-tel-mov" placeholder="Móvil" class="input-dark px-4 py-3 text-sm">
-                        <input type="text" id="imp-tel-fix" placeholder="Fijo" class="input-dark px-4 py-3 text-sm">
-                    </div>
-                    <input type="text" id="imp-cargo" placeholder="Cargo" class="w-full input-dark px-4 py-3 text-sm">
-                    <input type="text" id="imp-linkedin" placeholder="LinkedIn" class="w-full input-dark px-4 py-3 text-sm">
-                    <textarea id="imp-notas" placeholder="Notas..." class="w-full input-dark px-4 py-3 text-sm h-24 resize-none"></textarea>
-                </div>
-
-                <div class="space-y-4">
-                    <h4 class="text-emerald-400 text-[10px] font-black uppercase border-b border-emerald-500/20 pb-2">Empresa</h4>
-                    <select id="imp-select-empresa" onchange="toggleNuevaEmpresa(this.value)" class="w-full input-dark px-4 py-3 text-sm cursor-pointer">
-                        <option value="NEW">+ Crear Nueva Empresa</option>
-                    </select>
-                    
-                    <div id="new-emp-fields" class="space-y-4 pt-4 bg-emerald-500/5 p-4 rounded-2xl border border-emerald-500/10">
-                        <input type="text" id="imp-emp-nombre" placeholder="Nombre Empresa" class="w-full input-dark px-4 py-3 text-sm">
-                        <select id="imp-emp-tipo" class="w-full input-dark px-4 py-3 text-sm">
-                            <option value="CLIENTES FINAL">CLIENTES FINAL</option>
-                            <option value="ALMACÉN FRÍO">ALMACÉN FRÍO</option>
-                            <option value="CARROCERO">CARROCERO</option>
-                            <option value="FABRICANTES">FABRICANTES</option>
-                            <option value="SERVICIO TÉCNICO">SERVICIO TÉCNICO</option>
-                            <option value="SERVICIO FRÍO">SERVICIO FRÍO</option>
-                            <option value="SERVICIO OFICIAL">SERVICIO OFICIAL</option>
-                            <option value="COMPRA VENTA">COMPRA VENTA</option>
-                            <option value="RENTING LC">RENTING LC</option>
-                            <option value="RENTING TRA">RENTING TRA</option>
-                            <option value="PROVEEDOR">PROVEEDOR</option>
-                            <option value="RECAMBIOS">RECAMBIOS</option>
-                        </select>
-                        <input type="text" id="imp-emp-dir" placeholder="Dirección" class="w-full input-dark px-4 py-3 text-sm">
-                        <div class="grid grid-cols-2 gap-3">
-                            <input type="text" id="imp-emp-ciu" placeholder="Ciudad" class="input-dark px-4 py-3 text-sm">
-                            <input type="text" id="imp-emp-pro" placeholder="Provincia" class="input-dark px-4 py-3 text-sm">
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="mt-8 flex gap-4">
-                <button onclick="executeImport()" id="btn-import" class="flex-1 btn-primary py-5 rounded-2xl font-bold text-white shadow-xl">Sincronizar en SeaTable</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Configuración y variables de estado
-        let config = JSON.parse(localStorage.getItem('mtte_crm_v3')) || { token: '', googleId: '' };
-        let currentTab = 'Agenda'; // Coincide con nombres de SeaTable
-        let googleToken = null;
-        let tokenClient = null;
-        let session = { accessToken: null, dtableUuid: null, serverUrl: 'https://dtable-server.seatable.io' };
-
-        // Centralización de nombres de tablas (Case Sensitive)
-        const TABLES = {
-            CONTACTOS: 'Contactos',
-            EMPRESAS: 'Empresas'
-        };
-
-        function updateStatus(msg, colorClass, dotColor) {
-            const el = document.getElementById('connection-status');
-            const dot = document.getElementById('status-dot');
-            if (el) { el.innerText = msg; el.className = `text-[10px] ${colorClass} uppercase tracking-widest font-bold`; }
-            if (dot) { dot.className = `w-2 h-2 rounded-full ${dotColor}`; }
-        }
-
-        async function authenticateSeaTable() {
-            if (!config.token) return false;
-            try {
-                updateStatus('Conectando...', 'text-blue-400', 'bg-blue-400 animate-pulse');
-                const res = await fetch('https://cloud.seatable.io/api/v2.1/dtable/app-access-token/', {
-                    headers: { 'Authorization': `Token ${config.token.trim()}` }
-                });
-                if (!res.ok) throw new Error('Auth fail');
-                const data = await res.json();
-                session.accessToken = data.access_token;
-                session.dtableUuid = data.dtable_uuid;
-                session.serverUrl = data.dtable_server.replace(/\/$/, ""); 
-                updateStatus('SeaTable Conectado', 'text-emerald-500', 'bg-emerald-500 shadow-md');
-                return true;
-            } catch (e) {
-                updateStatus('Error de Token', 'text-red-500', 'bg-red-500');
-                return false;
-            }
-        }
-
-        async function stRequest(tableName, method = 'GET', body = null) {
-            if (!session.accessToken) {
-                const ok = await authenticateSeaTable();
-                if (!ok) return { error: 401 };
-            }
-            const url = `${session.serverUrl}/api/v1/dtables/${session.dtableUuid}/rows/?table_name=${encodeURIComponent(tableName)}`;
-            try {
-                const res = await fetch(url, {
-                    method,
-                    headers: { 
-                        'Authorization': `Token ${session.accessToken}`, 
-                        'Content-Type': 'application/json'
-                    },
-                    body: body ? JSON.stringify(body) : null
-                });
-                return await res.json();
-            } catch (e) { return { error: 500 }; }
-        }
-
-        async function loadData() {
-            const container = document.getElementById('st-content');
-            container.innerHTML = '<div class="flex justify-center py-24"><div class="loading"></div></div>';
-            
-            // Si la pestaña es "Agenda", cargamos de la tabla "Contactos"
-            const tableToFetch = (currentTab === 'Empresas') ? TABLES.EMPRESAS : TABLES.CONTACTOS;
-            const data = await stRequest(tableToFetch);
-            
-            if (data.error || !data.rows) {
-                container.innerHTML = `
-                    <div class="glass-card p-12 text-center border-red-500/20">
-                        <p class="text-red-400 font-bold mb-2">Error: No se encontró la tabla "${tableToFetch}"</p>
-                        <p class="text-[10px] text-slate-500 uppercase tracking-widest">Verifica que el nombre en SeaTable sea idéntico</p>
-                        <button onclick="loadData()" class="mt-6 px-6 py-2 bg-slate-800 rounded-lg text-xs font-bold">Reintentar</button>
-                    </div>`;
-                return;
-            }
-            renderData(data.rows);
-        }
-
-        function renderData(rows) {
-            const container = document.getElementById('st-content');
-            if (!rows.length) { 
-                container.innerHTML = '<div class="text-center py-24 opacity-20"><p class="text-xs italic">Sin registros</p></div>'; 
-                return; 
-            }
-
-            if (currentTab === 'Agenda') {
-                container.innerHTML = rows.slice(0, 15).map(r => `
-                    <div class="glass-card p-6 mb-4 flex justify-between items-center border-l-4 border-blue-500 hover:bg-white/5 transition-colors group">
-                        <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold text-xs">
-                                ${r.Nombre ? r.Nombre[0] : '?'}
-                            </div>
-                            <div>
-                                <h3 class="font-bold text-sm group-hover:text-blue-400 transition-colors">${r.Nombre || ''} ${r['Apellido 1'] || ''}</h3>
-                                <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">${r['Nombre Empresa'] || 'PARTICULAR'}</p>
-                            </div>
-                        </div>
-                        <div class="flex gap-2">
-                             ${r.Email ? `<a href="mailto:${r.Email}" class="p-2.5 bg-blue-600/10 text-blue-400 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></a>` : ''}
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                const cols = Object.keys(rows[0]).filter(k => !k.startsWith('_'));
-                container.innerHTML = `
-                    <div class="glass-card overflow-hidden">
-                        <div class="overflow-x-auto custom-scrollbar">
-                            <table class="w-full text-[10px] text-left">
-                                <thead class="bg-slate-800 text-blue-400 uppercase font-black">
-                                    <tr>${cols.map(c => `<th class="p-5 whitespace-nowrap">${c}</th>`).join('')}</tr>
-                                </thead>
-                                <tbody class="divide-y divide-white/5">
-                                    ${rows.map(r => `<tr class="hover:bg-white/[0.02]">${cols.map(c => `<td class="p-5 text-slate-300 whitespace-nowrap">${r[c] || '-'}</td>`).join('')}</tr>`).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>`;
-            }
-        }
-
-        // --- GOOGLE API ---
-        function handleAuthClick() {
-            if (!config.googleId) { toggleModal('config-modal', true); return; }
-            if (!tokenClient) initGoogle();
-            tokenClient.requestAccessToken();
-        }
-
-        function initGoogle() {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: config.googleId.trim(),
-                scope: 'https://www.googleapis.com/auth/contacts.readonly',
-                callback: (resp) => { if(resp.access_token) { googleToken = resp.access_token; fetchGoogleContacts(); } }
-            });
-        }
-
-        async function fetchGoogleContacts() {
-            const list = document.getElementById('google-list');
-            list.innerHTML = '<div class="flex justify-center py-12"><div class="loading"></div></div>';
-            try {
-                const res = await fetch('https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,phoneNumbers,organizations', {
-                    headers: { 'Authorization': `Bearer ${googleToken}` }
-                });
-                const data = await res.json();
-                document.getElementById('google-count').innerText = data.connections?.length || 0;
-                list.innerHTML = data.connections?.map(p => {
-                    const cleanObj = JSON.stringify(p).replace(/'/g, "&apos;");
-                    return `<div onclick='openImport(${cleanObj})' class="bg-slate-800/40 p-4 rounded-xl border border-white/5 hover:border-blue-500 cursor-pointer transition-all">
-                        <div class="font-bold text-xs">${p.names?.[0]?.displayName || 'Sin nombre'}</div>
-                        <div class="text-[9px] text-slate-500 uppercase mt-1">${p.organizations?.[0]?.name || 'PARTICULAR'}</div>
-                    </div>`;
-                }).join('') || '<p class="text-xs opacity-30 text-center py-10">No hay contactos</p>';
-            } catch (e) { list.innerHTML = '<p class="text-red-400 text-center text-xs">Error Google API</p>'; }
-        }
-
-        async function openImport(p) {
-            const fullName = p.names?.[0]?.displayName || '';
-            const nameParts = fullName.split(' ');
-            document.getElementById('imp-nombre').value = nameParts[0] || '';
-            document.getElementById('imp-ap1').value = nameParts.slice(1).join(' ') || '';
-            document.getElementById('imp-email').value = p.emailAddresses?.[0]?.value || '';
-            document.getElementById('imp-tel-mov').value = p.phoneNumbers?.[0]?.value || '';
-            document.getElementById('imp-emp-nombre').value = p.organizations?.[0]?.name || '';
-            document.getElementById('imp-cargo').value = p.organizations?.[0]?.title || '';
-            
-            toggleModal('import-modal', true);
-            const sel = document.getElementById('imp-select-empresa');
-            sel.innerHTML = '<option value="">Cargando empresas...</option>';
-            const emps = await stRequest(TABLES.EMPRESAS);
-            sel.innerHTML = '<option value="NEW">+ Crear Nueva Empresa</option>' + (emps.rows || []).map(e => `<option value="${e['Nombre Empresa']}">${e['Nombre Empresa']}</option>`).join('');
-        }
-
-        async function executeImport() {
-            const btn = document.getElementById('btn-import');
-            btn.disabled = true; btn.innerText = "Sincronizando...";
-
-            let empNom = document.getElementById('imp-emp-nombre').value;
-            let empSel = document.getElementById('imp-select-empresa').value;
-            let finalEmpresa = (empSel === 'NEW') ? empNom : empSel;
-
-            if (empSel === 'NEW' && empNom) {
-                await stRequest(TABLES.EMPRESAS, 'POST', { row: {
-                    "Nombre Empresa": empNom,
-                    "Tipo Empresa": document.getElementById('imp-emp-tipo').value,
-                    "Dirección": document.getElementById('imp-emp-dir').value,
-                    "Ciudad": document.getElementById('imp-emp-ciu').value,
-                    "Provincia": document.getElementById('imp-emp-pro').value
-                }});
-            }
-
-            await stRequest(TABLES.CONTACTOS, 'POST', { row: {
-                "Nombre": document.getElementById('imp-nombre').value,
-                "Apellido 1": document.getElementById('imp-ap1').value,
-                "Apellido 2": document.getElementById('imp-ap2').value,
-                "Email": document.getElementById('imp-email').value,
-                "Teléfono móvil": document.getElementById('imp-tel-mov').value,
-                "Teléfono Fijo": document.getElementById('imp-tel-fix').value,
-                "Nombre Empresa": finalEmpresa,
-                "Cargo": document.getElementById('imp-cargo').value,
-                "Linkedin": document.getElementById('imp-linkedin').value,
-                "Notas": document.getElementById('imp-notas').value
-            }});
-
-            btn.disabled = false; btn.innerText = "Sincronizar en SeaTable";
-            toggleModal('import-modal', false);
-            loadData();
-        }
-
-        function saveConfig() {
-            config.token = document.getElementById('st-token').value.trim();
-            config.googleId = document.getElementById('google-id').value.trim();
-            localStorage.setItem('mtte_crm_v3', JSON.stringify(config));
-            location.reload();
-        }
-
-        function toggleModal(id, show) { document.getElementById(id).classList.toggle('hidden', !show); }
-        function toggleNuevaEmpresa(v) { document.getElementById('new-emp-fields').classList.toggle('hidden', v !== 'NEW'); }
-        
-        function changeTab(t) { 
-            currentTab = t; 
-            ['Agenda','Empresas','Contactos'].forEach(id => {
-                const btn = document.getElementById('tab-'+id);
-                if(btn) btn.className = (id === t) ? 'pb-3 tab-active tracking-widest transition-all' : 'pb-3 text-slate-500 hover:text-white tracking-widest transition-all';
-            });
-            loadData(); 
-        }
-
-        window.onload = () => {
-            document.getElementById('st-token').value = config.token || '';
-            document.getElementById('google-id').value = config.googleId || '';
-            if (config.token) loadData(); else toggleModal('config-modal', true);
-            if (config.googleId) setTimeout(initGoogle, 500);
-        };
-    </script>
+<body>
+<p class="p1"><span class="s1">&lt;!DOCTYPE</span><span class="s2"> html</span><span class="s1">&gt;</span></p>
+<p class="p2"><span class="s3">&lt;</span><span class="s1">html</span><span class="s4"> </span><span class="s2">lang</span><span class="s3">=</span><span class="s5">"es"</span><span class="s3">&gt;</span></p>
+<p class="p2"><span class="s3">&lt;</span><span class="s1">head</span><span class="s3">&gt;</span></p>
+<p class="p3"><span class="s4"><span class="Apple-converted-space">    </span></span><span class="s3">&lt;</span><span class="s6">meta</span><span class="s4"> </span><span class="s1">charset</span><span class="s3">=</span><span class="s5">"UTF-8"</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">    </span></span><span class="s3">&lt;</span><span class="s6">meta</span><span class="s4"> </span><span class="s2">name</span><span class="s3">=</span><span class="s1">"viewport"</span><span class="s4"> </span><span class="s2">content</span><span class="s3">=</span><span class="s1">"width=device-width, initial-scale=1.0"</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">    </span></span><span class="s3">&lt;</span><span class="s6">title</span><span class="s3">&gt;</span><span class="s1">MTTE · CRM Comercial</span><span class="s3">&lt;/</span><span class="s6">title</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">    </span></span><span class="s3">&lt;</span><span class="s6">script</span><span class="s4"> </span><span class="s2">src</span><span class="s3">=</span><span class="s1">"https://accounts.google.com/gsi/client"</span><span class="s4"> </span><span class="s2">async</span><span class="s4"> </span><span class="s2">defer</span><span class="s3">&gt;&lt;/</span><span class="s6">script</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">    </span></span><span class="s3">&lt;</span><span class="s6">script</span><span class="s4"> </span><span class="s2">src</span><span class="s3">=</span><span class="s1">"https://cdn.tailwindcss.com"</span><span class="s3">&gt;&lt;/</span><span class="s6">script</span><span class="s3">&gt;</span></p>
+<p class="p2"><span class="s4"><span class="Apple-converted-space">    </span></span><span class="s3">&lt;</span><span class="s1">style</span><span class="s3">&gt;</span></p>
+<p class="p6"><span class="s4"><span class="Apple-converted-space">        </span></span><span class="s7">@import</span><span class="s4"> </span><span class="s8">url</span><span class="s4">(</span><span class="s1">'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&amp;display=swap'</span><span class="s4">);</span></p>
+<p class="p3"><span class="s4"><span class="Apple-converted-space">        </span></span><span class="s6">body</span><span class="s4"> { </span><span class="s1">font-family:</span><span class="s4"> </span><span class="s9">'Outfit'</span><span class="s4">, </span><span class="s8">sans-serif</span><span class="s4">; </span><span class="s1">background-color:</span><span class="s4"> </span><span class="s8">#050a15</span><span class="s4">; </span><span class="s1">color:</span><span class="s4"> </span><span class="s8">#e2e8f0</span><span class="s4">; </span><span class="s1">overflow-x:</span><span class="s4"> </span><span class="s8">hidden</span><span class="s4">; }</span></p>
+<p class="p3"><span class="s4"><span class="Apple-converted-space">        </span></span><span class="s6">.glass-card</span><span class="s4"> { </span><span class="s1">background:</span><span class="s4"> </span><span class="s8">rgba(</span><span class="s10">15</span><span class="s4">, </span><span class="s10">23</span><span class="s4">, </span><span class="s10">42</span><span class="s4">, </span><span class="s10">0.6</span><span class="s8">)</span><span class="s4">; </span><span class="s1">backdrop-filter:</span><span class="s4"> </span><span class="s8">blur(</span><span class="s10">12px</span><span class="s8">)</span><span class="s4">; </span><span class="s1">border:</span><span class="s4"> </span><span class="s10">1px</span><span class="s4"> </span><span class="s8">solid</span><span class="s4"> </span><span class="s8">rgba(</span><span class="s10">255</span><span class="s4">, </span><span class="s10">255</span><span class="s4">, </span><span class="s10">255</span><span class="s4">, </span><span class="s10">0.1</span><span class="s8">)</span><span class="s4">; </span><span class="s1">border-radius:</span><span class="s4"> </span><span class="s10">1.5rem</span><span class="s4">; }</span></p>
+<p class="p7"><span class="s4"><span class="Apple-converted-space">        </span></span><span class="s6">.input-dark</span><span class="s4"> { </span><span class="s2">background:</span><span class="s4"> </span><span class="s8">#0f172a</span><span class="s4"> </span><span class="s1">!important</span><span class="s4">; </span><span class="s2">border:</span><span class="s4"> </span><span class="s10">1px</span><span class="s4"> </span><span class="s8">solid</span><span class="s4"> </span><span class="s8">#3b82f6</span><span class="s4"> </span><span class="s1">!important</span><span class="s4">; </span><span class="s2">color:</span><span class="s4"> </span><span class="s8">white</span><span class="s4"> </span><span class="s1">!important</span><span class="s4">; </span><span class="s2">border-radius:</span><span class="s4"> </span><span class="s10">0.75rem</span><span class="s4"> </span><span class="s1">!important</span><span class="s4">; }</span></p>
+<p class="p8"><span class="s4"><span class="Apple-converted-space">        </span></span><span class="s6">.btn-primary</span><span class="s4"> { </span><span class="s2">background:</span><span class="s4"> </span><span class="s1">linear-gradient(</span><span class="s10">135deg</span><span class="s4">, </span><span class="s1">#2563eb</span><span class="s4"> </span><span class="s10">0%</span><span class="s4">, </span><span class="s1">#1d4ed8</span><span class="s4"> </span><span class="s10">100%</span><span class="s1">)</span><span class="s4">; </span><span class="s2">transition:</span><span class="s4"> </span><span class="s1">all</span><span class="s4"> </span><span class="s10">0.3s</span><span class="s4"> </span><span class="s1">ease</span><span class="s4">; }</span></p>
+<p class="p3"><span class="s4"><span class="Apple-converted-space">        </span></span><span class="s6">.loading</span><span class="s4"> { </span><span class="s1">border:</span><span class="s4"> </span><span class="s10">3px</span><span class="s4"> </span><span class="s8">solid</span><span class="s4"> </span><span class="s8">rgba(</span><span class="s10">255</span><span class="s4">,</span><span class="s10">255</span><span class="s4">,</span><span class="s10">255</span><span class="s4">,</span><span class="s10">0.1</span><span class="s8">)</span><span class="s4">; </span><span class="s1">border-top:</span><span class="s4"> </span><span class="s10">3px</span><span class="s4"> </span><span class="s8">solid</span><span class="s4"> </span><span class="s8">#3b82f6</span><span class="s4">; </span><span class="s1">border-radius:</span><span class="s4"> </span><span class="s10">50%</span><span class="s4">; </span><span class="s1">width:</span><span class="s4"> </span><span class="s10">24px</span><span class="s4">; </span><span class="s1">height:</span><span class="s4"> </span><span class="s10">24px</span><span class="s4">; </span><span class="s1">animation:</span><span class="s4"> </span><span class="s8">spin</span><span class="s4"> </span><span class="s10">1s</span><span class="s4"> </span><span class="s8">linear</span><span class="s4"> </span><span class="s8">infinite</span><span class="s4">; }</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s7">@keyframes</span><span class="s1"> </span><span class="s8">spin</span><span class="s1"> { </span><span class="s10">0%</span><span class="s1"> { </span><span class="s2">transform:</span><span class="s1"> </span><span class="s8">rotate(</span><span class="s10">0deg</span><span class="s8">)</span><span class="s1">; } </span><span class="s10">100%</span><span class="s1"> { </span><span class="s2">transform:</span><span class="s1"> </span><span class="s8">rotate(</span><span class="s10">360deg</span><span class="s8">)</span><span class="s1">; } }</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s6">.tab-active</span><span class="s1"> { </span><span class="s2">border-bottom:</span><span class="s1"> </span><span class="s10">2px</span><span class="s1"> </span><span class="s8">solid</span><span class="s1"> </span><span class="s8">#3b82f6</span><span class="s1">; </span><span class="s2">color:</span><span class="s1"> </span><span class="s8">#3b82f6</span><span class="s1">; }</span></p>
+<p class="p2"><span class="s4"><span class="Apple-converted-space">        </span></span><span class="s1">.custom-scrollbar::-webkit-scrollbar</span><span class="s4"> { </span><span class="s2">width:</span><span class="s4"> </span><span class="s10">6px</span><span class="s4">; }</span></p>
+<p class="p2"><span class="s4"><span class="Apple-converted-space">        </span></span><span class="s1">.custom-scrollbar::-webkit-scrollbar-track</span><span class="s4"> { </span><span class="s2">background:</span><span class="s4"> </span><span class="s8">transparent</span><span class="s4">; }</span></p>
+<p class="p2"><span class="s4"><span class="Apple-converted-space">        </span></span><span class="s1">.custom-scrollbar::-webkit-scrollbar-thumb</span><span class="s4"> { </span><span class="s2">background:</span><span class="s4"> </span><span class="s8">#1e293b</span><span class="s4">; </span><span class="s2">border-radius:</span><span class="s4"> </span><span class="s10">10px</span><span class="s4">; }</span></p>
+<p class="p2"><span class="s4"><span class="Apple-converted-space">    </span></span><span class="s3">&lt;/</span><span class="s1">style</span><span class="s3">&gt;</span></p>
+<p class="p2"><span class="s3">&lt;/</span><span class="s1">head</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s3">&lt;</span><span class="s6">body</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"min-h-screen p-4 md:p-8"</span><span class="s3">&gt;</span></p>
+<p class="p9"><span class="s11"></span><br></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">    </span></span><span class="s3">&lt;</span><span class="s6">header</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-6 glass-card p-6"</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">        </span></span><span class="s3">&lt;</span><span class="s6">div</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"flex items-center gap-4"</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">            </span></span><span class="s3">&lt;</span><span class="s6">div</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20"</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                </span></span><span class="s3">&lt;</span><span class="s6">span</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"text-white font-bold text-xl italic"</span><span class="s3">&gt;</span><span class="s4">M</span><span class="s3">&lt;/</span><span class="s6">span</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s3">&lt;/</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s3">&lt;</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                </span></span><span class="s3">&lt;</span><span class="s6">h1</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"text-xl font-bold tracking-tight"</span><span class="s3">&gt;</span><span class="s4">MTTE </span><span class="s3">&lt;</span><span class="s6">span</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"text-blue-500 italic"</span><span class="s3">&gt;</span><span class="s4">INDUSTRIAL</span><span class="s3">&lt;/</span><span class="s6">span</span><span class="s3">&gt;&lt;/</span><span class="s6">h1</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                </span></span><span class="s3">&lt;</span><span class="s6">div</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"flex items-center gap-2"</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                    </span></span><span class="s3">&lt;</span><span class="s6">div</span><span class="s4"> </span><span class="s2">id</span><span class="s3">=</span><span class="s1">"status-dot"</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"w-2 h-2 rounded-full bg-yellow-500"</span><span class="s3">&gt;&lt;/</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                    </span></span><span class="s3">&lt;</span><span class="s6">p</span><span class="s4"> </span><span class="s2">id</span><span class="s3">=</span><span class="s1">"connection-status"</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"text-[10px] text-slate-400 uppercase tracking-widest font-bold"</span><span class="s3">&gt;</span><span class="s4">Esperando Configuración</span><span class="s3">&lt;/</span><span class="s6">p</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s3">&lt;/</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s3">&lt;/</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s3">&lt;/</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">        </span></span><span class="s3">&lt;</span><span class="s6">div</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"flex items-center gap-3"</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">            </span></span><span class="s3">&lt;</span><span class="s6">button</span><span class="s4"> </span><span class="s2">id</span><span class="s3">=</span><span class="s1">"auth-btn"</span><span class="s4"> </span><span class="s2">onclick</span><span class="s3">=</span><span class="s1">"handleAuthClick()"</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"bg-white text-slate-900 px-6 py-2.5 rounded-xl font-bold text-xs hover:bg-blue-50 transition-colors shadow-sm"</span><span class="s3">&gt;</span><span class="s4">Google Contacts</span><span class="s3">&lt;/</span><span class="s6">button</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">            </span></span><span class="s3">&lt;</span><span class="s6">button</span><span class="s4"> </span><span class="s2">onclick</span><span class="s3">=</span><span class="s1">"toggleModal('config-modal', true)"</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"p-2.5 bg-slate-800 rounded-xl border border-blue-500/30 hover:bg-slate-700 transition-all"</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                </span></span><span class="s3">&lt;</span><span class="s6">svg</span><span class="s4"> </span><span class="s2">xmlns</span><span class="s3">=</span><span class="s1">"http://www.w3.org/2000/svg"</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"h-5 w-5 text-blue-400"</span><span class="s4"> </span><span class="s2">fill</span><span class="s3">=</span><span class="s1">"none"</span><span class="s4"> </span><span class="s2">viewBox</span><span class="s3">=</span><span class="s1">"0 0 24 24"</span><span class="s4"> </span><span class="s2">stroke</span><span class="s3">=</span><span class="s1">"currentColor"</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                    </span></span><span class="s3">&lt;</span><span class="s6">path</span><span class="s4"> </span><span class="s2">stroke-linecap</span><span class="s3">=</span><span class="s1">"round"</span><span class="s4"> </span><span class="s2">stroke-linejoin</span><span class="s3">=</span><span class="s1">"round"</span><span class="s4"> </span><span class="s2">stroke-width</span><span class="s3">=</span><span class="s1">"2"</span><span class="s4"> </span><span class="s2">d</span><span class="s3">=</span><span class="s1">"M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"</span><span class="s4"> </span><span class="s3">/&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                    </span></span><span class="s3">&lt;</span><span class="s6">path</span><span class="s4"> </span><span class="s2">stroke-linecap</span><span class="s3">=</span><span class="s1">"round"</span><span class="s4"> </span><span class="s2">stroke-linejoin</span><span class="s3">=</span><span class="s1">"round"</span><span class="s4"> </span><span class="s2">stroke-width</span><span class="s3">=</span><span class="s1">"2"</span><span class="s4"> </span><span class="s2">d</span><span class="s3">=</span><span class="s1">"M15 12a3 3 0 11-6 0 3 3 0 016 0z"</span><span class="s4"> </span><span class="s3">/&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s3">&lt;/</span><span class="s6">svg</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s3">&lt;/</span><span class="s6">button</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s3">&lt;/</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p2"><span class="s4"><span class="Apple-converted-space">    </span></span><span class="s3">&lt;/</span><span class="s1">header</span><span class="s3">&gt;</span></p>
+<p class="p9"><span class="s11"></span><br></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">    </span></span><span class="s3">&lt;</span><span class="s6">main</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8"</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">        </span></span><span class="s3">&lt;</span><span class="s6">aside</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"lg:col-span-4 space-y-6"</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">            </span></span><span class="s3">&lt;</span><span class="s6">div</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"glass-card p-6 min-h-[500px] flex flex-col"</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                </span></span><span class="s3">&lt;</span><span class="s6">div</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"flex justify-between items-center mb-6"</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                    </span></span><span class="s3">&lt;</span><span class="s6">h2</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"text-[10px] font-black text-blue-400 uppercase tracking-[0.2em]"</span><span class="s3">&gt;</span><span class="s4">Google Contacts</span><span class="s3">&lt;/</span><span class="s6">h2</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                    </span></span><span class="s3">&lt;</span><span class="s6">span</span><span class="s4"> </span><span class="s2">id</span><span class="s3">=</span><span class="s1">"google-count"</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold"</span><span class="s3">&gt;</span><span class="s4">0</span><span class="s3">&lt;/</span><span class="s6">span</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s3">&lt;/</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                </span></span><span class="s3">&lt;</span><span class="s6">div</span><span class="s4"> </span><span class="s2">id</span><span class="s3">=</span><span class="s1">"google-list"</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"space-y-3 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar"</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                    </span></span><span class="s3">&lt;</span><span class="s6">div</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"text-center py-20 opacity-30"</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                        </span></span><span class="s3">&lt;</span><span class="s6">p</span><span class="s1"> </span><span class="s2">class</span><span class="s3">=</span><span class="s5">"text-xs"</span><span class="s3">&gt;</span><span class="s1">Conecta con Google para importar</span><span class="s3">&lt;/</span><span class="s6">p</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                    </span></span><span class="s3">&lt;/</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s3">&lt;/</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s3">&lt;/</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s3">&lt;/</span><span class="s6">aside</span><span class="s3">&gt;</span></p>
+<p class="p9"><span class="s11"></span><br></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">        </span></span><span class="s3">&lt;</span><span class="s6">section</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"lg:col-span-8"</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">            </span></span><span class="s3">&lt;</span><span class="s6">div</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"flex gap-8 mb-6 font-bold text-[11px] uppercase border-b border-slate-800"</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                </span></span><span class="s3">&lt;</span><span class="s6">button</span><span class="s4"> </span><span class="s2">onclick</span><span class="s3">=</span><span class="s1">"changeTab('Agenda')"</span><span class="s4"> </span><span class="s2">id</span><span class="s3">=</span><span class="s1">"tab-Agenda"</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"pb-3 tab-active tracking-widest"</span><span class="s3">&gt;</span><span class="s4">📅 Agenda Hoy</span><span class="s3">&lt;/</span><span class="s6">button</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                </span></span><span class="s3">&lt;</span><span class="s6">button</span><span class="s4"> </span><span class="s2">onclick</span><span class="s3">=</span><span class="s1">"changeTab('Empresas')"</span><span class="s4"> </span><span class="s2">id</span><span class="s3">=</span><span class="s1">"tab-Empresas"</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"pb-3 text-slate-500 hover:text-white tracking-widest"</span><span class="s3">&gt;</span><span class="s4">🏢 Empresas</span><span class="s3">&lt;/</span><span class="s6">button</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                </span></span><span class="s3">&lt;</span><span class="s6">button</span><span class="s4"> </span><span class="s2">onclick</span><span class="s3">=</span><span class="s1">"changeTab('Contactos')"</span><span class="s4"> </span><span class="s2">id</span><span class="s3">=</span><span class="s1">"tab-Contactos"</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"pb-3 text-slate-500 hover:text-white tracking-widest"</span><span class="s3">&gt;</span><span class="s4">👥 Todos los Contactos</span><span class="s3">&lt;/</span><span class="s6">button</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s3">&lt;/</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">            </span></span><span class="s3">&lt;</span><span class="s6">div</span><span class="s4"> </span><span class="s2">id</span><span class="s3">=</span><span class="s1">"st-content"</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"min-h-[400px]"</span><span class="s3">&gt;&lt;/</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s3">&lt;/</span><span class="s6">section</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">    </span></span><span class="s3">&lt;/</span><span class="s6">main</span><span class="s3">&gt;</span></p>
+<p class="p9"><span class="s11"></span><br></p>
+<p class="p10"><span class="s4"><span class="Apple-converted-space">    </span></span><span class="s1">&lt;!-- CONFIG MODAL --&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">    </span></span><span class="s3">&lt;</span><span class="s6">div</span><span class="s4"> </span><span class="s2">id</span><span class="s3">=</span><span class="s1">"config-modal"</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"fixed inset-0 bg-slate-950/90 hidden flex items-center justify-center z-[100] p-4 backdrop-blur-md"</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">        </span></span><span class="s3">&lt;</span><span class="s6">div</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"glass-card max-w-md w-full p-8 shadow-2xl"</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s3">&lt;</span><span class="s6">h3</span><span class="s1"> </span><span class="s2">class</span><span class="s3">=</span><span class="s5">"text-xl font-bold mb-2"</span><span class="s3">&gt;</span><span class="s1">Configuración</span><span class="s3">&lt;/</span><span class="s6">h3</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s3">&lt;</span><span class="s6">div</span><span class="s1"> </span><span class="s2">class</span><span class="s3">=</span><span class="s5">"space-y-5"</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s3">&lt;</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                    </span></span><span class="s3">&lt;</span><span class="s6">label</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"text-[10px] text-blue-400 font-bold uppercase ml-1"</span><span class="s3">&gt;</span><span class="s4">SeaTable App Token</span><span class="s3">&lt;/</span><span class="s6">label</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                    </span></span><span class="s3">&lt;</span><span class="s6">input</span><span class="s4"> </span><span class="s2">type</span><span class="s3">=</span><span class="s1">"password"</span><span class="s4"> </span><span class="s2">id</span><span class="s3">=</span><span class="s1">"st-token"</span><span class="s4"> </span><span class="s2">placeholder</span><span class="s3">=</span><span class="s1">"Token..."</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"w-full input-dark px-4 py-3 mt-1.5 text-sm outline-none"</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s3">&lt;/</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s3">&lt;</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                    </span></span><span class="s3">&lt;</span><span class="s6">label</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"text-[10px] text-blue-400 font-bold uppercase ml-1"</span><span class="s3">&gt;</span><span class="s4">Google Client ID</span><span class="s3">&lt;/</span><span class="s6">label</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                    </span></span><span class="s3">&lt;</span><span class="s6">input</span><span class="s4"> </span><span class="s2">type</span><span class="s3">=</span><span class="s1">"text"</span><span class="s4"> </span><span class="s2">id</span><span class="s3">=</span><span class="s1">"google-id"</span><span class="s4"> </span><span class="s2">placeholder</span><span class="s3">=</span><span class="s1">"Client ID..."</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"w-full input-dark px-4 py-3 mt-1.5 text-sm outline-none"</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s3">&lt;/</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s3">&lt;</span><span class="s6">div</span><span class="s1"> </span><span class="s2">class</span><span class="s3">=</span><span class="s5">"pt-4"</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                    </span></span><span class="s3">&lt;</span><span class="s6">button</span><span class="s4"> </span><span class="s2">onclick</span><span class="s3">=</span><span class="s1">"saveConfig()"</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"w-full btn-primary py-4 rounded-xl font-bold text-sm text-white"</span><span class="s3">&gt;</span><span class="s4">Guardar y Recargar</span><span class="s3">&lt;/</span><span class="s6">button</span><span class="s3">&gt;</span></p>
+<p class="p4"><span class="s4"><span class="Apple-converted-space">                    </span></span><span class="s3">&lt;</span><span class="s6">button</span><span class="s4"> </span><span class="s2">onclick</span><span class="s3">=</span><span class="s1">"toggleModal('config-modal', false)"</span><span class="s4"> </span><span class="s2">class</span><span class="s3">=</span><span class="s1">"w-full mt-4 text-slate-500 text-xs"</span><span class="s3">&gt;</span><span class="s4">Cerrar</span><span class="s3">&lt;/</span><span class="s6">button</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s3">&lt;/</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s3">&lt;/</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s3">&lt;/</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">    </span></span><span class="s3">&lt;/</span><span class="s6">div</span><span class="s3">&gt;</span></p>
+<p class="p9"><span class="s11"></span><br></p>
+<p class="p2"><span class="s4"><span class="Apple-converted-space">    </span></span><span class="s3">&lt;</span><span class="s1">script</span><span class="s3">&gt;</span></p>
+<p class="p10"><span class="s4"><span class="Apple-converted-space">        </span></span><span class="s1">// Configuración y variables de estado</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s7">let</span><span class="s1"> config = </span><span class="s12">JSON</span><span class="s1">.parse(localStorage.getItem(</span><span class="s9">'mtte_crm_v3'</span><span class="s1">)) || { token: </span><span class="s9">''</span><span class="s1">, googleId: </span><span class="s9">''</span><span class="s1"> };</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s7">let</span><span class="s1"> currentTab = </span><span class="s9">'Agenda'</span><span class="s1">;<span class="Apple-converted-space"> </span></span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s7">let</span><span class="s1"> googleToken = </span><span class="s7">null</span><span class="s1">;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s7">let</span><span class="s1"> tokenClient = </span><span class="s7">null</span><span class="s1">;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s7">let</span><span class="s1"> session = { accessToken: </span><span class="s7">null</span><span class="s1">, dtableUuid: </span><span class="s7">null</span><span class="s1">, serverUrl: </span><span class="s9">'https://dtable-server.seatable.io'</span><span class="s1"> };</span></p>
+<p class="p9"><span class="s11"></span><br></p>
+<p class="p10"><span class="s4"><span class="Apple-converted-space">        </span></span><span class="s1">// Nombres de tablas estándar</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s7">let</span><span class="s1"> </span><span class="s12">TABLE_NAMES</span><span class="s1"> = {</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s12">CONTACTOS</span><span class="s1">: </span><span class="s9">'Contactos'</span><span class="s1">,</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s12">EMPRESAS</span><span class="s1">: </span><span class="s9">'Empresas'</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span>};</span></p>
+<p class="p9"><span class="s11"></span><br></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s7">function</span><span class="s1"> updateStatus(msg, colorClass, dotColor) {</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s7">const</span><span class="s1"> el = document.getElementById(</span><span class="s9">'connection-status'</span><span class="s1">);</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s7">const</span><span class="s1"> dot = document.getElementById(</span><span class="s9">'status-dot'</span><span class="s1">);</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s7">if</span><span class="s1"> (el) { el.innerText = msg; el.className = </span><span class="s9">`text-[10px] </span><span class="s1">${colorClass}</span><span class="s9"> uppercase tracking-widest font-bold`</span><span class="s1">; }</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s7">if</span><span class="s1"> (dot) { dot.className = </span><span class="s9">`w-2 h-2 rounded-full </span><span class="s1">${dotColor}</span><span class="s9">`</span><span class="s1">; }</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p9"><span class="s11"></span><br></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s7">async</span><span class="s1"> </span><span class="s7">function</span><span class="s1"> authenticateSeaTable() {</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s7">if</span><span class="s1"> (!config.token) </span><span class="s7">return</span><span class="s1"> </span><span class="s7">false</span><span class="s1">;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s7">try</span><span class="s1"> {</span></p>
+<p class="p6"><span class="s4"><span class="Apple-converted-space">                </span>updateStatus(</span><span class="s1">'Conectando...'</span><span class="s4">, </span><span class="s1">'text-blue-400'</span><span class="s4">, </span><span class="s1">'bg-blue-400 animate-pulse'</span><span class="s4">);</span></p>
+<p class="p6"><span class="s4"><span class="Apple-converted-space">                </span></span><span class="s7">const</span><span class="s4"> res = </span><span class="s7">await</span><span class="s4"> fetch(</span><span class="s1">'https://cloud.seatable.io/api/v2.1/dtable/app-access-token/'</span><span class="s4">, {</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                    </span>headers: { </span><span class="s9">'Authorization'</span><span class="s1">: </span><span class="s9">`Token </span><span class="s1">${config.token.trim()}</span><span class="s9">`</span><span class="s1"> }</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span>});</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s7">if</span><span class="s1"> (!res.ok) </span><span class="s7">throw</span><span class="s1"> </span><span class="s7">new</span><span class="s1"> </span><span class="s12">Error</span><span class="s1">(</span><span class="s9">'Auth fail'</span><span class="s1">);</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s7">const</span><span class="s1"> data = </span><span class="s7">await</span><span class="s1"> res.json();</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span>session.accessToken = data.access_token;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span>session.dtableUuid = data.dtable_uuid;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span>session.serverUrl = data.dtable_server.replace(</span><span class="s6">/\/$/</span><span class="s1">, </span><span class="s9">""</span><span class="s1">);<span class="Apple-converted-space"> </span></span></p>
+<p class="p6"><span class="s4"><span class="Apple-converted-space">                </span>updateStatus(</span><span class="s1">'Conectado'</span><span class="s4">, </span><span class="s1">'text-emerald-500'</span><span class="s4">, </span><span class="s1">'bg-emerald-500'</span><span class="s4">);</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s7">return</span><span class="s1"> </span><span class="s7">true</span><span class="s1">;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span>} </span><span class="s7">catch</span><span class="s1"> (e) {</span></p>
+<p class="p6"><span class="s4"><span class="Apple-converted-space">                </span>updateStatus(</span><span class="s1">'Error Token'</span><span class="s4">, </span><span class="s1">'text-red-500'</span><span class="s4">, </span><span class="s1">'bg-red-500'</span><span class="s4">);</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s7">return</span><span class="s1"> </span><span class="s7">false</span><span class="s1">;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p9"><span class="s11"></span><br></p>
+<p class="p10"><span class="s4"><span class="Apple-converted-space">        </span></span><span class="s1">// Función para obtener la lista real de tablas si hay error 404</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s7">async</span><span class="s1"> </span><span class="s7">function</span><span class="s1"> getAvailableTables() {</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s7">try</span><span class="s1"> {</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s7">const</span><span class="s1"> res = </span><span class="s7">await</span><span class="s1"> fetch(</span><span class="s9">`</span><span class="s1">${session.serverUrl}</span><span class="s9">/api/v1/dtables/</span><span class="s1">${session.dtableUuid}</span><span class="s9">/metadata/`</span><span class="s1">, {</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                    </span>headers: { </span><span class="s9">'Authorization'</span><span class="s1">: </span><span class="s9">`Token </span><span class="s1">${session.accessToken}</span><span class="s9">`</span><span class="s1"> }</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span>});</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s7">const</span><span class="s1"> data = </span><span class="s7">await</span><span class="s1"> res.json();</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s7">return</span><span class="s1"> data.metadata.tables.map(t =&gt; t.name);</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span>} </span><span class="s7">catch</span><span class="s1"> (e) { </span><span class="s7">return</span><span class="s1"> []; }</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p9"><span class="s11"></span><br></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s7">async</span><span class="s1"> </span><span class="s7">function</span><span class="s1"> stRequest(tableName, method = </span><span class="s9">'GET'</span><span class="s1">, body = </span><span class="s7">null</span><span class="s1">) {</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s7">if</span><span class="s1"> (!session.accessToken) {</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s7">const</span><span class="s1"> ok = </span><span class="s7">await</span><span class="s1"> authenticateSeaTable();</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s7">if</span><span class="s1"> (!ok) </span><span class="s7">return</span><span class="s1"> { error: </span><span class="s13">401</span><span class="s1"> };</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s7">const</span><span class="s1"> url = </span><span class="s9">`</span><span class="s1">${session.serverUrl}</span><span class="s9">/api/v1/dtables/</span><span class="s1">${session.dtableUuid}</span><span class="s9">/rows/?table_name=</span><span class="s1">${encodeURIComponent(tableName)}</span><span class="s9">`</span><span class="s1">;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s7">try</span><span class="s1"> {</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s7">const</span><span class="s1"> res = </span><span class="s7">await</span><span class="s1"> fetch(url, {</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                    </span>method,</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                    </span>headers: {<span class="Apple-converted-space"> </span></span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                        </span></span><span class="s9">'Authorization'</span><span class="s1">: </span><span class="s9">`Token </span><span class="s1">${session.accessToken}</span><span class="s9">`</span><span class="s1">,<span class="Apple-converted-space"> </span></span></p>
+<p class="p6"><span class="s4"><span class="Apple-converted-space">                        </span></span><span class="s1">'Content-Type'</span><span class="s4">: </span><span class="s1">'application/json'</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                    </span>},</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                    </span>body: body ? </span><span class="s12">JSON</span><span class="s1">.stringify(body) : </span><span class="s7">null</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span>});</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s7">if</span><span class="s1"> (res.status === </span><span class="s13">404</span><span class="s1">) </span><span class="s7">return</span><span class="s1"> { error: </span><span class="s13">404</span><span class="s1">, tableName };</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s7">return</span><span class="s1"> </span><span class="s7">await</span><span class="s1"> res.json();</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span>} </span><span class="s7">catch</span><span class="s1"> (e) { </span><span class="s7">return</span><span class="s1"> { error: </span><span class="s13">500</span><span class="s1"> }; }</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p9"><span class="s11"></span><br></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s7">async</span><span class="s1"> </span><span class="s7">function</span><span class="s1"> loadData() {</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s7">const</span><span class="s1"> container = document.getElementById(</span><span class="s9">'st-content'</span><span class="s1">);</span></p>
+<p class="p6"><span class="s4"><span class="Apple-converted-space">            </span>container.innerHTML = </span><span class="s1">'&lt;div class="flex justify-center py-24"&gt;&lt;div class="loading"&gt;&lt;/div&gt;&lt;/div&gt;'</span><span class="s4">;</span></p>
+<p class="p9"><span class="s1"><span class="Apple-converted-space">            </span></span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s7">const</span><span class="s1"> tableToFetch = (currentTab === </span><span class="s9">'Empresas'</span><span class="s1">) ? </span><span class="s12">TABLE_NAMES</span><span class="s1">.</span><span class="s12">EMPRESAS</span><span class="s1"> : </span><span class="s12">TABLE_NAMES</span><span class="s1">.</span><span class="s12">CONTACTOS</span><span class="s1">;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s7">const</span><span class="s1"> data = </span><span class="s7">await</span><span class="s1"> stRequest(tableToFetch);</span></p>
+<p class="p9"><span class="s1"><span class="Apple-converted-space">            </span></span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s7">if</span><span class="s1"> (data.error === </span><span class="s13">404</span><span class="s1">) {</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s7">const</span><span class="s1"> available = </span><span class="s7">await</span><span class="s1"> getAvailableTables();</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span>container.innerHTML = </span><span class="s9">`</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;div class="glass-card p-10 text-center border-red-500/30"&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;h4 class="text-red-400 font-bold mb-4"&gt;Error 404: Tabla "</span><span class="s4">${tableToFetch}</span><span class="s1">" no encontrada&lt;/h4&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;p class="text-xs text-slate-400 mb-6"&gt;SeaTable dice que esa tabla no existe en esta Base de Datos.&lt;/p&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;div class="bg-black/40 p-4 rounded-xl inline-block text-left"&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                            </span>&lt;p class="text-[10px] text-blue-400 font-bold uppercase mb-2"&gt;Tablas detectadas en tu SeaTable:&lt;/p&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                            </span>&lt;ul class="text-xs space-y-1"&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                                </span></span><span class="s4">${available.map(t =&gt; </span><span class="s1">`&lt;li class="text-white"&gt;🔹 "</span><span class="s4">${t}</span><span class="s1">"&lt;/li&gt;`</span><span class="s4">).join(</span><span class="s1">''</span><span class="s4">)}</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                            </span>&lt;/ul&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;/div&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;p class="text-[10px] mt-6 text-slate-500 italic"&gt;Asegúrate de que el nombre coincida exactamente (mayúsculas, minúsculas y espacios).&lt;/p&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;/div&gt;`</span><span class="s4">;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s7">return</span><span class="s1">;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p9"><span class="s11"></span><br></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s7">if</span><span class="s1"> (data.rows) renderData(data.rows);</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p9"><span class="s11"></span><br></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s7">function</span><span class="s1"> renderData(rows) {</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s7">const</span><span class="s1"> container = document.getElementById(</span><span class="s9">'st-content'</span><span class="s1">);</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s7">if</span><span class="s1"> (!rows.length) {<span class="Apple-converted-space"> </span></span></p>
+<p class="p6"><span class="s4"><span class="Apple-converted-space">                </span>container.innerHTML = </span><span class="s1">'&lt;div class="text-center py-24 opacity-20"&gt;&lt;p class="text-xs italic"&gt;Sin registros&lt;/p&gt;&lt;/div&gt;'</span><span class="s4">;<span class="Apple-converted-space"> </span></span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s7">return</span><span class="s1">;<span class="Apple-converted-space"> </span></span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p9"><span class="s11"></span><br></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s7">if</span><span class="s1"> (currentTab === </span><span class="s9">'Agenda'</span><span class="s1">) {</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span>container.innerHTML = rows.slice(</span><span class="s13">0</span><span class="s1">, </span><span class="s13">20</span><span class="s1">).map(r =&gt; </span><span class="s9">`</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;div class="glass-card p-5 mb-4 flex justify-between items-center border-l-4 border-blue-500 hover:bg-white/5 transition-all"&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;div class="flex items-center gap-4"&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                            </span>&lt;div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold text-xs"&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                                </span></span><span class="s4">${r.</span><span class="s12">Nombre</span><span class="s4"> ? r.</span><span class="s12">Nombre</span><span class="s4">[</span><span class="s13">0</span><span class="s4">] : </span><span class="s1">'?'</span><span class="s4">}</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                            </span>&lt;/div&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                            </span>&lt;div&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                                </span>&lt;h3 class="font-bold text-sm"&gt;</span><span class="s4">${r.</span><span class="s12">Nombre</span><span class="s4"> || </span><span class="s1">''</span><span class="s4">}</span><span class="s1"> </span><span class="s4">${r[</span><span class="s1">'Apellido 1'</span><span class="s4">] || </span><span class="s1">''</span><span class="s4">}</span><span class="s1">&lt;/h3&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                                </span>&lt;p class="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5"&gt;</span><span class="s4">${r[</span><span class="s1">'Nombre Empresa'</span><span class="s4">] || </span><span class="s1">'PARTICULAR'</span><span class="s4">}</span><span class="s1">&lt;/p&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                            </span>&lt;/div&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;/div&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;/div&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                </span>`</span><span class="s4">).join(</span><span class="s1">''</span><span class="s4">);</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span>} </span><span class="s7">else</span><span class="s1"> {</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s7">const</span><span class="s1"> cols = </span><span class="s12">Object</span><span class="s1">.keys(rows[</span><span class="s13">0</span><span class="s1">]).filter(k =&gt; !k.startsWith(</span><span class="s9">'_'</span><span class="s1">));</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span>container.innerHTML = </span><span class="s9">`</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;div class="glass-card overflow-hidden"&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;div class="overflow-x-auto custom-scrollbar"&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                            </span>&lt;table class="w-full text-[10px] text-left"&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                                </span>&lt;thead class="bg-slate-800 text-blue-400 uppercase font-black"&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                                    </span>&lt;tr&gt;</span><span class="s4">${cols.map(c =&gt; </span><span class="s1">`&lt;th class="p-5 whitespace-nowrap"&gt;</span><span class="s4">${c}</span><span class="s1">&lt;/th&gt;`</span><span class="s4">).join(</span><span class="s1">''</span><span class="s4">)}</span><span class="s1">&lt;/tr&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                                </span>&lt;/thead&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                                </span>&lt;tbody class="divide-y divide-white/5"&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                                    </span></span><span class="s4">${rows.map(r =&gt; </span><span class="s1">`&lt;tr class="hover:bg-white/[0.02]"&gt;</span><span class="s4">${cols.map(c =&gt; </span><span class="s1">`&lt;td class="p-5 text-slate-300 whitespace-nowrap"&gt;</span><span class="s4">${r[c] || </span><span class="s1">'-'</span><span class="s4">}</span><span class="s1">&lt;/td&gt;`</span><span class="s4">).join(</span><span class="s1">''</span><span class="s4">)}</span><span class="s1">&lt;/tr&gt;`</span><span class="s4">).join(</span><span class="s1">''</span><span class="s4">)}</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                                </span>&lt;/tbody&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                            </span>&lt;/table&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                        </span>&lt;/div&gt;</span></p>
+<p class="p6"><span class="s1"><span class="Apple-converted-space">                    </span>&lt;/div&gt;`</span><span class="s4">;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p9"><span class="s11"></span><br></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s7">function</span><span class="s1"> changeTab(t) {<span class="Apple-converted-space"> </span></span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span>currentTab = t;<span class="Apple-converted-space"> </span></span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span>[</span><span class="s9">'Agenda'</span><span class="s1">,</span><span class="s9">'Empresas'</span><span class="s1">,</span><span class="s9">'Contactos'</span><span class="s1">].forEach(id =&gt; {</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">                </span></span><span class="s7">const</span><span class="s1"> btn = document.getElementById(</span><span class="s9">'tab-'</span><span class="s1">+id);</span></p>
+<p class="p6"><span class="s4"><span class="Apple-converted-space">                </span></span><span class="s7">if</span><span class="s4">(btn) btn.className = (id === t) ? </span><span class="s1">'pb-3 tab-active tracking-widest transition-all'</span><span class="s4"> : </span><span class="s1">'pb-3 text-slate-500 hover:text-white tracking-widest transition-all'</span><span class="s4">;</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span>});</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span>loadData();<span class="Apple-converted-space"> </span></span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p9"><span class="s11"></span><br></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s7">function</span><span class="s1"> toggleModal(id, show) { document.getElementById(id).classList.toggle(</span><span class="s9">'hidden'</span><span class="s1">, !show); }</span></p>
+<p class="p9"><span class="s1"><span class="Apple-converted-space">        </span></span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span></span><span class="s7">function</span><span class="s1"> saveConfig() {</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span>config.token = document.getElementById(</span><span class="s9">'st-token'</span><span class="s1">).value.trim();</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span>config.googleId = document.getElementById(</span><span class="s9">'google-id'</span><span class="s1">).value.trim();</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span>localStorage.setItem(</span><span class="s9">'mtte_crm_v3'</span><span class="s1">, </span><span class="s12">JSON</span><span class="s1">.stringify(config));</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span>location.reload();</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p9"><span class="s11"></span><br></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span>window.onload = () =&gt; {</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s7">if</span><span class="s1"> (config.token) loadData(); </span><span class="s7">else</span><span class="s1"> toggleModal(</span><span class="s9">'config-modal'</span><span class="s1">, </span><span class="s7">true</span><span class="s1">);</span></p>
+<p class="p5"><span class="s1"><span class="Apple-converted-space">        </span>};</span></p>
+<p class="p2"><span class="s4"><span class="Apple-converted-space">    </span></span><span class="s3">&lt;/</span><span class="s1">script</span><span class="s3">&gt;</span></p>
+<p class="p2"><span class="s3">&lt;/</span><span class="s1">body</span><span class="s3">&gt;</span></p>
+<p class="p2"><span class="s3">&lt;/</span><span class="s1">html</span><span class="s3">&gt;</span></p>
 </body>
 </html>
