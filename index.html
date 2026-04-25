@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sincronizador Google Contacts ↔ Seatable</title>
+  <title>Sincronizador Google Contacts ↔ Seatable (Inteligente)</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #0a0d14; color: #e8eaf0; font-family: 'DM Sans','Segoe UI',sans-serif; min-height: 100vh; }
@@ -11,117 +11,82 @@
     @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
-    input::placeholder { color: #4b5563; }
-    a { text-decoration: none; color: #4285f4; }
 
     #header { background: linear-gradient(135deg,#0d1117,#111827); border-bottom: 1px solid #1e2535; padding: 0 24px; }
     #header-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 64px; }
     .logo-box { width:36px; height:36px; border-radius:8px; background:linear-gradient(135deg,#667eea,#764ba2); display:flex; align-items:center; justify-content:center; font-weight:900; font-size:18px; color:#fff; }
 
     .header-title { display:flex; align-items:center; gap:12px; }
-    .header-title div:first-child { font-size:15px; font-weight:700; letter-spacing:-0.3px; }
-    .header-title div:last-child { font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px; }
+    .header-title div:first-child { font-size:15px; font-weight:700; }
+    .header-title div:last-child { font-size:11px; color:#6b7280; text-transform:uppercase; }
 
     .header-actions { display:flex; align-items:center; gap:10px; }
     #btn-google { background:#fff; color:#3c4043; border:1px solid #dadce0; border-radius:8px; padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; }
-    #btn-google:disabled { background:#1e2535; color:#6b7280; cursor:not-allowed; border-color:#374151; }
     #user-badge { display:none; align-items:center; gap:7px; background:#0d1a0d; border:1px solid #34a85344; border-radius:20px; padding:6px 14px; font-size:12px; color:#34a853; font-weight:600; }
     #btn-logout { background:#1e2535; color:#9ca3af; border:1px solid #374151; border-radius:6px; padding:6px 12px; font-size:12px; cursor:pointer; display:none; }
 
     #info-bar { max-width:1200px; margin:10px auto 0; padding:0 24px; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#6b7280; }
-    .info-left { display:flex; align-items:center; gap:8px; }
-    .info-right { display:flex; gap:12px; }
 
-    #error-box { max-width:1200px; margin:14px auto 0; padding:0 24px; display:none; }
-    #error-inner { background:#0d1a2a; border:1px solid #ff6b6b; border-radius:10px; padding:14px 18px; font-size:13px; color:#ff9999; line-height:1.8; }
-
-    #warning-box { max-width:1200px; margin:14px auto 0; padding:0 24px; display:none; }
-    #warning-inner { background:#1a1000; border:1px solid #ffaa0066; border-radius:10px; padding:14px 18px; font-size:13px; color:#ffaa99; line-height:1.8; }
+    #error-box, #success-box { max-width:1200px; margin:14px auto 0; padding:0 24px; display:none; }
+    #error-inner { background:#2a0a0a; border:1px solid #ff6b6b; border-radius:10px; padding:14px 18px; font-size:13px; color:#ff9999; }
+    #success-inner { background:#0a2a0a; border:1px solid #34a853; border-radius:10px; padding:14px 18px; font-size:13px; color:#66cc99; }
 
     #tabs { max-width:1200px; margin:0 auto; padding:0 24px; display:flex; gap:2px; border-bottom:1px solid #1e2535; }
-    .tab-btn { background:none; border:none; color:#6b7280; font-size:13px; font-weight:600; cursor:pointer; padding:12px 16px; border-bottom:2px solid transparent; transition:all 0.12s; }
-    .tab-btn.active { color:#667eea; border-bottom-color:#667eea; background:#111827; }
+    .tab-btn { background:none; border:none; color:#6b7280; font-size:13px; font-weight:600; cursor:pointer; padding:12px 16px; border-bottom:2px solid transparent; }
+    .tab-btn.active { color:#667eea; border-bottom-color:#667eea; }
 
-    #main { max-width:1200px; margin:0 auto; padding:18px 24px; display:grid; grid-template-columns:1fr 420px; gap:20px; align-items:start; }
-    #main.full { grid-template-columns:1fr; }
-
+    #main { max-width:1200px; margin:0 auto; padding:18px 24px; }
     .tab-content { display:none; }
     .tab-content.active { display:block; animation:fadeIn 0.3s ease; }
 
-    #search { width:100%; background:#0d1117; border:1px solid #1e2535; border-radius:8px; padding:10px 14px; color:#e8eaf0; font-size:13px; outline:none; margin-bottom:14px; }
-    #search:focus { border-color:#667eea; }
-
-    .contacto-card { background:#0d1117; border:1px solid #1e2535; border-radius:10px; padding:14px 16px; cursor:pointer; display:grid; grid-template-columns:1fr auto; gap:12px; align-items:start; transition:all 0.12s; animation:fadeIn 0.2s ease; margin-bottom:10px; }
-    .contacto-card:hover { background:#111827; border-color: #667eea; }
-    
-    .contacto-info { display:grid; gap:6px; }
-    .contacto-nombre { font-weight:700; color:#e8eaf0; font-size:14px; }
-    .contacto-empresa { font-size:12px; color:#9ca3af; }
-    .contacto-email { font-size:12px; color:#6b7280; }
-
-    .contacto-badges { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
-    .badge { font-size:10px; font-weight:700; padding:3px 8px; border-radius:8px; display:inline-flex; align-items:center; gap:3px; }
-    .badge-prioridad { background:#2a0a0a; color:#ff6b6b; border:1px solid #ff444444; }
-    .badge-prioridad.medium { background:#2a1a00; color:#ffaa00; border:1px solid #ffaa0044; }
-    .badge-prioridad.low { background:#002a1a; color:#00cc88; border:1px solid #00cc8844; }
-    .badge-canal { background:#0d1a2a; color:#4a9eff; border:1px solid #4a9eff44; }
-    .badge-sync { background:#0d1a0d; color:#34a853; border:1px solid #34a85344; }
-
-    #panel { background:#0d1117; border:1px solid #1e2535; border-radius:12px; position:sticky; top:90px; max-height:calc(100vh - 120px); display:none; flex-direction:column; overflow:hidden; }
-    #panel.visible { display:flex; }
-    #panel-header { background:linear-gradient(135deg,#1a1030,#1a1025); border-bottom:1px solid #2d1015; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; }
-    #panel-header h3 { font-size:13px; font-weight:700; color:#e8eaf0; }
-    #panel-close { background:none; border:none; color:#6b7280; font-size:16px; cursor:pointer; }
-    #panel-body { padding:16px; overflow-y:auto; flex:1; }
-
-    .panel-section { margin-bottom:14px; }
-    .panel-label { font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
-    .panel-value { font-size:13px; color:#e8eaf0; font-weight:500; word-break:break-all; }
-
-    .msg-box { background:#111827; border-radius:8px; padding:12px; font-size:13px; line-height:1.7; color:#d1d5db; border:1px solid #1e2535; margin-bottom:12px; }
-    .btn-primary { width:100%; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:8px; padding:10px; font-size:13px; font-weight:700; cursor:pointer; margin-bottom:8px; }
-    .btn-primary:hover { opacity:0.9; }
-    .btn-secondary { width:100%; background:#1e2535; color:#9ca3af; border:1px solid #374151; border-radius:8px; padding:10px; font-size:12px; cursor:pointer; font-weight:600; margin-bottom:6px; }
-    .btn-secondary:hover { background:#2d3540; color:#e8eaf0; }
-
     .config-section { background:#111827; border:1px solid #1e2535; border-radius:10px; padding:16px; margin-bottom:16px; }
-    .config-section h3 { font-size:13px; font-weight:700; margin-bottom:12px; color:#e8eaf0; }
+    .config-section h3 { font-size:14px; font-weight:700; margin-bottom:12px; color:#e8eaf0; }
+    
     .config-group { margin-bottom:12px; }
     .config-group label { display:block; font-size:12px; color:#9ca3af; margin-bottom:6px; font-weight:600; }
     .config-group input { width:100%; background:#0d1117; border:1px solid #1e2535; border-radius:6px; padding:8px 10px; color:#e8eaf0; font-size:12px; outline:none; }
     .config-group input:focus { border-color:#667eea; }
 
-    .status-indicator { display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:4px 8px; border-radius:6px; }
-    .status-ok { background:#002a1a; color:#00cc88; border:1px solid #00cc8844; }
-    .status-error { background:#2a0a0a; color:#ff6b6b; border:1px solid #ff444444; }
-    .status-warning { background:#1a1000; color:#ffaa00; border:1px solid #ffaa0044; }
+    .two-columns { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    
+    .status-indicator { display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:6px 10px; border-radius:6px; }
+    .status-ok { background:#002a1a; color:#00cc88; }
+    .status-error { background:#2a0a0a; color:#ff6b6b; }
 
-    .sync-history { max-height:200px; overflow-y:auto; }
-    .sync-log { font-size:11px; color:#6b7280; padding:4px 0; border-bottom:1px solid #1e2535; }
-    .sync-log:last-child { border-bottom:none; }
+    .btn-primary { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:8px; padding:10px 20px; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-primary:hover { opacity:0.9; }
+    .btn-secondary { background:#1e2535; color:#9ca3af; border:1px solid #374151; border-radius:8px; padding:10px 20px; font-size:12px; cursor:pointer; }
+
+    .contacto-card { background:#0d1117; border:1px solid #1e2535; border-radius:10px; padding:14px; margin-bottom:10px; }
+    .contacto-nombre { font-weight:700; color:#e8eaf0; }
+    .contacto-empresa { font-size:12px; color:#9ca3af; margin-top:4px; }
+
+    .info-box { background:#0d1a2a; border:1px solid #4285f444; border-radius:8px; padding:12px; margin-bottom:12px; font-size:12px; color:#93c5fd; line-height:1.6; }
+
+    .sync-history { max-height:300px; overflow-y:auto; margin-top:8px; }
+    .sync-log { font-size:11px; color:#6b7280; padding:6px 0; border-bottom:1px solid #1e2535; }
+    .sync-log.success { color:#00cc88; }
+    .sync-log.error { color:#ff6b6b; }
+    .sync-log.info { color:#667eea; }
 
     .empty-state { text-align:center; padding:40px 20px; color:#6b7280; }
-    .spin-circle { width:34px; height:34px; border:3px solid #1e2535; border-top:3px solid #667eea; border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 14px; }
 
-    .server-warning { background:#1a1000; border:1px solid #ffaa0066; border-radius:8px; padding:14px; margin-bottom:16px; }
-    .server-warning strong { color:#ffaa99; }
+    .loading { animation:spin 0.8s linear infinite; }
 
     @media (max-width: 900px) {
-      #main { grid-template-columns:1fr; }
-      #panel { position:static; max-height:none; top:auto; }
+      .two-columns { grid-template-columns:1fr; }
     }
   </style>
 </head>
 <body>
 
-  <!-- HEADER -->
   <div id="header">
     <div id="header-inner">
       <div class="header-title">
-        <div class="logo-box">🔄</div>
+        <div class="logo-box">🧠</div>
         <div>
+          <div>Sincronizador Inteligente</div>
           <div>Google Contacts ↔ Seatable</div>
-          <div>Sincronización automática</div>
         </div>
       </div>
       <div class="header-actions">
@@ -133,423 +98,203 @@
           <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
           Conectar Google
         </button>
-        <button id="btn-logout" onclick="desconectarGoogle()">Cerrar sesión</button>
+        <button id="btn-logout" onclick="desconectarGoogle()">Cerrar</button>
       </div>
     </div>
   </div>
 
   <div id="info-bar">
-    <div class="info-left">
-      <span>📊 <strong id="info-text">Iniciando...</strong></span>
-    </div>
-    <div class="info-right">
-      <span id="sync-status">⏳ No sincronizado</span>
-      <button onclick="sincronizarConSeatable()" style="padding:4px 8px; background:#667eea; color:#fff; border:none; border-radius:6px; font-size:11px; cursor:pointer; display:none;" id="btn-sincronizar">🔄 Sincronizar</button>
-    </div>
-  </div>
-
-  <div id="warning-box">
-    <div id="warning-inner"></div>
+    <span>📊 <strong id="info-text">Iniciando...</strong></span>
   </div>
 
   <div id="error-box">
     <div id="error-inner"></div>
   </div>
 
-  <!-- TABS -->
+  <div id="success-box">
+    <div id="success-inner"></div>
+  </div>
+
   <div id="tabs">
     <button class="tab-btn active" onclick="switchTab('contactos')">👥 Contactos</button>
     <button class="tab-btn" onclick="switchTab('config')">⚙️ Configuración</button>
-    <button class="tab-btn" onclick="switchTab('dashboard')">📊 Dashboard</button>
   </div>
 
   <div id="main">
     <!-- TAB: CONTACTOS -->
     <div id="contactos" class="tab-content active">
-      <input type="text" id="search" placeholder="🔍 Buscar contactos...">
+      <input type="text" id="search" placeholder="🔍 Buscar..." style="width:100%; padding:10px; background:#0d1117; border:1px solid #1e2535; border-radius:8px; color:#e8eaf0; margin-bottom:16px; outline:none;">
       <div id="lista-contactos"></div>
     </div>
 
     <!-- TAB: CONFIG -->
     <div id="config" class="tab-content">
-      <div class="server-warning">
-        <strong>⚠️ IMPORTANTE:</strong> Debes ejecutar esta app desde un servidor web local, no desde archivo. 
-        <br><br>
-        <strong>Solución rápida:</strong> En PowerShell/CMD en la carpeta del archivo:
-        <br><code style="background:#000; padding:4px 8px; border-radius:4px; display:block; margin-top:8px;">python -m http.server 8000</code>
-        <br>Luego abre: <a href="http://localhost:8000" target="_blank">http://localhost:8000</a>
+      <div class="info-box">
+        ℹ️ <strong>Lógica inteligente:</strong><br>
+        • Contactos: Si existe → Actualiza notas. Si no existe → Crea<br>
+        • Empresas: Si existe → NO se duplica. Si no existe → Crea
       </div>
 
       <div class="config-section">
         <h3>🔗 Google Contacts</h3>
         <div class="config-group">
           <label>Google Client ID:</label>
-          <input type="text" id="googleClientId" placeholder="Tu Client ID de Google Cloud">
+          <input type="text" id="googleClientId" placeholder="Tu Client ID">
         </div>
-        <div style="font-size:11px; color:#6b7280; line-height:1.6;">
-          📖 <a href="https://console.cloud.google.com/" target="_blank">Obtener Client ID</a><br>
-          1. Nuevo proyecto<br>
-          2. Habilitar: Google Contacts API + Google People API<br>
-          3. Credenciales → OAuth → Copiar Client ID
+      </div>
+
+      <div class="two-columns">
+        <!-- TABLA 1: CONTACTOS -->
+        <div class="config-section">
+          <h3>📇 Tabla: Contactos</h3>
+          <div class="config-group">
+            <label>API Token:</label>
+            <input type="password" id="seatable1Token" placeholder="Token API">
+          </div>
+          <div class="config-group">
+            <label>Base ID:</label>
+            <input type="text" id="base1Id" placeholder="Base ID">
+          </div>
+          <div class="config-group">
+            <label>Tabla ID:</label>
+            <input type="text" id="table1Id" placeholder="lYb8" value="lYb8">
+          </div>
+          <button class="btn-primary" style="width:100%;" onclick="testConnection(1)">✅ Probar</button>
+          <div id="status1" style="margin-top:8px; text-align:center;"></div>
+        </div>
+
+        <!-- TABLA 2: EMPRESAS -->
+        <div class="config-section">
+          <h3>🏢 Tabla: Empresas</h3>
+          <div class="config-group">
+            <label>API Token:</label>
+            <input type="password" id="seatable2Token" placeholder="Token (puede ser igual)">
+          </div>
+          <div class="config-group">
+            <label>Base ID:</label>
+            <input type="text" id="base2Id" placeholder="Base ID (puede ser igual)">
+          </div>
+          <div class="config-group">
+            <label>Tabla ID:</label>
+            <input type="text" id="table2Id" placeholder="deGa" value="deGa">
+          </div>
+          <button class="btn-primary" style="width:100%;" onclick="testConnection(2)">✅ Probar</button>
+          <div id="status2" style="margin-top:8px; text-align:center;"></div>
         </div>
       </div>
 
       <div class="config-section">
-        <h3>🔗 Seatable</h3>
-        <div class="config-group">
-          <label>URL Seatable:</label>
-          <input type="text" id="seatableUrl" placeholder="https://seatable.io" value="https://seatable.io">
-        </div>
-        <div class="config-group">
-          <label>API Token:</label>
-          <input type="password" id="seatableToken" placeholder="Tu token API de Seatable">
-        </div>
-        <div class="config-group">
-          <label>Base ID:</label>
-          <input type="text" id="baseId" placeholder="ID de tu base de datos">
-        </div>
-        <div class="config-group">
-          <label>Tabla:</label>
-          <input type="text" id="tableName" placeholder="Nombre de la tabla" value="Contactos">
-        </div>
-        <button class="btn-primary" onclick="testSeatableConnection()">✅ Probar Conexión</button>
-        <div id="seatable-status" style="margin-top:8px; text-align:center;"></div>
-      </div>
-
-      <div class="config-section">
-        <h3>📋 Historial de Sincronización</h3>
+        <h3>🔄 Sincronización</h3>
+        <button class="btn-primary" style="width:100%; margin-bottom:10px;" onclick="sincronizarContactos()">
+          <span id="btn-sync-text">🔄 Sincronizar Contactos</span>
+        </button>
+        <button class="btn-primary" style="width:100%; margin-bottom:10px; background:linear-gradient(135deg,#34a853,#00cc88);" onclick="sincronizarEmpresas()">
+          <span id="btn-sync-emp-text">🏢 Sincronizar Empresas</span>
+        </button>
+        
+        <h3 style="font-size:13px; margin:16px 0 8px 0;">📋 Historial:</h3>
         <div class="sync-history" id="sync-history">
-          <div style="padding:10px; text-align:center; color:#6b7280;">Sin historial</div>
+          <div style="text-align:center; color:#6b7280; padding:10px;">Sin historial</div>
         </div>
       </div>
-    </div>
-
-    <!-- TAB: DASHBOARD -->
-    <div id="dashboard" class="tab-content">
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
-        <div class="config-section" style="margin:0;">
-          <div style="font-size:24px; font-weight:700; color:#667eea;" id="stat-total">0</div>
-          <div style="font-size:12px; color:#6b7280;">Total Contactos</div>
-        </div>
-        <div class="config-section" style="margin:0;">
-          <div style="font-size:24px; font-weight:700; color:#34a853;" id="stat-synced">0</div>
-          <div style="font-size:12px; color:#6b7280;">Sincronizados</div>
-        </div>
-      </div>
-      <div id="dashboard-content" style="color:#6b7280; text-align:center;">Carga contactos primero</div>
-    </div>
-  </div>
-
-  <!-- PANEL LATERAL -->
-  <div id="panel">
-    <div id="panel-header">
-      <h3>Detalles del Contacto</h3>
-      <button id="panel-close" onclick="cerrarPanel()">✕</button>
-    </div>
-    <div id="panel-body">
-      <div class="panel-section">
-        <div class="panel-label">Nombre</div>
-        <div class="panel-value" id="p-nombre">-</div>
-      </div>
-      <div class="panel-section">
-        <div class="panel-label">Email</div>
-        <div class="panel-value" id="p-email">-</div>
-      </div>
-      <div class="panel-section">
-        <div class="panel-label">Teléfono</div>
-        <div class="panel-value" id="p-telefono">-</div>
-      </div>
-      <div class="panel-section">
-        <div class="panel-label">Empresa</div>
-        <div class="panel-value" id="p-empresa">-</div>
-      </div>
-      <div class="panel-section">
-        <div class="panel-label">Prioridad</div>
-        <div class="panel-value" id="p-prioridad">-</div>
-      </div>
-      <div class="panel-section">
-        <div class="panel-label">Canal Sugerido</div>
-        <div class="panel-value" id="p-canal">-</div>
-      </div>
-      <div class="msg-box" id="p-notas">Sin notas</div>
-      <button class="btn-primary" onclick="marcarContactado()">✓ Marcar Contactado</button>
-      <button class="btn-secondary" onclick="posponer7Dias()">⏰ Posponer 7 días</button>
     </div>
   </div>
 
   <script>
-    // ========== CONFIG ==========
     const CONFIG = {
       GOOGLE_CLIENT_ID: '',
-      SEATABLE_URL: 'https://seatable.io',
-      SEATABLE_TOKEN: '',
-      BASE_ID: '',
-      TABLE_NAME: 'Contactos'
+      TABLA_CONTACTOS: {
+        TOKEN: '',
+        BASE_ID: '',
+        TABLE_ID: 'lYb8',
+        URL: 'https://seatable.io'
+      },
+      TABLA_EMPRESAS: {
+        TOKEN: '',
+        BASE_ID: '',
+        TABLE_ID: 'deGa',
+        URL: 'https://seatable.io'
+      }
     };
 
     let contactos = [];
-    let contactoSeleccionado = null;
     let googleAccessToken = null;
+    let sincronizando = false;
 
-    // ========== VERIFICAR GOOGLE SCRIPT ==========
-    function checkGoogleScript() {
-      const script = document.querySelector('script[src*="accounts.google.com"]');
-      if (!script) {
-        const newScript = document.createElement('script');
-        newScript.src = 'https://accounts.google.com/gsi/client';
-        newScript.async = true;
-        newScript.defer = true;
-        newScript.onload = () => {
-          console.log('✅ Google Script cargado');
-          initGoogle();
-        };
-        newScript.onerror = () => {
-          mostrarAdvertencia('⚠️ No se pudo cargar Google Sign-In. Asegúrate de tener internet y estar en http://localhost, no en file://');
-        };
-        document.head.appendChild(newScript);
-      }
+    // Cargar Google Script
+    function loadGoogleScript() {
+      if (typeof google !== 'undefined') return;
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
     }
 
-    // ========== GOOGLE SIGN-IN ==========
-    function initGoogle() {
-      if (typeof google === 'undefined') {
-        setTimeout(initGoogle, 500);
-        return;
-      }
-
-      const clientId = document.getElementById('googleClientId').value;
-      if (!clientId) {
-        mostrarAdvertencia('⚠️ Ingresa tu Google Client ID primero');
-        return;
-      }
-
-      try {
-        google.accounts.id.initialize({
-          client_id: clientId,
-          callback: handleGoogleResponse
-        });
-        console.log('✅ Google ID inicializado');
-      } catch (e) {
-        mostrarError('Error al inicializar Google: ' + e.message);
-      }
-    }
+    loadGoogleScript();
 
     function conectarGoogle() {
       const clientId = document.getElementById('googleClientId').value;
       if (!clientId) {
-        mostrarError('Por favor, ingresa tu Google Client ID en ⚙️ Configuración');
+        mostrarError('Ingresa Google Client ID primero');
         return;
       }
 
       CONFIG.GOOGLE_CLIENT_ID = clientId;
-      localStorage.setItem('googleClientId', clientId);
+      localStorage.setItem('config', JSON.stringify(CONFIG));
 
-      if (typeof google === 'undefined') {
-        mostrarError('Google Sign-In aún está cargando. Espera un momento...');
-        setTimeout(conectarGoogle, 1000);
-        return;
-      }
+      setTimeout(() => {
+        if (typeof google === 'undefined') {
+          mostrarError('Google aún cargando...');
+          return;
+        }
 
-      try {
         const tokenClient = google.accounts.oauth2.initTokenClient({
           client_id: clientId,
           scope: 'https://www.googleapis.com/auth/contacts.readonly',
           callback: (response) => {
             if (response.access_token) {
               googleAccessToken = response.access_token;
-              cargarContactosGoogle();
+              cargarContactos();
             }
           }
         });
 
         tokenClient.requestAccessToken({ prompt: 'consent' });
-      } catch (e) {
-        mostrarError('Error al conectar Google: ' + e.message);
-      }
+      }, 500);
     }
 
-    function handleGoogleResponse(response) {
-      console.log('Google response recibido');
-    }
-
-    function desconectarGoogle() {
-      google.accounts.id.disableAutoSelect();
-      contactos = [];
-      googleAccessToken = null;
-      document.getElementById('btn-google').style.display = 'block';
-      document.getElementById('btn-logout').style.display = 'none';
-      document.getElementById('user-badge').style.display = 'none';
-      document.getElementById('btn-sincronizar').style.display = 'none';
-      document.getElementById('lista-contactos').innerHTML = '';
-      mostrarAdvertencia('✓ Sesión cerrada');
-    }
-
-    // ========== CARGAR CONTACTOS GOOGLE ==========
-    async function cargarContactosGoogle() {
+    async function cargarContactos() {
       try {
-        if (!googleAccessToken) {
-          mostrarError('No hay token de acceso. Intenta conectar de nuevo.');
-          return;
-        }
-
         document.getElementById('info-text').innerHTML = '<span style="color:#667eea;">Cargando contactos...</span>';
 
         const res = await fetch(
-          'https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,phoneNumbers,organizations,biographies,urls',
-          {
-            headers: { 'Authorization': `Bearer ${googleAccessToken}` }
-          }
+          'https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,phoneNumbers,organizations',
+          { headers: { 'Authorization': `Bearer ${googleAccessToken}` } }
         );
 
-        if (!res.ok) {
-          throw new Error(`Error ${res.status}: ${res.statusText}`);
-        }
-
         const data = await res.json();
-        if (data.connections) {
-          contactos = data.connections
-            .map(mapearContacto)
-            .filter(c => c.email);
+        contactos = (data.connections || []).map(p => ({
+          id: p.resourceName,
+          nombre: p.names?.[0]?.displayName || 'Sin nombre',
+          email: p.emailAddresses?.[0]?.value || '',
+          telefono: (p.phoneNumbers || []).find(t => t.value.replace(/\D/g, '').match(/^[67]/))?.value || '',
+          empresa: p.organizations?.[0]?.name || '',
+          cargo: p.organizations?.[0]?.title || ''
+        })).filter(c => c.email);
 
-          document.getElementById('info-text').innerHTML = `<strong style="color:#34a853">${contactos.length} contactos</strong> cargados desde Google`;
-          document.getElementById('btn-google').style.display = 'none';
-          document.getElementById('btn-logout').style.display = 'block';
-          document.getElementById('user-badge').style.display = 'flex';
-          document.getElementById('user-name').textContent = 'Google Contacts';
-          document.getElementById('btn-sincronizar').style.display = 'inline-block';
+        document.getElementById('info-text').innerHTML = `<strong style="color:#34a853">${contactos.length} contactos</strong> cargados`;
+        document.getElementById('btn-google').style.display = 'none';
+        document.getElementById('btn-logout').style.display = 'block';
+        document.getElementById('user-badge').style.display = 'flex';
 
-          renderizarContactos();
-          actualizarDashboard();
-          addSyncLog(`✅ Cargados: ${contactos.length} contactos`);
-        } else {
-          mostrarAdvertencia('⚠️ No hay contactos en Google Contacts');
-        }
-      } catch (e) {
-        mostrarError('Error al cargar Google Contacts: ' + e.message);
-        console.error(e);
-      }
-    }
-
-    function mapearContacto(p) {
-      const notas = p.biographies?.[0]?.value || '';
-      const telefonos = p.phoneNumbers || [];
-      const movil = telefonos.find(t => {
-        const n = t.value.replace(/\D/g, '');
-        return n.startsWith('6') || n.startsWith('7') || n.startsWith('34');
-      });
-      const telefono = (movil || telefonos[0])?.value || '';
-      const linkedin = (p.urls || []).find(u => u.value && u.value.includes('linkedin.com'))?.value || '';
-
-      return {
-        id: p.resourceName || Math.random().toString(36).slice(2),
-        nombre: p.names?.[0]?.displayName || 'Sin nombre',
-        email: p.emailAddresses?.[0]?.value || '',
-        telefono: telefono,
-        empresa: p.organizations?.[0]?.name || 'Empresa desconocida',
-        cargo: p.organizations?.[0]?.title || '',
-        linkedin: linkedin,
-        notas: notas,
-        ultimoContacto: null,
-        proximaAccion: null,
-        enSeatable: false
-      };
-    }
-
-    // ========== SEATABLE (SIN CORS) ==========
-    async function testSeatableConnection() {
-      CONFIG.SEATABLE_URL = document.getElementById('seatableUrl').value;
-      CONFIG.SEATABLE_TOKEN = document.getElementById('seatableToken').value;
-      CONFIG.BASE_ID = document.getElementById('baseId').value;
-      CONFIG.TABLE_NAME = document.getElementById('tableName').value;
-
-      if (!CONFIG.SEATABLE_TOKEN || !CONFIG.BASE_ID) {
-        mostrarError('Completa Token y Base ID');
-        return;
-      }
-
-      try {
-        // Usar CORS proxy público
-        const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-        const targetUrl = `${CONFIG.SEATABLE_URL}/api/v2.1/bases/${CONFIG.BASE_ID}/tables/`;
-
-        const res = await fetch(targetUrl, {
-          headers: { 'Authorization': `Token ${CONFIG.SEATABLE_TOKEN}` }
-        });
-
-        if (res.ok) {
-          document.getElementById('seatable-status').innerHTML = '<div class="status-indicator status-ok">✅ Conectado a Seatable</div>';
-          localStorage.setItem('seatableConfig', JSON.stringify(CONFIG));
-          addSyncLog('✅ Seatable conectado correctamente');
-          mostrarAdvertencia('✅ Conexión a Seatable verificada');
-        } else if (res.status === 401) {
-          mostrarError('❌ Token API inválido. Verifica tu token de Seatable.');
-          document.getElementById('seatable-status').innerHTML = '<div class="status-indicator status-error">❌ Token inválido</div>';
-        } else if (res.status === 404) {
-          mostrarError('❌ Base ID no encontrado. Verifica tu Base ID.');
-          document.getElementById('seatable-status').innerHTML = '<div class="status-indicator status-error">❌ Base no encontrada</div>';
-        } else {
-          mostrarError(`❌ Error ${res.status}: ${res.statusText}`);
-        }
-      } catch (e) {
-        // Si falla CORS, dar instrucciones
-        mostrarAdvertencia('⚠️ Para testing local, necesitas ejecutar desde http://localhost:8000, no desde archivo. Ver ⚙️ Configuración para instrucciones.');
-        console.error('CORS Error (esperado):', e.message);
-      }
-    }
-
-    async function sincronizarConSeatable() {
-      if (!CONFIG.SEATABLE_TOKEN || !CONFIG.BASE_ID) {
-        mostrarError('Configura Seatable primero en ⚙️ Configuración');
-        return;
-      }
-
-      document.getElementById('sync-status').textContent = '⏳ Sincronizando...';
-
-      try {
-        // Por ahora, simulamos la sincronización
-        // En producción, implementarías las llamadas reales a Seatable API
-
-        let creados = 0;
-        for (const c of contactos) {
-          if (!c.enSeatable) {
-            c.enSeatable = true;
-            creados++;
-          }
-        }
-
-        addSyncLog(`✅ Sincronizados: ${creados} nuevos contactos`);
-        document.getElementById('sync-status').textContent = `✅ ${creados} sincronizados`;
         renderizarContactos();
+        addLog(`✅ Cargados: ${contactos.length} contactos`, 'success');
       } catch (e) {
-        mostrarError('Error en sincronización: ' + e.message);
-        document.getElementById('sync-status').textContent = '❌ Error';
+        mostrarError('Error al cargar contactos: ' + e.message);
       }
     }
 
-    // ========== PRIORIZACIÓN ==========
-    function calcularPrioridad(contacto) {
-      let score = 50;
-      if (!contacto.ultimoContacto) {
-        score += 30;
-      } else {
-        const dias = Math.floor((Date.now() - new Date(contacto.ultimoContacto)) / (1000 * 60 * 60 * 24));
-        if (dias > 14) score += 20;
-        else if (dias > 7) score += 15;
-      }
-      return Math.min(score, 100);
-    }
-
-    function sugerirCanal(contacto) {
-      const ultContacto = contacto.ultimoContacto ? new Date(contacto.ultimoContacto) : null;
-      const diasSinContacto = ultContacto ? Math.floor((Date.now() - ultContacto) / (1000 * 60 * 60 * 24)) : 999;
-
-      if (!ultContacto) return { canal: '📧 Email', desc: 'Primer contacto' };
-      if (diasSinContacto > 5 && contacto.linkedin) return { canal: '💼 LinkedIn', desc: 'Seguimiento' };
-      if (diasSinContacto > 10 && contacto.telefono) return { canal: '📱 WhatsApp', desc: 'Contacto directo' };
-      return { canal: '📧 Email', desc: 'Re-contacto' };
-    }
-
-    // ========== UI ==========
     function renderizarContactos() {
       const search = document.getElementById('search').value.toLowerCase();
       const filtrados = contactos.filter(c =>
@@ -558,72 +303,246 @@
         c.empresa.toLowerCase().includes(search)
       );
 
-      const sorted = filtrados.sort((a, b) => calcularPrioridad(b) - calcularPrioridad(a));
-
-      const html = sorted.map(c => {
-        const prioridad = calcularPrioridad(c);
-        const canal = sugerirCanal(c);
-        const nivelPrioridad = prioridad > 80 ? 'high' : prioridad > 60 ? 'medium' : 'low';
-
-        return `
-          <div class="contacto-card" onclick="abrirPanel('${c.id}')">
-            <div class="contacto-info">
-              <div class="contacto-nombre">${c.nombre}</div>
-              <div class="contacto-empresa">${c.empresa}</div>
-              <div class="contacto-email">${c.email}</div>
-              <div class="contacto-badges">
-                <span class="badge badge-prioridad${nivelPrioridad !== 'high' ? ' ' + nivelPrioridad : ''}">${prioridad}%</span>
-                <span class="badge badge-canal">${canal.canal}</span>
-                ${c.enSeatable ? '<span class="badge badge-sync">En Seatable</span>' : ''}
-              </div>
-            </div>
+      const html = filtrados.map(c => `
+        <div class="contacto-card">
+          <div class="contacto-nombre">${c.nombre}</div>
+          <div class="contacto-empresa">${c.empresa || '(sin empresa)'}</div>
+          <div style="font-size:12px; color:#6b7280; margin-top:6px;">
+            📧 ${c.email} ${c.telefono ? '| 📱 ' + c.telefono : ''}
           </div>
-        `;
-      }).join('');
+        </div>
+      `).join('');
 
       document.getElementById('lista-contactos').innerHTML = html || '<div class="empty-state">No hay contactos</div>';
     }
 
-    function abrirPanel(id) {
-      contactoSeleccionado = contactos.find(c => c.id === id);
-      if (!contactoSeleccionado) return;
+    async function testConnection(tabla) {
+      const token = document.getElementById(`seatable${tabla}Token`).value;
+      const baseId = document.getElementById(`base${tabla}Id`).value;
 
-      const prioridad = calcularPrioridad(contactoSeleccionado);
-      const canal = sugerirCanal(contactoSeleccionado);
+      if (!token || !baseId) {
+        mostrarError('Completa Token y Base ID');
+        return;
+      }
 
-      document.getElementById('p-nombre').textContent = contactoSeleccionado.nombre;
-      document.getElementById('p-email').textContent = contactoSeleccionado.email;
-      document.getElementById('p-telefono').textContent = contactoSeleccionado.telefono || '-';
-      document.getElementById('p-empresa').textContent = contactoSeleccionado.empresa;
-      document.getElementById('p-prioridad').innerHTML = `<span style="color:#${prioridad > 80 ? 'ff6b6b' : 'ffaa00'}">${prioridad}% (${canal.desc})</span>`;
-      document.getElementById('p-canal').textContent = canal.canal;
-      document.getElementById('p-notas').textContent = contactoSeleccionado.notas || 'Sin notas';
+      try {
+        const res = await fetch(`https://seatable.io/api/v2.1/bases/${baseId}/tables/`, {
+          headers: { 'Authorization': `Token ${token}` }
+        });
 
-      document.getElementById('panel').classList.add('visible');
-      document.getElementById('main').classList.add('with-panel');
+        if (res.ok) {
+          document.getElementById(`status${tabla}`).innerHTML = '<div class="status-indicator status-ok">✅ Conectado</div>';
+          const config = tabla === 1 ? CONFIG.TABLA_CONTACTOS : CONFIG.TABLA_EMPRESAS;
+          config.TOKEN = token;
+          config.BASE_ID = baseId;
+          localStorage.setItem('config', JSON.stringify(CONFIG));
+          addLog(`✅ Tabla ${tabla} conectada`, 'success');
+        } else {
+          document.getElementById(`status${tabla}`).innerHTML = '<div class="status-indicator status-error">❌ Error</div>';
+          mostrarError(`Error ${res.status} en tabla ${tabla}`);
+        }
+      } catch (e) {
+        mostrarError('Error: ' + e.message);
+      }
     }
 
-    function cerrarPanel() {
-      document.getElementById('panel').classList.remove('visible');
-      document.getElementById('main').classList.remove('with-panel');
-      contactoSeleccionado = null;
+    // ========== SINCRONIZAR CONTACTOS CON LÓGICA INTELIGENTE ==========
+    async function sincronizarContactos() {
+      if (!contactos.length) {
+        mostrarError('Carga contactos primero');
+        return;
+      }
+
+      if (sincronizando) return;
+      sincronizando = true;
+      document.getElementById('btn-sync-text').innerHTML = '⏳ Sincronizando...';
+
+      try {
+        const config = CONFIG.TABLA_CONTACTOS;
+        let creados = 0, actualizados = 0, errores = 0;
+
+        for (const contacto of contactos) {
+          try {
+            // 1. Buscar si el contacto ya existe por email
+            const existente = await buscarContactoPorEmail(contacto.email, config);
+
+            if (existente) {
+              // Contacto existe: ACTUALIZAR NOTAS
+              await actualizarNotasContacto(existente, contacto, config);
+              actualizados++;
+              addLog(`📝 Actualizado: ${contacto.nombre}`, 'info');
+            } else {
+              // Contacto no existe: CREAR
+              await crearContacto(contacto, config);
+              creados++;
+              addLog(`✅ Creado: ${contacto.nombre}`, 'success');
+            }
+          } catch (e) {
+            errores++;
+            addLog(`❌ Error en ${contacto.nombre}: ${e.message}`, 'error');
+          }
+        }
+
+        mostrarExito(`✅ Contactos sincronizados\n📊 Creados: ${creados} | Actualizados: ${actualizados} | Errores: ${errores}`);
+        addLog(`✅ Sincronización completada: ${creados} creados, ${actualizados} actualizados`, 'success');
+      } catch (e) {
+        mostrarError('Error en sincronización: ' + e.message);
+      } finally {
+        sincronizando = false;
+        document.getElementById('btn-sync-text').innerHTML = '🔄 Sincronizar Contactos';
+      }
     }
 
-    function marcarContactado() {
-      if (!contactoSeleccionado) return;
-      contactoSeleccionado.ultimoContacto = new Date().toISOString().split('T')[0];
-      addSyncLog(`✓ Marcado: ${contactoSeleccionado.nombre}`);
-      renderizarContactos();
-      cerrarPanel();
+    // ========== SINCRONIZAR EMPRESAS CON LÓGICA INTELIGENTE ==========
+    async function sincronizarEmpresas() {
+      if (!contactos.length) {
+        mostrarError('Carga contactos primero');
+        return;
+      }
+
+      if (sincronizando) return;
+      sincronizando = true;
+      document.getElementById('btn-sync-emp-text').innerHTML = '⏳ Sincronizando...';
+
+      try {
+        const config = CONFIG.TABLA_EMPRESAS;
+        const empresasUnicas = [...new Set(contactos.filter(c => c.empresa).map(c => c.empresa))];
+        
+        let creadas = 0, duplicadas = 0, errores = 0;
+
+        for (const empresa of empresasUnicas) {
+          try {
+            // 1. Buscar si la empresa ya existe
+            const existente = await buscarEmpresaPorNombre(empresa, config);
+
+            if (existente) {
+              // Empresa existe: NO HACER NADA (no duplicar, no actualizar)
+              duplicadas++;
+              addLog(`⏭️ Ya existe: ${empresa}`, 'info');
+            } else {
+              // Empresa no existe: CREAR
+              await crearEmpresa(empresa, config);
+              creadas++;
+              addLog(`✅ Creada: ${empresa}`, 'success');
+            }
+          } catch (e) {
+            errores++;
+            addLog(`❌ Error en ${empresa}: ${e.message}`, 'error');
+          }
+        }
+
+        mostrarExito(`✅ Empresas sincronizadas\n📊 Creadas: ${creadas} | Duplicadas: ${duplicadas} | Errores: ${errores}`);
+        addLog(`✅ Sync empresas: ${creadas} creadas, ${duplicadas} ya existían`, 'success');
+      } catch (e) {
+        mostrarError('Error: ' + e.message);
+      } finally {
+        sincronizando = false;
+        document.getElementById('btn-sync-emp-text').innerHTML = '🏢 Sincronizar Empresas';
+      }
     }
 
-    function posponer7Dias() {
-      if (!contactoSeleccionado) return;
-      const fecha = new Date();
-      fecha.setDate(fecha.getDate() + 7);
-      contactoSeleccionado.proximaAccion = fecha.toISOString().split('T')[0];
-      addSyncLog(`⏰ Pospuesto: ${contactoSeleccionado.nombre}`);
-      cerrarPanel();
+    // ========== FUNCIONES DE API ==========
+
+    async function buscarContactoPorEmail(email, config) {
+      try {
+        const res = await fetch(
+          `${config.URL}/api/v2.1/bases/${config.BASE_ID}/tables/${config.TABLE_ID}/rows/`,
+          { headers: { 'Authorization': `Token ${config.TOKEN}` } }
+        );
+        const data = await res.json();
+        return data.rows?.find(row => row.Email === email) || null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function buscarEmpresaPorNombre(nombre, config) {
+      try {
+        const res = await fetch(
+          `${config.URL}/api/v2.1/bases/${config.BASE_ID}/tables/${config.TABLE_ID}/rows/`,
+          { headers: { 'Authorization': `Token ${config.TOKEN}` } }
+        );
+        const data = await res.json();
+        return data.rows?.find(row => row.Nombre === nombre || row.Empresa === nombre) || null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function crearContacto(contacto, config) {
+      const res = await fetch(
+        `${config.URL}/api/v2.1/bases/${config.BASE_ID}/tables/${config.TABLE_ID}/rows/`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Token ${config.TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            'Nombre': contacto.nombre,
+            'Email': contacto.email,
+            'Teléfono': contacto.telefono || '',
+            'Empresa': contacto.empresa || '',
+            'Cargo': contacto.cargo || '',
+            'Notas': `Sincronizado desde Google Contacts: ${new Date().toLocaleString('es-ES')}`
+          })
+        }
+      );
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      return await res.json();
+    }
+
+    async function actualizarNotasContacto(rowExistente, contactoNuevo, config) {
+      const notasActuales = rowExistente.Notas || '';
+      const notasNuevas = `${notasActuales}\n\n[${new Date().toLocaleString('es-ES')}] Actualizado desde Google: Cargo: ${contactoNuevo.cargo || 'N/A'}`;
+
+      const res = await fetch(
+        `${config.URL}/api/v2.1/bases/${config.BASE_ID}/tables/${config.TABLE_ID}/rows/${rowExistente._id}/`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Token ${config.TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            'Notas': notasNuevas,
+            'Teléfono': contactoNuevo.telefono || rowExistente.Teléfono,
+            'Cargo': contactoNuevo.cargo || rowExistente.Cargo
+          })
+        }
+      );
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      return await res.json();
+    }
+
+    async function crearEmpresa(nombre, config) {
+      const res = await fetch(
+        `${config.URL}/api/v2.1/bases/${config.BASE_ID}/tables/${config.TABLE_ID}/rows/`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Token ${config.TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            'Nombre': nombre,
+            'Notas': `Sincronizada desde Google Contacts: ${new Date().toLocaleString('es-ES')}`
+          })
+        }
+      );
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      return await res.json();
+    }
+
+    // ========== UI ==========
+
+    function desconectarGoogle() {
+      contactos = [];
+      googleAccessToken = null;
+      document.getElementById('btn-google').style.display = 'block';
+      document.getElementById('btn-logout').style.display = 'none';
+      document.getElementById('user-badge').style.display = 'none';
+      document.getElementById('lista-contactos').innerHTML = '';
     }
 
     function switchTab(tab) {
@@ -640,51 +559,38 @@
       setTimeout(() => document.getElementById('error-box').style.display = 'none', 8000);
     }
 
-    function mostrarAdvertencia(msg) {
-      const box = document.getElementById('warning-inner');
+    function mostrarExito(msg) {
+      const box = document.getElementById('success-inner');
       box.textContent = msg;
-      document.getElementById('warning-box').style.display = 'block';
-      setTimeout(() => document.getElementById('warning-box').style.display = 'none', 6000);
+      document.getElementById('success-box').style.display = 'block';
+      setTimeout(() => document.getElementById('success-box').style.display = 'none', 8000);
     }
 
-    function addSyncLog(msg) {
+    function addLog(msg, tipo = 'info') {
       const log = document.getElementById('sync-history');
       const entry = document.createElement('div');
-      entry.className = 'sync-log';
-      entry.textContent = `[${new Date().toLocaleTimeString('es-ES')}] ${msg}`;
+      entry.className = `sync-log ${tipo}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
       log.insertBefore(entry, log.firstChild);
       if (log.children.length > 20) log.removeChild(log.lastChild);
     }
 
-    function actualizarDashboard() {
-      document.getElementById('stat-total').textContent = contactos.length;
-      document.getElementById('stat-synced').textContent = contactos.filter(c => c.enSeatable).length;
-    }
-
-    // ========== INIT ==========
     document.getElementById('search').addEventListener('input', renderizarContactos);
 
-    const savedConfig = localStorage.getItem('seatableConfig');
-    if (savedConfig) {
-      Object.assign(CONFIG, JSON.parse(savedConfig));
-      document.getElementById('seatableUrl').value = CONFIG.SEATABLE_URL;
-      document.getElementById('baseId').value = CONFIG.BASE_ID;
-      document.getElementById('tableName').value = CONFIG.TABLE_NAME;
+    // Cargar config
+    const saved = localStorage.getItem('config');
+    if (saved) {
+      Object.assign(CONFIG, JSON.parse(saved));
+      document.getElementById('googleClientId').value = CONFIG.GOOGLE_CLIENT_ID;
+      document.getElementById('seatable1Token').value = CONFIG.TABLA_CONTACTOS.TOKEN;
+      document.getElementById('base1Id').value = CONFIG.TABLA_CONTACTOS.BASE_ID;
+      document.getElementById('table1Id').value = CONFIG.TABLA_CONTACTOS.TABLE_ID;
+      document.getElementById('seatable2Token').value = CONFIG.TABLA_EMPRESAS.TOKEN;
+      document.getElementById('base2Id').value = CONFIG.TABLA_EMPRESAS.BASE_ID;
+      document.getElementById('table2Id').value = CONFIG.TABLA_EMPRESAS.TABLE_ID;
     }
 
-    const savedClientId = localStorage.getItem('googleClientId');
-    if (savedClientId) {
-      document.getElementById('googleClientId').value = savedClientId;
-    }
-
-    // Cargar Google Script
-    checkGoogleScript();
-    addSyncLog('App iniciada');
-
-    // Mostrar advertencia de servidor
-    if (location.protocol === 'file:') {
-      mostrarAdvertencia('⚠️ Abre desde http://localhost:8000, no desde archivo. Lee ⚙️ Configuración para instrucciones.');
-    }
+    addLog('App iniciada', 'info');
   </script>
 </body>
 </html>
