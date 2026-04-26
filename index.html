@@ -504,14 +504,16 @@ function actualizarWappPanel() {
 
 // ── EMAIL ────────────────────────────────────────────────────────────────────
 async function generarEmail(c) {
+  console.log("[generarEmail] Iniciando para:", c.empresa, c.contacto);
   document.getElementById("spin-email").style.display  = "block";
   document.getElementById("email-result").style.display = "none";
   const d = dias(c.ultimoContacto);
+  
   try {
-    const res = await fetch("https://damp-limit-0374.mezquiriz.workers.dev",{
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000,
-        messages:[{role:"user", content:
+    const payload = { 
+      model:"claude-sonnet-4-20250514", 
+      max_tokens:1000,
+      messages:[{role:"user", content:
 `Eres el asistente comercial del Director de Mitsubishi Equipos Frigoríficos para Transporte en España.
 Hoy es ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
 
@@ -537,19 +539,77 @@ Tono: director senior, cercano, no agresivo. Menciona sutilmente ventajas Mitsub
 Formato exacto:
 ASUNTO: [asunto]
 
-[cuerpo del email]`}]})
+[cuerpo del email]`}]
+    };
+    
+    console.log("[generarEmail] Enviando request a proxy...");
+    const res = await fetch("https://damp-limit-0374.mezquiriz.workers.dev",{
+      method:"POST", 
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
     });
+    
+    console.log("[generarEmail] Response status:", res.status);
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("[generarEmail] Error HTTP:", res.status, errorText);
+      throw new Error(`HTTP ${res.status}: ${errorText}`);
+    }
+    
     const data = await res.json();
-    const txt  = data.content?.map(b=>b.text||"").join("\n") || "Error.";
+    console.log("[generarEmail] Response data recibida, procesando...");
+    
+    if (!data.content || !Array.isArray(data.content)) {
+      throw new Error("Respuesta inesperada del API: sin campo 'content' o no es array");
+    }
+    
+    const txt  = data.content?.map(b=>b.text||"").join("\n") || "";
+    if (!txt || txt.length === 0) {
+      throw new Error("La respuesta del API está vacía");
+    }
+    
+    console.log("[generarEmail] Texto recibido (" + txt.length + " caracteres)");
+    
     const ls   = txt.split("\n");
     const al   = ls.find(l=>l.startsWith("ASUNTO:"));
-    emailAsunto = al ? al.replace("ASUNTO:","").trim() : "";
+    emailAsunto = al ? al.replace("ASUNTO:","").trim() : "Sin asunto";
     emailCuerpo = ls.filter(l=>!l.startsWith("ASUNTO:")).join("\n").trim();
+    
+    if (!emailAsunto || !emailCuerpo) {
+      console.warn("[generarEmail] ⚠️ Email incompleto - Asunto:", emailAsunto.substring(0,50), "Cuerpo:", emailCuerpo.substring(0,50));
+      throw new Error("El email generado está incompleto (asunto o cuerpo vacíos)");
+    }
+    
+    console.log("[generarEmail] ✅ Email generado correctamente");
+    console.log("[generarEmail] Asunto:", emailAsunto.substring(0, 60) + "...");
+    
     document.getElementById("asunto-text").textContent = emailAsunto;
     document.getElementById("cuerpo-text").textContent = emailCuerpo;
-    document.getElementById("btn-abrir-email").href = `mailto:${c.email}?subject=${encodeURIComponent(emailAsunto)}&body=${encodeURIComponent(emailCuerpo)}`;
-    document.getElementById("btn-abrir-email").onclick = null;
-  } catch { emailCuerpo="Error de conexión."; document.getElementById("cuerpo-text").textContent=emailCuerpo; }
+    
+    // Mejorar botón "Abrir email"
+    const btnEmail = document.getElementById("btn-abrir-email");
+    btnEmail.href = "#";
+    btnEmail.onclick = (e) => {
+      e.preventDefault();
+      if (!c.email) {
+        mostrarError("⚠️ Este contacto no tiene email registrado");
+        return;
+      }
+      const mailto = `mailto:${c.email}?subject=${encodeURIComponent(emailAsunto)}&body=${encodeURIComponent(emailCuerpo)}`;
+      console.log("[abrirEmail] Abriendo mailto con", c.email);
+      window.location.href = mailto;
+    };
+    
+  } catch(err) { 
+    console.error("[generarEmail] ❌ Error:", err.message, err);
+    emailAsunto = "⚠️ Error al generar email";
+    emailCuerpo = `No se pudo generar el email automáticamente:\n\n${err.message}\n\nIntenta nuevamente o copia manualmente el contexto del cliente.`;
+    document.getElementById("asunto-text").textContent = emailAsunto;
+    document.getElementById("cuerpo-text").textContent = emailCuerpo;
+    mostrarError(`Error generando email: ${err.message}`);
+  }
+  
   document.getElementById("spin-email").style.display   = "none";
   document.getElementById("email-result").style.display = "block";
 }
@@ -560,6 +620,15 @@ function copiarEmail() { navigator.clipboard.writeText(`Asunto: ${emailAsunto}\n
 async function marcarEmailEnviado() {
   if(!selCliente) return;
   const c = selCliente;
+  
+  // Validar que el email se generó correctamente
+  if (!emailAsunto || !emailCuerpo || emailAsunto.includes("⚠️") || emailAsunto.includes("Error")) {
+    mostrarError("⚠️ El email no se generó correctamente. Intenta de nuevo.");
+    return;
+  }
+  
+  console.log("[marcarEmailEnviado] Marcando email como enviado para:", c.empresa);
+  
   // Escribir en Google Contacts y Google Sheets SIEMPRE al marcar enviado
   await registrarContactoEnGoogle(c);
   // Actualizar estado en memoria
@@ -658,14 +727,16 @@ function proximaAccionPendiente(c) {
 
 // ── WHATSAPP ─────────────────────────────────────────────────────────────────
 async function generarWapp(c) {
+  console.log("[generarWapp] Iniciando para:", c.empresa, c.contacto);
   document.getElementById("spin-wapp").style.display  = "block";
   document.getElementById("wapp-result").style.display = "none";
   const dsR = diasSinRespuesta(c.id);
+  
   try {
-    const res = await fetch("https://damp-limit-0374.mezquiriz.workers.dev",{
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:600,
-        messages:[{role:"user", content:
+    const payload = {
+      model:"claude-sonnet-4-20250514", 
+      max_tokens:600,
+      messages:[{role:"user", content:
 `Eres el director comercial de Mitsubishi Equipos Frigoríficos para Transporte en España.
 Hoy es ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
 Hace ${dsR||2} días enviaste un email a ${c.contacto} de ${c.empresa} sin obtener respuesta.
@@ -677,14 +748,50 @@ Redacta un mensaje de WhatsApp breve y natural para hacer seguimiento.
 - Máximo 3-4 líneas, sin saludos formales excesivos
 - Sin asteriscos ni formato especial, texto plano para WhatsApp
 
-Solo el mensaje, sin explicaciones adicionales.`}]})
+Solo el mensaje, sin explicaciones adicionales.`}]
+    };
+    
+    console.log("[generarWapp] Enviando request a proxy...");
+    const res = await fetch("https://damp-limit-0374.mezquiriz.workers.dev",{
+      method:"POST", 
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
     });
+    
+    console.log("[generarWapp] Response status:", res.status);
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("[generarWapp] Error HTTP:", res.status, errorText);
+      throw new Error(`HTTP ${res.status}: ${errorText}`);
+    }
+    
     const data = await res.json();
-    wappMensaje = data.content?.map(b=>b.text||"").join("\n").trim() || "Error.";
+    console.log("[generarWapp] Response data recibida");
+    
+    if (!data.content || !Array.isArray(data.content)) {
+      throw new Error("Respuesta inesperada del API: sin campo 'content'");
+    }
+    
+    const txt = data.content?.map(b=>b.text||"").join("\n").trim() || "";
+    if (!txt || txt.length === 0) {
+      throw new Error("La respuesta del API está vacía");
+    }
+    
+    console.log("[generarWapp] ✅ Mensaje generado correctamente (" + txt.length + " caracteres)");
+    
+    wappMensaje = txt;
     document.getElementById("wapp-text").textContent = wappMensaje;
     const tel = (document.getElementById("wapp-tel").value || c.telefono || "").replace(/\D/g,"");
     document.getElementById("btn-wapp-web").href = `https://wa.me/${tel}?text=${encodeURIComponent(wappMensaje)}`;
-  } catch { wappMensaje="Error de conexión."; document.getElementById("wapp-text").textContent=wappMensaje; }
+    
+  } catch(err) { 
+    console.error("[generarWapp] ❌ Error:", err.message, err);
+    wappMensaje = `⚠️ Error al generar mensaje:\n\n${err.message}\n\nIntenta nuevamente.`;
+    document.getElementById("wapp-text").textContent = wappMensaje;
+    mostrarError(`Error generando WhatsApp: ${err.message}`);
+  }
+  
   document.getElementById("spin-wapp").style.display   = "none";
   document.getElementById("wapp-result").style.display = "block";
 }
@@ -692,14 +799,16 @@ Solo el mensaje, sin explicaciones adicionales.`}]})
 function regenWapp() { if(selCliente) generarWapp(selCliente); }
 
 async function generarMensajeLinkedIn(c) {
+  console.log("[generarMensajeLinkedIn] Iniciando para:", c.empresa, c.contacto);
   document.getElementById("spin-email").style.display   = "block";
   document.getElementById("email-result").style.display = "none";
   const d = Math.floor((Date.now() - new Date(c.ultimoContacto)) / 86400000);
+  
   try {
-    const res = await fetch("https://damp-limit-0374.mezquiriz.workers.dev", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:400,
-        messages:[{role:"user", content:
+    const payload = {
+      model:"claude-sonnet-4-20250514", 
+      max_tokens:400,
+      messages:[{role:"user", content:
 `Eres el director comercial de Mitsubishi Equipos Frigoríficos para Transporte en España.
 Hoy es ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
 
@@ -719,20 +828,65 @@ Redacta un mensaje de LinkedIn para retomar contacto.
 - Sin saludos formales excesivos
 - Sin asteriscos ni formato especial
 
-Solo el mensaje, sin explicaciones.`}]})
+Solo el mensaje, sin explicaciones.`}]
+    };
+    
+    console.log("[generarMensajeLinkedIn] Enviando request a proxy...");
+    const res = await fetch("https://damp-limit-0374.mezquiriz.workers.dev", {
+      method:"POST", 
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
     });
+    
+    console.log("[generarMensajeLinkedIn] Response status:", res.status);
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("[generarMensajeLinkedIn] Error HTTP:", res.status, errorText);
+      throw new Error(`HTTP ${res.status}: ${errorText}`);
+    }
+    
     const data = await res.json();
-    emailCuerpo = data.content?.map(b=>b.text||"").join("\n").trim() || "Error.";
-    emailAsunto = "Mensaje LinkedIn";
+    console.log("[generarMensajeLinkedIn] Response data recibida");
+    
+    if (!data.content || !Array.isArray(data.content)) {
+      throw new Error("Respuesta inesperada del API");
+    }
+    
+    const txt = data.content?.map(b=>b.text||"").join("\n").trim() || "";
+    if (!txt || txt.length === 0) {
+      throw new Error("La respuesta del API está vacía");
+    }
+    
+    console.log("[generarMensajeLinkedIn] ✅ Mensaje generado correctamente");
+    
+    emailCuerpo = txt;
+    emailAsunto = "💼 Mensaje para LinkedIn";
     document.getElementById("asunto-text").textContent = "💼 Mensaje para LinkedIn";
     document.getElementById("cuerpo-text").textContent = emailCuerpo;
+    
     // Cambiar botón para abrir LinkedIn
     const btnEmail = document.getElementById("btn-abrir-email");
     btnEmail.textContent = "💼 Abrir LinkedIn";
     btnEmail.href = c.linkedin;
     btnEmail.target = "_blank";
-    btnEmail.onclick = () => { navigator.clipboard.writeText(emailCuerpo); marcarEmailEnviado(); };
-  } catch { emailCuerpo="Error de conexión."; document.getElementById("cuerpo-text").textContent=emailCuerpo; }
+    btnEmail.onclick = () => { 
+      navigator.clipboard.writeText(emailCuerpo).then(() => {
+        console.log("[generarMensajeLinkedIn] Mensaje copiado al portapapeles");
+        alert("✅ Mensaje copiado al portapapeles");
+      });
+      marcarEmailEnviado();
+    };
+    
+  } catch(err) { 
+    console.error("[generarMensajeLinkedIn] ❌ Error:", err.message, err);
+    emailAsunto = "⚠️ Error al generar mensaje";
+    emailCuerpo = `No se pudo generar el mensaje de LinkedIn:\n\n${err.message}\n\nIntenta de nuevo.`;
+    document.getElementById("asunto-text").textContent = emailAsunto;
+    document.getElementById("cuerpo-text").textContent = emailCuerpo;
+    mostrarError(`Error generando mensaje LinkedIn: ${err.message}`);
+  }
+  
   document.getElementById("spin-email").style.display   = "none";
   document.getElementById("email-result").style.display = "block";
 }
