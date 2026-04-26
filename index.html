@@ -39,7 +39,7 @@
     .badge { font-size:10px; font-weight:700; padding:1px 7px; border-radius:10px; }
     .badge-OK      { background:#002a1a; color:#00cc88; border:1px solid #00cc8844; }
     .badge-PRÓXIMO { background:#2a1a00; color:#ffaa00; border:1px solid #ffaa0044; }
-    .badge-URGENTE { background:#2a0a0a; color:#ff4444; border:1px solid #ff44440a; }
+    .badge-URGENTE { background:#2a0a0a; color:#ff4444; border:1px solid #ff444444; }
     .badge-google  { font-size:10px; color:#34a853; background:#0d1a0d; border:1px solid #34a85344; padding:1px 6px; border-radius:7px; display:inline-flex; align-items:center; gap:3px; }
     .badge-wapp    { font-size:10px; color:#25d366; background:#001a0d; border:1px solid #25d36644; padding:1px 6px; border-radius:7px; }
 
@@ -206,9 +206,16 @@
 <script>
 const GOOGLE_CLIENT_ID = "232128500768-qgvhqkmn8383j16s5qvbsa85ot2g242i.apps.googleusercontent.com";
 const GOOGLE_SCOPES    = "https://www.googleapis.com/auth/contacts https://www.googleapis.com/auth/spreadsheets";
-const STORAGE_KEY      = "mitsubishi_seguimiento";
 const SHEET_ID         = "1nKeeV1mDqtaHKdWIljitlcmck4b11sm0-RlSdeQj0YI";
 const SHEET_TAB        = "Acciones Comerciales";
+
+// Mapa email del usuario logueado → nombre que aparece en la columna "Responsable" del Sheet
+// IMPORTANTE: cuando tengas el email real de Ramón, cambia la línea de abajo y nada más.
+const RESPONSABLES = {
+  "mamezquirizm@gmail.com": "Miguel Angel Mezquiriz",
+  "ramon.estrela@gmail.com": "Ramón Estrela"   // ← TODO: sustituir por el email real de Ramón
+};
+const RESPONSABLE_DESCONOCIDO = "Desconocido";
 
 const DEMO = [
   { id:"d1", empresa:"Transportes García & Hijos",  contacto:"Javier García", cargo:"Director de Operaciones", email:"jgarcia@transportesgarcia.es",   telefono:"+34 612 345 678", sector:"Transporte frigorífico nacional", equipos:"3x Mitsubishi FRC-520, 1x FRC-320", ultimoContacto:"2024-10-15", historial:"Renovaron flota en 2021. Interesados en equipos eléctricos. Posible ampliación en 2025.", fuenteG:false },
@@ -226,8 +233,6 @@ let emailAsunto = "", emailCuerpo = "", wappMensaje = "";
 // Se reconstruye al cargar los contactos desde las notas
 let estado = {};
 
-function guardarEstado() { /* Estado en Google Contacts, no localStorage */ }
-
 // Reconstruir estado desde las notas de un contacto
 function reconstruirEstado(c) {
   if (!c.fuenteG || !c.historial) return;
@@ -242,7 +247,13 @@ function reconstruirEstado(c) {
   let posponerHasta = null;
 
   lineas.forEach((l, i) => {
-    if (l.includes("Envío email de seguimiento")) {
+    const lLower = l.toLowerCase();
+    // Detectar email enviado: la IA empieza el resumen con "Envío email..." o "Envío mensaje LinkedIn..."
+    // (también aceptamos sin tilde por robustez)
+    const esLineaEmail =
+      lLower.startsWith("envío email") || lLower.startsWith("envio email") ||
+      lLower.startsWith("envío mensaje linkedin") || lLower.startsWith("envio mensaje linkedin");
+    if (esLineaEmail) {
       const lFecha = lineas[i-1] || "";
       const mF = lFecha.match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
       if (mF) {
@@ -250,7 +261,8 @@ function reconstruirEstado(c) {
         if (!isNaN(ts)) { fechaEmail = ts; idxEmail = i; }
       }
     }
-    if (l.includes("Envío WhatsApp de seguimiento")) {
+    // Detectar WhatsApp enviado: la IA empieza el resumen con "Envío WhatsApp..."
+    if (lLower.startsWith("envío whatsapp") || lLower.startsWith("envio whatsapp")) {
       // Si hay WhatsApp enviado después del email, el email ya no está pendiente
       wappEnviado = true;
       fechaEmail = null; // reset — ya no esperamos respuesta al email
@@ -377,8 +389,6 @@ function renderLista() {
   if (urgentes > 0) { bu.style.display="block"; bu.textContent=`⚡ ${urgentes} requieren acción`; }
   else bu.style.display="none";
 
-  const wappPendientes = clientes.filter(c => necesitaWapp(c.id)).length;
-
   document.getElementById("lista").innerHTML = sorted.length === 0
     ? `<div style="text-align:center;padding:40px 0;color:#4b5563;font-size:13px;">Sin resultados</div>`
     : sorted.map(c => {
@@ -396,7 +406,11 @@ function renderLista() {
               <span class="badge badge-${p.label}">${p.label}</span>
               ${c.fuenteG ? `<span class="badge-google">${gSvg(9)} Google</span>` : ""}
               ${c.linkedin ? `<span style="font-size:10px;color:#0a66c2;background:#0a1929;border:1px solid #0a66c244;padding:1px 6px;border-radius:7px;">💼 LinkedIn</span>` : ""}
-              ${proximaAccionPendiente(c) ? `<span class="badge-proxima">📅 Acción hoy</span>` : c.proximaAccion && new Date(c.proximaAccion) > hoy ? `<span style="font-size:10px;color:#a78bfa;font-weight:600;">📅 ${fmt(c.proximaAccion)}</span>` : ""}
+              ${proximaAccionPendiente(c) ? (() => {
+                const diasVencida = Math.floor((hoy - new Date(c.proximaAccion)) / 86400000);
+                if (diasVencida >= 1) return `<span class="badge-proxima" style="color:#ff8866;background:#2a1010;border-color:#ff886644;">📅 Vencida hace ${diasVencida}d</span>`;
+                return `<span class="badge-proxima">📅 Acción hoy</span>`;
+              })() : c.proximaAccion && new Date(c.proximaAccion) > hoy ? `<span style="font-size:10px;color:#a78bfa;font-weight:600;">📅 ${fmt(c.proximaAccion)}</span>` : ""}
               ${nW ? `<span class="badge-wapp">💬 WhatsApp pendiente</span>` : ""}
               ${e.emailEnviadoEn && !nW && !e.wappEnviado && dsR !== null ? `<span style="font-size:10px;color:#ffaa00;">⏳ Email enviado hace ${dsR}d</span>` : ""}
               ${e.wappEnviado ? `<span style="font-size:10px;color:#25d366;font-weight:600;">✓ WApp enviado</span>` : ""}
@@ -453,9 +467,14 @@ function abrirPanel(c, tab="email") {
   if (c.proximaAccion) {
     const hoyPA = new Date(); hoyPA.setHours(0,0,0,0);
     const diffDias = Math.ceil((new Date(c.proximaAccion) - hoyPA) / 86400000);
-    pa.innerHTML = diffDias <= 0
-      ? `📅 <strong>Acción prevista para hoy</strong> (${fmt(c.proximaAccion)}) — según tus notas`
-      : `📅 Próxima acción programada: <strong>${fmt(c.proximaAccion)}</strong> — en ${diffDias} día${diffDias!==1?"s":""}`;
+    if (diffDias < 0) {
+      const dv = Math.abs(diffDias);
+      pa.innerHTML = `📅 <strong>Acción vencida hace ${dv} día${dv!==1?"s":""}</strong> (${fmt(c.proximaAccion)}) — según tus notas`;
+    } else if (diffDias === 0) {
+      pa.innerHTML = `📅 <strong>Acción prevista para hoy</strong> (${fmt(c.proximaAccion)}) — según tus notas`;
+    } else {
+      pa.innerHTML = `📅 Próxima acción programada: <strong>${fmt(c.proximaAccion)}</strong> — en ${diffDias} día${diffDias!==1?"s":""}`;
+    }
     pa.style.display = "block";
   } else { pa.style.display = "none"; }
 
@@ -646,7 +665,6 @@ ASUNTO: [asunto específico, no genérico]
   document.getElementById("email-result").style.display = "block";
 }
 
-function regenEmail() { if(selCliente) generarEmail(selCliente); }
 function copiarEmail() { navigator.clipboard.writeText(`Asunto: ${emailAsunto}\n\n${emailCuerpo}`); }
 
 async function marcarEmailEnviado() {
@@ -714,6 +732,8 @@ async function posponerAFecha(isoFecha, fechaDisplay) {
   if(!selCliente) return;
   // Actualizar estado en memoria (Google Contacts actualizado por actualizarNotasGoogle)
   estado[selCliente.id] = { emailEnviadoEn: null, wappEnviado: false, posponerHasta: isoFecha };
+  // Actualizar también proximaAccion local para que la card muestre la nueva fecha al refrescar lista
+  selCliente.proximaAccion = isoFecha;
   // Escribir en Google Contacts
   const hoy = new Date();
   const hdd = String(hoy.getDate()).padStart(2,"0");
@@ -1045,6 +1065,13 @@ async function actualizarNotasGoogle(contactoId, nuevaLinea) {
           body: JSON.stringify({ etag, biographies: [{ value: notasNuevas, contentType: "TEXT_PLAIN" }] })
         }
       );
+      if (updateRes.status === 401) {
+        // Token expirado entre GET y PATCH — renovar y reintentar todo el ciclo
+        console.log("Token expirado en PATCH, renovando...");
+        const ok = await renovarTokenGoogle();
+        if (!ok) { console.log("No se pudo renovar el token"); return; }
+        continue;
+      }
       if (updateRes.ok) { console.log("Notas actualizadas en Google Contacts OK"); return; }
       else console.log("Error actualizando:", await updateRes.json());
       return;
@@ -1063,31 +1090,43 @@ async function escribirEnSheets(c) {
   const telFijoSheet  = c.telefonoFijo  && c.telefonoFijo.trim().startsWith("+")  ? "'" + c.telefonoFijo  : (c.telefonoFijo  || "");
   const telMovilSheet = c.telefonoMovil && c.telefonoMovil.trim().startsWith("+") ? "'" + c.telefonoMovil : (c.telefonoMovil || "");
   const fila = [
-    fechaHoy,                          // Fecha
-    (c.etiquetas||[]).join(", "),      // Etiquetas
-    c.nombre1   || "",                 // Nombre
-    c.nombre2   || "",                 // Segundo nombre
-    c.apellidos || "",                 // Apellidos
-    c.empresa   || "",                 // Empresa
-    c.cargo     || "",                 // Puesto de trabajo
-    c.email     || "",                 // Correo electrónico
-    telFijoSheet,                      // Teléfono fijo
-    telMovilSheet,                     // Teléfono móvil
-    c.pais      || "",                 // País/territorio
-    c.direccion || "",                 // Dirección postal
-    c.codPostal || "",                 // Código postal
-    c.ciudad    || "",                 // Ciudad
-    c.provincia || "",                 // Provincia
-    c.linkedin  || "",                 // LinkedIn
-    c.historial || ""                  // Notas (contenido completo de Google Contacts)
+    fechaHoy,                          // A — Fecha
+    (c.etiquetas||[]).join(", "),      // B — Etiquetas
+    c.nombre1   || "",                 // C — Nombre
+    c.nombre2   || "",                 // D — Segundo nombre
+    c.apellidos || "",                 // E — Apellidos
+    c.empresa   || "",                 // F — Empresa
+    c.cargo     || "",                 // G — Puesto de trabajo
+    c.email     || "",                 // H — Correo electrónico
+    telFijoSheet,                      // I — Teléfono fijo
+    telMovilSheet,                     // J — Teléfono móvil
+    c.pais      || "",                 // K — País/territorio
+    c.direccion || "",                 // L — Dirección postal
+    c.codPostal || "",                 // M — Código postal
+    c.ciudad    || "",                 // N — Ciudad
+    c.provincia || "",                 // O — Provincia
+    c.linkedin  || "",                 // P — LinkedIn
+    c.historial || "",                 // Q — Notas (contenido completo de Google Contacts)
+    window._gResponsable || RESPONSABLE_DESCONOCIDO  // R — Responsable (según email de la cuenta logueada)
   ];
   try {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_TAB)}!A:Q:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
-    const res = await fetch(url, {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_TAB)}!A:R:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+    let res = await fetch(url, {
       method: "POST",
       headers: { "Authorization": `Bearer ${window._gToken}`, "Content-Type": "application/json" },
       body: JSON.stringify({ values: [fila] })
     });
+    if (res.status === 401) {
+      console.log("Token expirado al escribir en Sheets, renovando...");
+      const ok = await renovarTokenGoogle();
+      if (ok) {
+        res = await fetch(url, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${window._gToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ values: [fila] })
+        });
+      }
+    }
     if (res.ok) console.log("✅ Fila escrita en Acciones Comerciales");
     else console.log("⚠️ Error Sheets:", await res.text());
   } catch(e) { console.log("Error escribiendo en Sheets:", e.message); }
@@ -1111,16 +1150,31 @@ async function registrarContactoEnGoogle(c) {
   await actualizarNotasGoogle(c.id, nuevaLinea);
   // Actualizar historial local para que Sheets reciba las notas completas (con la nueva línea)
   c.historial = (c.historial || "") + nuevaLinea;
+  // Actualizar c.proximaAccion en memoria para que la card refleje la nueva fecha sin recargar
+  const mPA = fechaProxima.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (mPA) c.proximaAccion = `${mPA[3]}-${mPA[2].padStart(2,"0")}-${mPA[1].padStart(2,"0")}`;
   await escribirEnSheets(c); // ← nueva fila en Sheets
 }
 
+let _abriendoWapp = false;
 function abrirWappWeb() {
+  // Protección contra doble clic: cancelar segundo clic mientras se procesa el primero
+  if (_abriendoWapp) return false;
+  _abriendoWapp = true;
   const tel = document.getElementById("wapp-tel").value.replace(/\D/g,"");
-  document.getElementById("btn-wapp-web").href = `https://wa.me/${tel}?text=${encodeURIComponent(wappMensaje)}`;
+  const btn = document.getElementById("btn-wapp-web");
+  btn.href = `https://wa.me/${tel}?text=${encodeURIComponent(wappMensaje)}`;
+  btn.style.opacity = "0.6";
+  btn.style.pointerEvents = "none";
   setTimeout(async () => {
-    await registrarWappEnGoogle();
-    marcarWappEnviado();
+    try {
+      await registrarWappEnGoogle();
+      marcarWappEnviado();
+    } finally {
+      _abriendoWapp = false;
+    }
   }, 300);
+  // Sin return → el primer clic deja al navegador abrir wa.me en nueva pestaña
 }
 
 async function registrarWappEnGoogle() {
@@ -1139,6 +1193,9 @@ async function registrarWappEnGoogle() {
   await actualizarNotasGoogle(selCliente.id, nuevaLinea);
   // Actualizar historial local para que Sheets reciba las notas completas (con la nueva línea)
   selCliente.historial = (selCliente.historial || "") + nuevaLinea;
+  // Actualizar selCliente.proximaAccion en memoria para coherencia visual
+  const mPA2 = fechaProxima.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (mPA2) selCliente.proximaAccion = `${mPA2[3]}-${mPA2[2].padStart(2,"0")}-${mPA2[1].padStart(2,"0")}`;
   await escribirEnSheets(selCliente); // ← nueva fila en Sheets
 }
 
@@ -1164,6 +1221,33 @@ function conectarGoogle() {
       if (resp.error) { mostrarError("Error: "+resp.error); resetBtn(); return; }
       try {
         window._gToken = resp.access_token;
+
+        // Detectar email del usuario logueado (people/me con scope 'contacts' lo permite)
+        try {
+          const meRes = await fetch(
+            "https://people.googleapis.com/v1/people/me?personFields=emailAddresses",
+            { headers: { Authorization: `Bearer ${resp.access_token}` } }
+          );
+          if (meRes.ok) {
+            const meData = await meRes.json();
+            const emails = (meData.emailAddresses || []).map(e => (e.value || "").toLowerCase());
+            // Buscar el email primario, o el primero que coincida con RESPONSABLES, o el primero a secas
+            const primario = (meData.emailAddresses || []).find(e => e.metadata?.primary)?.value?.toLowerCase();
+            const matchMapa = emails.find(e => RESPONSABLES[e]);
+            window._gUsuarioEmail = primario || matchMapa || emails[0] || "";
+            window._gResponsable  = RESPONSABLES[window._gUsuarioEmail] || RESPONSABLE_DESCONOCIDO;
+            console.log(`[OAuth] Usuario: ${window._gUsuarioEmail} → Responsable: ${window._gResponsable}`);
+          } else {
+            console.log("[OAuth] No se pudo obtener email del usuario:", meRes.status);
+            window._gUsuarioEmail = "";
+            window._gResponsable  = RESPONSABLE_DESCONOCIDO;
+          }
+        } catch (e) {
+          console.log("[OAuth] Error obteniendo email del usuario:", e.message);
+          window._gUsuarioEmail = "";
+          window._gResponsable  = RESPONSABLE_DESCONOCIDO;
+        }
+
         // Cargar grupos para obtener nombres de etiquetas
         const grRes = await (await fetch("https://people.googleapis.com/v1/contactGroups?pageSize=200",{headers:{Authorization:`Bearer ${resp.access_token}`}})).json();
         const gruposMap = {};
@@ -1229,7 +1313,7 @@ function conectarGoogle() {
         if (!seleccionados.length) mostrarError("No se encontraron contactos. Mostrando demo.");
         document.getElementById("btn-google").style.display="none";
         document.getElementById("user-badge").style.display="flex";
-        document.getElementById("user-name").textContent="Google Contacts";
+        document.getElementById("user-name").textContent = window._gResponsable || "Google Contacts";
         document.getElementById("dot-status").style.background="#34a853";
         document.getElementById("info-text").innerHTML=`<strong style="color:#e8eaf0">${clientes.length} contactos</strong> seleccionados de ${filtrados.length} cargados`;
         renderLista();
