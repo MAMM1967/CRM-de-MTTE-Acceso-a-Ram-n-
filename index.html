@@ -587,7 +587,7 @@ ASUNTO: [asunto]
     document.getElementById("asunto-text").textContent = emailAsunto;
     document.getElementById("cuerpo-text").textContent = emailCuerpo;
     
-    // Mejorar botón "Abrir email"
+    // Botón inteligente: intenta mailto, si falla muestra fallback Gmail/Outlook
     const btnEmail = document.getElementById("btn-abrir-email");
     btnEmail.href = "#";
     btnEmail.onclick = (e) => {
@@ -596,9 +596,7 @@ ASUNTO: [asunto]
         mostrarError("⚠️ Este contacto no tiene email registrado");
         return;
       }
-      const mailto = `mailto:${c.email}?subject=${encodeURIComponent(emailAsunto)}&body=${encodeURIComponent(emailCuerpo)}`;
-      console.log("[abrirEmail] Abriendo mailto con", c.email);
-      window.location.href = mailto;
+      abrirEmailInteligente(c.email, emailAsunto, emailCuerpo);
     };
     
   } catch(err) { 
@@ -1280,7 +1278,51 @@ function mapContact(p) {
   };
 }
 
-function mostrarError(msg) {
+// ── EMAIL INTELIGENTE ─────────────────────────────────────────────────────────
+function abrirEmailInteligente(email, asunto, cuerpo) {
+  const prev = document.getElementById("email-fallback");
+  if (prev) prev.remove();
+
+  const mailto = `mailto:${email}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+  const outlookUrl = `https://outlook.live.com/mail/0/deeplink/compose?to=${encodeURIComponent(email)}&subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo.replace(/\n/g,"<br>"))}`;
+
+  console.log("[abrirEmail] Disparando mailto:", email);
+
+  let abrioCliente = false;
+  const detectarFoco = () => { abrioCliente = true; };
+  window.addEventListener("blur", detectarFoco, { once: true });
+  window.location.href = mailto;
+
+  setTimeout(() => {
+    window.removeEventListener("blur", detectarFoco);
+    if (!abrioCliente) {
+      console.log("[abrirEmail] No se detectó cliente de correo, mostrando fallback");
+      mostrarFallbackEmail(gmailUrl, outlookUrl);
+    }
+  }, 2000);
+}
+
+function mostrarFallbackEmail(gmailUrl, outlookUrl) {
+  const prev = document.getElementById("email-fallback");
+  if (prev) prev.remove();
+
+  const div = document.createElement("div");
+  div.id = "email-fallback";
+  div.style.cssText = `margin-top:10px;background:#0d1a2a;border:1px solid #4285f444;border-radius:8px;padding:12px 14px;animation:fadeIn 0.2s ease;`;
+  div.innerHTML = `
+    <div style="font-size:11px;color:#6b7280;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">⚠️ No se detectó cliente de correo — elige:</div>
+    <div style="display:flex;gap:8px;">
+      <a href="${gmailUrl}" target="_blank" style="flex:1;background:linear-gradient(135deg,#1a3a5c,#1a73e8);color:#fff;border-radius:8px;padding:10px;font-size:13px;font-weight:700;text-align:center;text-decoration:none;">📬 Gmail</a>
+      <a href="${outlookUrl}" target="_blank" style="flex:1;background:linear-gradient(135deg,#0a2a4a,#0078d4);color:#fff;border-radius:8px;padding:10px;font-size:13px;font-weight:700;text-align:center;text-decoration:none;">📬 Outlook</a>
+    </div>
+  `;
+
+  const btnRow = document.querySelector("#email-result .btn-row");
+  if (btnRow) btnRow.after(div);
+}
+
+
   document.getElementById("error-inner").textContent=msg;
   document.getElementById("error-box").style.display="block";
   setTimeout(()=>document.getElementById("error-box").style.display="none",8000);
