@@ -548,7 +548,7 @@ ASUNTO: [asunto]
     document.getElementById("asunto-text").textContent = emailAsunto;
     document.getElementById("cuerpo-text").textContent = emailCuerpo;
     document.getElementById("btn-abrir-email").href = `mailto:${c.email}?subject=${encodeURIComponent(emailAsunto)}&body=${encodeURIComponent(emailCuerpo)}`;
-    document.getElementById("btn-abrir-email").onclick = async () => { await registrarContactoEnGoogle(c); marcarEmailEnviado(); };
+    document.getElementById("btn-abrir-email").onclick = null;
   } catch { emailCuerpo="Error de conexión."; document.getElementById("cuerpo-text").textContent=emailCuerpo; }
   document.getElementById("spin-email").style.display   = "none";
   document.getElementById("email-result").style.display = "block";
@@ -557,11 +557,13 @@ ASUNTO: [asunto]
 function regenEmail() { if(selCliente) generarEmail(selCliente); }
 function copiarEmail() { navigator.clipboard.writeText(`Asunto: ${emailAsunto}\n\n${emailCuerpo}`); }
 
-function marcarEmailEnviado() {
+async function marcarEmailEnviado() {
   if(!selCliente) return;
-  const id = selCliente.id;
-  // Actualizar estado en memoria (Google Contacts ya fue actualizado por registrarContactoEnGoogle)
-  estado[id] = { emailEnviadoEn: Date.now(), wappEnviado: false, posponerHasta: null };
+  const c = selCliente;
+  // Escribir en Google Contacts y Google Sheets SIEMPRE al marcar enviado
+  await registrarContactoEnGoogle(c);
+  // Actualizar estado en memoria
+  estado[c.id] = { emailEnviadoEn: Date.now(), wappEnviado: false, posponerHasta: null };
   cerrarPanel();
   renderLista();
 }
@@ -729,7 +731,7 @@ Solo el mensaje, sin explicaciones.`}]})
     btnEmail.textContent = "💼 Abrir LinkedIn";
     btnEmail.href = c.linkedin;
     btnEmail.target = "_blank";
-    btnEmail.onclick = () => { navigator.clipboard.writeText(emailCuerpo); registrarContactoEnGoogle(c); escribirEnSheets(c); marcarEmailEnviado(); };
+    btnEmail.onclick = () => { navigator.clipboard.writeText(emailCuerpo); marcarEmailEnviado(); };
   } catch { emailCuerpo="Error de conexión."; document.getElementById("cuerpo-text").textContent=emailCuerpo; }
   document.getElementById("spin-email").style.display   = "none";
   document.getElementById("email-result").style.display = "block";
