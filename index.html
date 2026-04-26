@@ -620,7 +620,15 @@ ASUNTO: [asunto específico, no genérico]
       window.addEventListener("blur", detectarFoco, { once: true });
       setTimeout(() => {
         window.removeEventListener("blur", detectarFoco);
-        if (!abrioCliente) mostrarErrorMailto();
+        if (!abrioCliente) {
+          // No se abrió cliente → mostrar error y NO registrar nada
+          mostrarErrorMailto();
+        } else {
+          // Cliente abierto → registrar automáticamente como enviado
+          // (escribe en Google Contacts + Sheets + actualiza estado + cierra panel)
+          console.log("[abrirEmail] ✅ Cliente de correo abierto, registrando como enviado");
+          marcarEmailEnviado();
+        }
       }, 2500);
       // No bloqueamos el href — el navegador dispara el mailto normalmente
     };
