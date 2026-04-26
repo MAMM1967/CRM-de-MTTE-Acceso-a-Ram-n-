@@ -1109,6 +1109,8 @@ async function registrarContactoEnGoogle(c) {
   console.log("Próxima acción calculada:", fechaProxima);
   const nuevaLinea = `\n${fechaStr}\n${textoAccion}\nPróxima acción llamarle en ${fechaProxima}`;
   await actualizarNotasGoogle(c.id, nuevaLinea);
+  // Actualizar historial local para que Sheets reciba las notas completas (con la nueva línea)
+  c.historial = (c.historial || "") + nuevaLinea;
   await escribirEnSheets(c); // ← nueva fila en Sheets
 }
 
@@ -1135,6 +1137,8 @@ async function registrarWappEnGoogle() {
   const fechaProxima = await calcularProximaAccionIA(selCliente.historial, tipoCliente, true);
   const nuevaLinea = `\n${fechaStr}\n${textoWapp}\nPróxima acción llamarle en ${fechaProxima}`;
   await actualizarNotasGoogle(selCliente.id, nuevaLinea);
+  // Actualizar historial local para que Sheets reciba las notas completas (con la nueva línea)
+  selCliente.historial = (selCliente.historial || "") + nuevaLinea;
   await escribirEnSheets(selCliente); // ← nueva fila en Sheets
 }
 
