@@ -1322,7 +1322,7 @@ function mostrarFallbackEmail(gmailUrl, outlookUrl) {
   if (btnRow) btnRow.after(div);
 }
 
-
+function mostrarError(msg) {
   document.getElementById("error-inner").textContent=msg;
   document.getElementById("error-box").style.display="block";
   setTimeout(()=>document.getElementById("error-box").style.display="none",8000);
