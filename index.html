@@ -1079,10 +1079,12 @@ async function escribirEnSheets(c) {
     c.ciudad    || "",                 // Ciudad
     c.provincia || "",                 // Provincia
     c.linkedin  || "",                 // LinkedIn
-    c.historial || ""                  // Notas (contenido completo de Google Contacts)
+    c.historial || "",                 // Notas (contenido completo de Google Contacts)
+    window._currentUser?.nombre || "Desconocido", // Usuario
+    window._currentUser?.email  || ""             // Email usuario
   ];
   try {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_TAB)}!A:Q:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_TAB)}!A:S:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
     const res = await fetch(url, {
       method: "POST",
       headers: { "Authorization": `Bearer ${window._gToken}`, "Content-Type": "application/json" },
@@ -1164,6 +1166,20 @@ function conectarGoogle() {
       if (resp.error) { mostrarError("Error: "+resp.error); resetBtn(); return; }
       try {
         window._gToken = resp.access_token;
+        // Obtener perfil del usuario conectado (nombre real y email de la cuenta)
+        try {
+          const meRes = await fetch(
+            "https://people.googleapis.com/v1/people/me?personFields=names,emailAddresses",
+            { headers: { Authorization: `Bearer ${resp.access_token}` } }
+          );
+          const meData = await meRes.json();
+          window._currentUser = {
+            nombre: meData.names?.[0]?.displayName || "Usuario",
+            email:  meData.emailAddresses?.[0]?.value || ""
+          };
+        } catch(e) {
+          window._currentUser = { nombre: "Usuario", email: "" };
+        }
         // Cargar grupos para obtener nombres de etiquetas
         const grRes = await (await fetch("https://people.googleapis.com/v1/contactGroups?pageSize=200",{headers:{Authorization:`Bearer ${resp.access_token}`}})).json();
         const gruposMap = {};
@@ -1229,9 +1245,9 @@ function conectarGoogle() {
         if (!seleccionados.length) mostrarError("No se encontraron contactos. Mostrando demo.");
         document.getElementById("btn-google").style.display="none";
         document.getElementById("user-badge").style.display="flex";
-        document.getElementById("user-name").textContent="Google Contacts";
+        document.getElementById("user-name").textContent = window._currentUser?.nombre || "Google Contacts";
         document.getElementById("dot-status").style.background="#34a853";
-        document.getElementById("info-text").innerHTML=`<strong style="color:#e8eaf0">${clientes.length} contactos</strong> seleccionados de ${filtrados.length} cargados`;
+        document.getElementById("info-text").innerHTML=`<strong style="color:#e8eaf0">${clientes.length} contactos</strong> seleccionados de ${filtrados.length} cargados · <span style="color:#4b5563;">${window._currentUser?.email || ""}</span>`;
         renderLista();
       } catch(e) { mostrarError("Error: "+e.message); resetBtn(); }
     }
