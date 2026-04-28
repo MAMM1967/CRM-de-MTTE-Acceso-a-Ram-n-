@@ -105,6 +105,19 @@
     .btn-wapp-api { width:100%; background:#1a2a1a; color:#25d366; border:1px solid #25d36644; border-radius:7px; padding:8px; font-size:12px; cursor:pointer; font-weight:600; }
 
     .pendiente-wapp { background:#001a0d; border:1px solid #25d36633; border-radius:6px; padding:3px 8px; font-size:10px; color:#25d366; font-weight:600; }
+
+    /* DICTADO DE NOTAS */
+    .voz-section { margin-top:14px; border-top:1px solid #1e2535; padding-top:12px; }
+    .voz-title { font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; }
+    .btn-voz { background:#111827; border:1px solid #1e2535; border-radius:8px; color:#9ca3af; font-size:12px; font-weight:600; padding:8px 14px; cursor:pointer; display:flex; align-items:center; gap:7px; transition:all 0.12s; font-family:inherit; }
+    .btn-voz:hover { border-color:#374151; color:#e8eaf0; }
+    .btn-voz.grabando { background:#2a0808; border-color:#e63946; color:#e63946; animation:pulse-rec 1s ease-in-out infinite; }
+    @keyframes pulse-rec { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+    .voz-textarea { width:100%; background:#111827; border:1px solid #1e2535; border-radius:7px; padding:10px 12px; color:#e8eaf0; font-size:13px; line-height:1.7; resize:vertical; min-height:80px; outline:none; font-family:inherit; margin-top:8px; }
+    .voz-textarea:focus { border-color:#374151; }
+    .voz-btn-row { display:flex; gap:7px; margin-top:7px; }
+    .btn-guardar-nota { flex:1; background:linear-gradient(135deg,#003d1a,#00cc88); color:#fff; border:none; border-radius:7px; padding:8px; font-size:12px; font-weight:700; cursor:pointer; }
+    .btn-limpiar-nota { background:#1e2535; color:#6b7280; border:1px solid #374151; border-radius:7px; padding:8px 12px; font-size:12px; cursor:pointer; }
   </style>
 </head>
 <body>
@@ -166,6 +179,20 @@
         <div id="proxima-alert" class="proxima-alert" style="display:none;"></div>
         <!-- DEST INFO -->
         <div class="dest-grid" id="dest-grid"></div>
+
+        <!-- DICTADO DE NOTAS -->
+        <div class="voz-section">
+          <div class="voz-title">🎙️ Nota de voz / texto</div>
+          <button class="btn-voz" id="btn-mic" onclick="toggleGrabacion()">
+            <span id="mic-icon">🎙️</span>
+            <span id="mic-label">Pulsa para dictar</span>
+          </button>
+          <textarea class="voz-textarea" id="voz-texto" placeholder="El texto transcrito aparecerá aquí — también puedes escribir directamente..." style="display:none;"></textarea>
+          <div class="voz-btn-row" id="voz-acciones" style="display:none;">
+            <button class="btn-guardar-nota" onclick="guardarNota()">💾 Guardar en contacto</button>
+            <button class="btn-limpiar-nota" onclick="limpiarNota()">✕ Limpiar</button>
+          </div>
+        </div>
 
         <!-- EMAIL TAB -->
         <div id="content-email">
@@ -1489,9 +1516,130 @@ function resetBtn() {
   btn.innerHTML=`${gSvg(16)} Conectar Google Contacts`;
 }
 
-calcularCategorias();
-renderChips();
-renderLista();
+// ── DICTADO DE NOTAS ─────────────────────────────────────────────────────────
+let _recognition = null;
+let _grabando    = false;
+
+function toggleGrabacion() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    mostrarError("Tu navegador no soporta dictado por voz. Usa Chrome o Edge.");
+    // Mostrar igualmente el textarea para escribir manualmente
+    mostrarTextareaNota();
+    return;
+  }
+  if (_grabando) {
+    _recognition?.stop();
+    return;
+  }
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  _recognition = new SpeechRecognition();
+  _recognition.lang = 'es-ES';
+  _recognition.continuous = true;
+  _recognition.interimResults = true;
+
+  const textarea = document.getElementById("voz-texto");
+  const textoBase = textarea.value; // por si ya hay texto previo
+
+  _recognition.onstart = () => {
+    _grabando = true;
+    document.getElementById("btn-mic").classList.add("grabando");
+    document.getElementById("mic-icon").textContent = "⏹️";
+    document.getElementById("mic-label").textContent = "Grabando... pulsa para parar";
+    mostrarTextareaNota();
+  };
+
+  _recognition.onresult = (e) => {
+    let transcripcion = "";
+    for (let i = 0; i < e.results.length; i++) {
+      transcripcion += e.results[i][0].transcript;
+    }
+    textarea.value = textoBase + (textoBase ? " " : "") + transcripcion;
+    // Mostrar acciones si hay texto
+    if (textarea.value.trim()) {
+      document.getElementById("voz-acciones").style.display = "flex";
+    }
+  };
+
+  _recognition.onerror = (e) => {
+    if (e.error !== "aborted") mostrarError("Error de micrófono: " + e.error);
+    pararGrabacion();
+  };
+
+  _recognition.onend = () => {
+    pararGrabacion();
+  };
+
+  _recognition.start();
+}
+
+function pararGrabacion() {
+  _grabando = false;
+  document.getElementById("btn-mic").classList.remove("grabando");
+  document.getElementById("mic-icon").textContent = "🎙️";
+  document.getElementById("mic-label").textContent = "Pulsa para dictar";
+  const textarea = document.getElementById("voz-texto");
+  if (textarea.value.trim()) {
+    document.getElementById("voz-acciones").style.display = "flex";
+  }
+}
+
+function mostrarTextareaNota() {
+  document.getElementById("voz-texto").style.display = "block";
+}
+
+function limpiarNota() {
+  document.getElementById("voz-texto").value = "";
+  document.getElementById("voz-texto").style.display = "none";
+  document.getElementById("voz-acciones").style.display = "none";
+  if (_grabando) { _recognition?.stop(); }
+}
+
+async function guardarNota() {
+  const texto = document.getElementById("voz-texto").value.trim();
+  if (!texto || !selCliente) return;
+
+  const btn = document.querySelector(".btn-guardar-nota");
+  btn.textContent = "Guardando...";
+  btn.disabled = true;
+
+  const hoy = new Date();
+  const dd   = String(hoy.getDate()).padStart(2,"0");
+  const mm   = String(hoy.getMonth()+1).padStart(2,"0");
+  const yyyy = hoy.getFullYear();
+  const nuevaLinea = `\n${dd}-${mm}-${yyyy}\n${texto}`;
+
+  if (selCliente.fuenteG && window._gToken) {
+    await actualizarNotasGoogle(selCliente.id, nuevaLinea);
+    // Actualizar historial local
+    selCliente.historial = (selCliente.historial || "") + nuevaLinea;
+    // Recalcular categoría con el nuevo texto
+    selCliente._categoria = detectarCategoria(selCliente);
+    btn.textContent = "✓ Guardado";
+    setTimeout(() => {
+      limpiarNota();
+      btn.textContent = "💾 Guardar en contacto";
+      btn.disabled = false;
+      renderLista();
+    }, 1200);
+  } else {
+    // Demo o sin token: solo confirmación visual
+    btn.textContent = "✓ Listo (modo demo)";
+    setTimeout(() => {
+      limpiarNota();
+      btn.textContent = "💾 Guardar en contacto";
+      btn.disabled = false;
+    }, 1200);
+  }
+}
+
+// Limpiar textarea al cambiar de cliente
+const _origAbrirPanel = abrirPanel;
+abrirPanel = function(c, tab) {
+  limpiarNota();
+  _origAbrirPanel(c, tab);
+};
+
+
 </script>
 </body>
 </html>
