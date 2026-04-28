@@ -398,6 +398,7 @@ function desfaseProximaAccion(c) {
 
 // ── CHIPS — filtro por etiqueta de Google Contacts ───────────────────────────
 let chipsActivos = new Set();
+let desfasesIgnorados = new Set();
 
 function renderChips() {
   const cont = document.getElementById("chips-container");
@@ -430,6 +431,12 @@ function toggleChip(etq) {
   renderLista();
 }
 
+function ignorarDesfase(id, event) {
+  event.stopPropagation();
+  desfasesIgnorados.add(id);
+  renderLista();
+}
+
 function limpiarChips() {
   chipsActivos.clear();
   renderChips();
@@ -442,6 +449,7 @@ function renderLista() {
   const sorted = [...clientes]
     .filter(c => !busq || c.empresa.toLowerCase().includes(busq) || c.contacto.toLowerCase().includes(busq))
     .filter(c => !estaPostpuesto(c.id)) // ocultar postpuestos
+    .filter(c => !estaGestionado(c.id)) // ocultar gestionados (email reciente o wapp enviado)
     .filter(c => chipsActivos.size === 0 || (c.etiquetas || []).some(e => chipsActivos.has(e))) // filtro por chips
     .sort((a,b) => {
       // 0. Categoría caliente — máxima prioridad por encima de todo lo demás
@@ -519,7 +527,7 @@ function renderLista() {
               ${c.telefono ? `<span>📞 ${c.telefono}</span>` : ""}
             </div>
             ${(() => { const ua = ultimaAccion(c.historial); return ua ? `<div style="font-size:12px;color:#9ca3af;margin-top:6px;border-left:2px solid #374151;padding-left:8px;line-height:1.6;"><span style="color:#6b7280;font-size:11px;font-weight:600;">${ua.fecha} · </span>${ua.texto}</div>` : ""; })()}
-            ${desf ? `<div class="aviso-desfase">⚠️ ${cD.label.toLowerCase()} ${desf.tipo === "sin_fecha" ? "sin próxima acción programada" : `con próxima acción a ${desf.dias} días`} — ¿adelantar?</div>` : ""}
+            ${desf && !desfasesIgnorados.has(c.id) ? `<div class="aviso-desfase">⚠️ ${cD.label.toLowerCase()} ${desf.tipo === "sin_fecha" ? "sin próxima acción programada" : `con próxima acción a ${desf.dias} días`} <button onclick="ignorarDesfase('${c.id}',event)" style="margin-left:8px;background:none;border:1px solid #ffaa0066;border-radius:5px;color:#ffaa00;font-size:10px;padding:1px 7px;cursor:pointer;">✕ No adelantar</button></div>` : ""}
             <div style="display:flex;gap:6px;margin-top:6px;">
               <button onclick="event.stopPropagation();posponerDesdeCard('${c.id}')" style="background:#111827;color:#6b7280;border:1px solid #1e2535;border-radius:5px;padding:3px 8px;font-size:10px;cursor:pointer;">⏭ Posponer</button>
             </div>
@@ -859,6 +867,14 @@ function estaPostpuesto(id) {
   const h = estado[id]?.posponerHasta;
   if (!h) return false;
   return new Date(h) > new Date();
+}
+
+function estaGestionado(id) {
+  const e = estado[id];
+  if (!e) return false;
+  if (e.wappEnviado) return true;                        // WhatsApp enviado → ocultar
+  if (e.emailEnviadoEn && !necesitaWapp(id)) return true; // Email reciente sin respuesta aún → ocultar hasta que pasen 2 días
+  return false;
 }
 
 function proximaAccionPendiente(c) {
