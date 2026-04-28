@@ -724,32 +724,11 @@ ASUNTO: [asunto específico, no genérico]
     document.getElementById("asunto-text").textContent = emailAsunto;
     document.getElementById("cuerpo-text").textContent = emailCuerpo;
     
-    // Método simple: <a href="mailto:..."> puro (igual que archivo de muestra)
-    // El navegador y SO se encargan de abrir el cliente predeterminado
-    // Si no se abre, mostramos un error visible (sin botones de fallback)
     const btnEmail = document.getElementById("btn-abrir-email");
     btnEmail.href = `mailto:${c.email}?subject=${encodeURIComponent(emailAsunto)}&body=${encodeURIComponent(emailCuerpo)}`;
     btnEmail.onclick = () => {
-      // Limpiar errores previos
-      const prev = document.getElementById("email-fail-msg");
-      if (prev) prev.remove();
-      // Detectar si el navegador pierde el foco (= cliente abierto) en 2,5s
-      let abrioCliente = false;
-      const detectarFoco = () => { abrioCliente = true; };
-      window.addEventListener("blur", detectarFoco, { once: true });
-      setTimeout(() => {
-        window.removeEventListener("blur", detectarFoco);
-        if (!abrioCliente) {
-          // No se abrió cliente → mostrar error y NO registrar nada
-          mostrarErrorMailto();
-        } else {
-          // Cliente abierto → registrar automáticamente como enviado
-          // (escribe en Google Contacts + Sheets + actualiza estado + cierra panel)
-          console.log("[abrirEmail] ✅ Cliente de correo abierto, registrando como enviado");
-          marcarEmailEnviado();
-        }
-      }, 2500);
-      // No bloqueamos el href — el navegador dispara el mailto normalmente
+      // Registrar como enviado directamente al hacer clic — el mailto se abre via href
+      marcarEmailEnviado();
     };
     
   } catch(err) { 
@@ -1497,21 +1476,6 @@ function mapContact(p) {
     historial: notas||"Sin historial.",
     esClienteFinal, esIntermediario, fuenteG:true
   };
-}
-
-// Mensaje de error si el navegador no consigue abrir el cliente de correo
-function mostrarErrorMailto() {
-  const prev = document.getElementById("email-fail-msg");
-  if (prev) prev.remove();
-  const div = document.createElement("div");
-  div.id = "email-fail-msg";
-  div.style.cssText = `margin-top:10px;background:#2a0a0a;border:1px solid #ff4444;border-radius:8px;padding:12px 14px;animation:fadeIn 0.2s ease;font-size:12px;color:#ff6b6b;line-height:1.6;`;
-  div.innerHTML = `
-    <strong style="color:#ff8888;">⚠️ No se ha podido abrir el cliente de correo</strong><br>
-    Tu navegador no ha lanzado el programa de correo predeterminado. Pulsa el botón <em>Copiar</em> para copiar el email y pégalo manualmente en tu correo, o configura el cliente predeterminado del sistema.
-  `;
-  const btnRow = document.querySelector("#email-result .btn-row");
-  if (btnRow) btnRow.after(div);
 }
 
 function mostrarError(msg) {
