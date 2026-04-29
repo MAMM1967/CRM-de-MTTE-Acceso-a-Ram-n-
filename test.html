@@ -105,15 +105,6 @@
     .btn-wapp-api { width:100%; background:#1a2a1a; color:#25d366; border:1px solid #25d36644; border-radius:7px; padding:8px; font-size:12px; cursor:pointer; font-weight:600; }
 
     .pendiente-wapp { background:#001a0d; border:1px solid #25d36633; border-radius:6px; padding:3px 8px; font-size:10px; color:#25d366; font-weight:600; }
-
-    /* NOTAS DE TEXTO */
-    .voz-section { margin-top:14px; border-top:1px solid #1e2535; padding-top:12px; }
-    .voz-title { font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; }
-    .voz-textarea { width:100%; background:#111827; border:1px solid #1e2535; border-radius:7px; padding:10px 12px; color:#e8eaf0; font-size:13px; line-height:1.7; resize:vertical; min-height:80px; outline:none; font-family:inherit; }
-    .voz-textarea:focus { border-color:#374151; }
-    .voz-btn-row { display:flex; gap:7px; margin-top:7px; }
-    .btn-guardar-nota { flex:1; background:linear-gradient(135deg,#003d1a,#00cc88); color:#fff; border:none; border-radius:7px; padding:8px; font-size:12px; font-weight:700; cursor:pointer; }
-    .btn-limpiar-nota { background:#1e2535; color:#6b7280; border:1px solid #374151; border-radius:7px; padding:8px 12px; font-size:12px; cursor:pointer; }
   </style>
 </head>
 <body>
@@ -175,16 +166,6 @@
         <div id="proxima-alert" class="proxima-alert" style="display:none;"></div>
         <!-- DEST INFO -->
         <div class="dest-grid" id="dest-grid"></div>
-
-        <!-- NOTA DE TEXTO -->
-        <div class="voz-section">
-          <div class="voz-title">📝 Añadir nota al contacto</div>
-          <textarea class="voz-textarea" id="voz-texto" placeholder="Escribe aquí tu nota o resumen del contacto..."></textarea>
-          <div class="voz-btn-row">
-            <button class="btn-guardar-nota" onclick="guardarNota()">💾 Guardar en contacto</button>
-            <button class="btn-limpiar-nota" onclick="limpiarNota()">✕ Limpiar</button>
-          </div>
-        </div>
 
         <!-- EMAIL TAB -->
         <div id="content-email">
@@ -1057,12 +1038,20 @@ Solo el mensaje, sin explicaciones.`}]
     // Cambiar botón para abrir LinkedIn
     const btnEmail = document.getElementById("btn-abrir-email");
     btnEmail.textContent = "💼 Abrir LinkedIn";
-    btnEmail.href = c.linkedin;
-    btnEmail.target = "_blank";
-    btnEmail.onclick = () => { 
+    // Validar que la URL es realmente de LinkedIn
+    const urlLinkedIn = (c.linkedin || "").toLowerCase().includes("linkedin.com") ? c.linkedin : "";
+    if (urlLinkedIn) {
+      btnEmail.href = urlLinkedIn;
+      btnEmail.target = "_blank";
+    } else {
+      btnEmail.removeAttribute("href");
+      btnEmail.target = "";
+      mostrarError("⚠️ URL de LinkedIn no encontrada o incorrecta para este contacto. Ábrelo manualmente.");
+    }
+    btnEmail.onclick = () => {
       navigator.clipboard.writeText(emailCuerpo).then(() => {
         console.log("[generarMensajeLinkedIn] Mensaje copiado al portapapeles");
-        alert("✅ Mensaje copiado al portapapeles");
+        alert("✅ Mensaje copiado al portapapeles — pégalo en LinkedIn");
       });
       marcarEmailEnviado();
     };
@@ -1496,7 +1485,7 @@ function mapContact(p) {
   const telefonoFijo  = fijo?.value  || "";
   const telefonoMovil = movil?.value || "";
   // LinkedIn
-  const linkedin = (p.urls||[]).find(u => u.value && u.value.includes("linkedin.com"))?.value || "";
+  const linkedin = (p.urls||[]).find(u => u.value && u.value.toLowerCase().includes("linkedin.com"))?.value || "";
   // Nombre desglosado
   const nombre1    = p.names?.[0]?.givenName    || "";
   const nombre2    = p.names?.[0]?.middleName   || "";
@@ -1538,51 +1527,6 @@ function resetBtn() {
   btn.disabled=false;
   btn.innerHTML=`${gSvg(16)} Conectar Google Contacts`;
 }
-
-// ── NOTAS DE TEXTO ────────────────────────────────────────────────────────────
-function limpiarNota() {
-  const ta = document.getElementById("voz-texto");
-  if (ta) ta.value = "";
-}
-
-async function guardarNota() {
-  const texto = document.getElementById("voz-texto").value.trim();
-  if (!texto || !selCliente) return;
-  const btn = document.querySelector(".btn-guardar-nota");
-  btn.textContent = "Guardando...";
-  btn.disabled = true;
-  const hoy = new Date();
-  const dd   = String(hoy.getDate()).padStart(2,"0");
-  const mm   = String(hoy.getMonth()+1).padStart(2,"0");
-  const yyyy = hoy.getFullYear();
-  const nuevaLinea = `\n${dd}-${mm}-${yyyy}\n${texto}`;
-  if (selCliente.fuenteG && window._gToken) {
-    await actualizarNotasGoogle(selCliente.id, nuevaLinea);
-    selCliente.historial = (selCliente.historial || "") + nuevaLinea;
-    selCliente._categoria = detectarCategoria(selCliente);
-    btn.textContent = "✓ Guardado";
-    setTimeout(() => {
-      limpiarNota();
-      btn.textContent = "💾 Guardar en contacto";
-      btn.disabled = false;
-      renderLista();
-    }, 1200);
-  } else {
-    btn.textContent = "✓ Listo (modo demo)";
-    setTimeout(() => {
-      limpiarNota();
-      btn.textContent = "💾 Guardar en contacto";
-      btn.disabled = false;
-    }, 1200);
-  }
-}
-
-// Limpiar nota al cambiar de cliente
-const _origAbrirPanel = abrirPanel;
-abrirPanel = function(c, tab) {
-  limpiarNota();
-  _origAbrirPanel(c, tab);
-};
 
 </script>
 </body>
