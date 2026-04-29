@@ -43,6 +43,22 @@
     .badge-google  { font-size:10px; color:#34a853; background:#0d1a0d; border:1px solid #34a85344; padding:1px 6px; border-radius:7px; display:inline-flex; align-items:center; gap:3px; }
     .badge-wapp    { font-size:10px; color:#25d366; background:#001a0d; border:1px solid #25d36644; padding:1px 6px; border-radius:7px; }
 
+    /* CHIPS — filtro por etiqueta */
+    #chips-container { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; padding:2px; }
+    #chips-container:empty { display:none; }
+    .chip { background:#0d1117; border:1px solid #1e2535; color:#9ca3af; border-radius:14px; padding:4px 12px; font-size:11px; font-weight:600; cursor:pointer; transition:all 0.12s; white-space:nowrap; font-family:inherit; }
+    .chip:hover { border-color:#374151; color:#e8eaf0; }
+    .chip.active { background:linear-gradient(135deg,#c1121f,#e63946); color:#fff; border-color:#e63946; }
+    .chip-todos.active { background:linear-gradient(135deg,#1a3a00,#2d6a00); border-color:#4a9900; color:#a3e635; }
+
+    /* CATEGORÍAS calientes */
+    .badge-cat { font-size:10px; font-weight:700; padding:1px 7px; border-radius:10px; }
+    .badge-cat-oferta     { background:#2a0a0a; color:#ff4444; border:1px solid #ff444466; }
+    .badge-cat-respondio  { background:#2a1a08; color:#ff9933; border:1px solid #ff993366; }
+    .badge-cat-renovacion { background:#2a2408; color:#ffd633; border:1px solid #ffd63366; }
+    .badge-cat-info       { background:#0a1a2a; color:#3b82f6; border:1px solid #3b82f666; }
+    .aviso-desfase { font-size:11px; color:#ffaa00; background:#2a1a00; border:1px solid #ffaa0044; border-radius:6px; padding:5px 9px; margin-top:6px; line-height:1.5; }
+
     /* PANEL */
     #panel { background:#0d1117; border:1px solid #1e2535; border-radius:12px; overflow:hidden; position:sticky; top:24px; max-height:calc(100vh - 80px); display:none; flex-direction:column; }
     #panel.visible { display:flex; }
@@ -127,6 +143,7 @@
   <div id="main">
     <div id="lista-col">
       <input id="search" type="text" placeholder="🔍  Buscar empresa o contacto..." oninput="renderLista()" />
+      <div id="chips-container"></div>
       <div id="lista"></div>
     </div>
 
@@ -340,13 +357,141 @@ function ultimaAccion(historial) {
 
 function gSvg(s=9){ return `<svg width="${s}" height="${s}" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>`; }
 
+// ── CATEGORÍAS DE OPORTUNIDADES (detector gratuito por palabras clave) ───────
+const CATEGORIAS = {
+  oferta:     { prio:1, emoji:"🔥", label:"Oferta en curso",     cls:"badge-cat-oferta" },
+  respondio:  { prio:2, emoji:"🟠", label:"Respondió",            cls:"badge-cat-respondio" },
+  renovacion: { prio:3, emoji:"🟡", label:"Renovación prevista",  cls:"badge-cat-renovacion" },
+  info:       { prio:4, emoji:"🔵", label:"Solicitó info",        cls:"badge-cat-info" },
+  frio:       { prio:5, emoji:"",   label:"",                     cls:"" }
+};
+
+function detectarCategoria(c) {
+  const ua = ultimaAccion(c.historial);
+  if (!ua || !ua.texto) return "frio";
+  const t = ua.texto.toLowerCase();
+  // 1. Oferta en curso (máxima prioridad)
+  if (/\b(oferta|presupuesto enviad|presupuesto present|propuesta|cotizaci[oó]n|pedido pendiente|pendiente.{0,20}aprobar|esperando confirmaci[oó]n|esperando pedido|en negociaci[oó]n|negociando)\b/.test(t)) return "oferta";
+  // 2. Respondió email/WhatsApp
+  if (/\b(respondi[oó]|contest[oó]|me dice|me comenta|me confirma|me responde|me indica|nos responde|nos confirma|nos indica)\b/.test(t)) return "respondio";
+  // 3. Renovación / ampliación prevista
+  if (/\b(renovaci[oó]n|renovar|sustituir.{0,15}flota|cambiar.{0,15}equip|nueva flota|ampliaci[oó]n|ampliar.{0,15}flota|incorporar.{0,15}nuev|nuevos equipos|nueva unidad|nuevas unidades)\b/.test(t)) return "renovacion";
+  // 4. Solicitó información
+  if (/\b(pidi[oó].{0,20}informaci[oó]n|solicit[oó].{0,20}informaci[oó]n|solicita|interesad[oa] en|quiere saber|env[ií][oó].{0,15}consulta|pidi[oó].{0,15}presupuesto|pidi[oó].{0,15}datos|pregunt[oó] por|consult[oó] sobre)\b/.test(t)) return "info";
+  return "frio";
+}
+
+function calcularCategorias() {
+  clientes.forEach(c => { c._categoria = detectarCategoria(c); });
+}
+
+// Aviso de desfase: cliente caliente con próxima acción a más de 7 días vista
+function desfaseProximaAccion(c) {
+  const cat = c._categoria;
+  if (!cat || cat === "frio" || cat === "renovacion") return null; // renovación no es urgente per se
+  if (!c.proximaAccion) return { tipo:"sin_fecha" };
+  const ms = new Date(c.proximaAccion) - Date.now();
+  const dias = Math.ceil(ms / 86400000);
+  if (dias > 7) return { tipo:"lejana", dias };
+  return null;
+}
+
+// ── CHIPS — filtro por etiqueta de Google Contacts ───────────────────────────
+let chipsActivos = new Set();
+let desfasesIgnorados = new Set();
+
+// Etiquetas de sistema que nunca se muestran ni se usan en el filtro
+const ETIQUETAS_EXCLUIR = new Set(["MIS CONTACTOS", "MYCONTACTS", "STARRED", "ESPAÑA", "SPAIN", "CONTACTOS", "CONTACTS"]);
+const esEtiquetaSistema = et => !et || ETIQUETAS_EXCLUIR.has(et.toUpperCase().trim());
+
+function _contarEtiquetas() {
+  const counts = {};
+  clientes.forEach(c => {
+    if (estaPostpuesto(c.id)) return;
+    (c.etiquetas || []).forEach(et => {
+      if (esEtiquetaSistema(et)) return;
+      counts[et] = (counts[et] || 0) + 1;
+    });
+  });
+  return counts;
+}
+
+function renderChips() {
+  const cont = document.getElementById("chips-container");
+  if (!cont) return;
+  const counts = _contarEtiquetas();
+  // Orden alfabético
+  const ordenadas = Object.entries(counts).sort((a,b) => a[0].localeCompare(b[0], 'es'));
+  if (ordenadas.length === 0) { cont.innerHTML = ""; return; }
+  const total = ordenadas.length;
+  const todasActivas = chipsActivos.size === total;
+  const totalVisible = clientes.filter(c => !estaPostpuesto(c.id)).length;
+  let html = `<button class="chip chip-todos ${todasActivas ? "active" : ""}" onclick="toggleTodas()">${todasActivas ? "✓ " : ""}Todas · ${totalVisible}</button>`;
+  ordenadas.forEach(([etq, n]) => {
+    const active = chipsActivos.has(etq);
+    const safe = etq.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    html += `<button class="chip ${active ? "active" : ""}" onclick="toggleChip('${safe}')">${etq} · ${n}</button>`;
+  });
+  cont.innerHTML = html;
+}
+
+function toggleTodas() {
+  const counts = _contarEtiquetas();
+  const total = Object.keys(counts).length;
+  if (chipsActivos.size === total) {
+    chipsActivos.clear(); // todas activas → limpiar
+  } else {
+    Object.keys(counts).forEach(et => chipsActivos.add(et)); // activar todas
+  }
+  renderChips();
+  renderLista();
+}
+
+function toggleChip(etq) {
+  const counts = _contarEtiquetas();
+  const total = Object.keys(counts).length;
+  const todasActivas = chipsActivos.size === total;
+  if (todasActivas) {
+    // Si todas activas → deseleccionar solo la pulsada, resto quedan activas
+    chipsActivos.delete(etq);
+  } else if (chipsActivos.has(etq)) {
+    chipsActivos.delete(etq);
+    // Si queda vacío ya actúa como "sin filtro" por el filtro en renderLista
+  } else {
+    chipsActivos.add(etq);
+  }
+  renderChips();
+  renderLista();
+}
+
+function ignorarDesfase(id, event) {
+  event.stopPropagation();
+  desfasesIgnorados.add(id);
+  renderLista();
+}
+
 function renderLista() {
   const busq = document.getElementById("search").value.toLowerCase();
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const sorted = [...clientes]
     .filter(c => !busq || c.empresa.toLowerCase().includes(busq) || c.contacto.toLowerCase().includes(busq))
     .filter(c => !estaPostpuesto(c.id)) // ocultar postpuestos
+    .filter(c => !estaGestionado(c.id)) // ocultar gestionados
+    .filter(c => { // filtro por chips — solo etiquetas no-sistema
+      if (chipsActivos.size === 0) return true;
+      const etiquetasValidas = (c.etiquetas || []).filter(e => !esEtiquetaSistema(e));
+      return etiquetasValidas.some(e => chipsActivos.has(e));
+    })
     .sort((a,b) => {
+      // 0. Categoría caliente — máxima prioridad por encima de todo lo demás
+      const aCat = a._categoria || "frio";
+      const bCat = b._categoria || "frio";
+      const aCP  = CATEGORIAS[aCat].prio;
+      const bCP  = CATEGORIAS[bCat].prio;
+      if (aCP !== bCP) return aCP - bCP;
+      // Si ambos son la misma categoría caliente (1-4), ordenar por días sin contacto desc
+      if (aCP < 5) return dias(b.ultimoContacto) - dias(a.ultimoContacto);
+      // A partir de aquí ambos son fríos — lógica existente
       // 1. Próxima acción vencida → primero, ordenados por fecha más antigua
       const aPA = proximaAccionPendiente(a) ? 1 : 0;
       const bPA = proximaAccionPendiente(b) ? 1 : 0;
@@ -388,11 +533,15 @@ function renderLista() {
         const e   = estado[c.id] || {};
         const dsR = diasSinRespuesta(c.id);
         const nW  = necesitaWapp(c.id);
+        const cat = c._categoria || "frio";
+        const cD  = CATEGORIAS[cat];
+        const desf = desfaseProximaAccion(c);
         return `
         <div class="cliente-card ${sel?"selected":""}" onclick="clickCliente('${c.id}')" style="border-left:3px solid ${nW ? '#25d366' : p.color};">
           <div>
             <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap;">
               <span style="font-size:14px;font-weight:700;">${c.empresa}</span>
+              ${cat !== "frio" ? `<span class="badge-cat ${cD.cls}">${cD.emoji} ${cD.label}</span>` : ""}
               <span class="badge badge-${p.label}">${p.label}</span>
               ${c.fuenteG ? `<span class="badge-google">${gSvg(9)} Google</span>` : ""}
               ${c.linkedin ? `<span style="font-size:10px;color:#0a66c2;background:#0a1929;border:1px solid #0a66c244;padding:1px 6px;border-radius:7px;">💼 LinkedIn</span>` : ""}
@@ -409,6 +558,7 @@ function renderLista() {
               ${c.telefono ? `<span>📞 ${c.telefono}</span>` : ""}
             </div>
             ${(() => { const ua = ultimaAccion(c.historial); return ua ? `<div style="font-size:12px;color:#9ca3af;margin-top:6px;border-left:2px solid #374151;padding-left:8px;line-height:1.6;"><span style="color:#6b7280;font-size:11px;font-weight:600;">${ua.fecha} · </span>${ua.texto}</div>` : ""; })()}
+            ${desf && !desfasesIgnorados.has(c.id) ? `<div class="aviso-desfase">⚠️ ${cD.label.toLowerCase()} ${desf.tipo === "sin_fecha" ? "sin próxima acción programada" : `con próxima acción a ${desf.dias} días`} <button onclick="ignorarDesfase('${c.id}',event)" style="margin-left:8px;background:none;border:1px solid #ffaa0066;border-radius:5px;color:#ffaa00;font-size:10px;padding:1px 7px;cursor:pointer;">✕ No adelantar</button></div>` : ""}
             <div style="display:flex;gap:6px;margin-top:6px;">
               <button onclick="event.stopPropagation();posponerDesdeCard('${c.id}')" style="background:#111827;color:#6b7280;border:1px solid #1e2535;border-radius:5px;padding:3px 8px;font-size:10px;cursor:pointer;">⏭ Posponer</button>
             </div>
@@ -605,32 +755,11 @@ ASUNTO: [asunto específico, no genérico]
     document.getElementById("asunto-text").textContent = emailAsunto;
     document.getElementById("cuerpo-text").textContent = emailCuerpo;
     
-    // Método simple: <a href="mailto:..."> puro (igual que archivo de muestra)
-    // El navegador y SO se encargan de abrir el cliente predeterminado
-    // Si no se abre, mostramos un error visible (sin botones de fallback)
     const btnEmail = document.getElementById("btn-abrir-email");
     btnEmail.href = `mailto:${c.email}?subject=${encodeURIComponent(emailAsunto)}&body=${encodeURIComponent(emailCuerpo)}`;
     btnEmail.onclick = () => {
-      // Limpiar errores previos
-      const prev = document.getElementById("email-fail-msg");
-      if (prev) prev.remove();
-      // Detectar si el navegador pierde el foco (= cliente abierto) en 2,5s
-      let abrioCliente = false;
-      const detectarFoco = () => { abrioCliente = true; };
-      window.addEventListener("blur", detectarFoco, { once: true });
-      setTimeout(() => {
-        window.removeEventListener("blur", detectarFoco);
-        if (!abrioCliente) {
-          // No se abrió cliente → mostrar error y NO registrar nada
-          mostrarErrorMailto();
-        } else {
-          // Cliente abierto → registrar automáticamente como enviado
-          // (escribe en Google Contacts + Sheets + actualiza estado + cierra panel)
-          console.log("[abrirEmail] ✅ Cliente de correo abierto, registrando como enviado");
-          marcarEmailEnviado();
-        }
-      }, 2500);
-      // No bloqueamos el href — el navegador dispara el mailto normalmente
+      // Registrar como enviado directamente al hacer clic — el mailto se abre via href
+      marcarEmailEnviado();
     };
     
   } catch(err) { 
@@ -750,6 +879,14 @@ function estaPostpuesto(id) {
   return new Date(h) > new Date();
 }
 
+function estaGestionado(id) {
+  const e = estado[id];
+  if (!e) return false;
+  if (e.wappEnviado) return true;                        // WhatsApp enviado → ocultar
+  if (e.emailEnviadoEn && !necesitaWapp(id)) return true; // Email reciente sin respuesta aún → ocultar hasta que pasen 2 días
+  return false;
+}
+
 function proximaAccionPendiente(c) {
   if (!c.proximaAccion) return false;
   const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -759,6 +896,7 @@ function proximaAccionPendiente(c) {
 
 // ── WHATSAPP ─────────────────────────────────────────────────────────────────
 async function generarWapp(c) {
+  _wappRegistrado = false; // reset al generar nuevo mensaje
   console.log("[generarWapp] Iniciando para:", c.empresa, c.contacto);
   document.getElementById("spin-wapp").style.display  = "block";
   document.getElementById("wapp-result").style.display = "none";
@@ -901,12 +1039,20 @@ Solo el mensaje, sin explicaciones.`}]
     // Cambiar botón para abrir LinkedIn
     const btnEmail = document.getElementById("btn-abrir-email");
     btnEmail.textContent = "💼 Abrir LinkedIn";
-    btnEmail.href = c.linkedin;
-    btnEmail.target = "_blank";
-    btnEmail.onclick = () => { 
+    // Validar que la URL es realmente de LinkedIn
+    const urlLinkedIn = (c.linkedin || "").toLowerCase().includes("linkedin.com") ? c.linkedin : "";
+    if (urlLinkedIn) {
+      btnEmail.href = urlLinkedIn;
+      btnEmail.target = "_blank";
+    } else {
+      btnEmail.removeAttribute("href");
+      btnEmail.target = "";
+      mostrarError("⚠️ URL de LinkedIn no encontrada o incorrecta para este contacto. Ábrelo manualmente.");
+    }
+    btnEmail.onclick = () => {
       navigator.clipboard.writeText(emailCuerpo).then(() => {
         console.log("[generarMensajeLinkedIn] Mensaje copiado al portapapeles");
-        alert("✅ Mensaje copiado al portapapeles");
+        alert("✅ Mensaje copiado al portapapeles — pégalo en LinkedIn");
       });
       marcarEmailEnviado();
     };
@@ -1116,6 +1262,8 @@ async function registrarContactoEnGoogle(c) {
   await escribirEnSheets(c); // ← nueva fila en Sheets
 }
 
+let _wappRegistrado = false; // guarda para evitar doble registro
+
 function abrirWappWeb() {
   const tel = document.getElementById("wapp-tel").value.replace(/\D/g,"");
   document.getElementById("btn-wapp-web").href = `https://wa.me/${tel}?text=${encodeURIComponent(wappMensaje)}`;
@@ -1126,7 +1274,9 @@ function abrirWappWeb() {
 }
 
 async function registrarWappEnGoogle() {
+  if (_wappRegistrado) return; // ya registrado, no duplicar
   if (!window._gToken || !selCliente?.fuenteG) return;
+  _wappRegistrado = true;
   const hoy = new Date();
   const dd = String(hoy.getDate()).padStart(2,"0");
   const mm = String(hoy.getMonth()+1).padStart(2,"0");
@@ -1144,9 +1294,9 @@ async function registrarWappEnGoogle() {
   await escribirEnSheets(selCliente); // ← nueva fila en Sheets
 }
 
-function marcarWappEnviado() {
+async function marcarWappEnviado() {
   if(!selCliente) return;
-  // Actualizar estado en memoria (Google Contacts ya fue actualizado por registrarWappEnGoogle)
+  await registrarWappEnGoogle(); // escribe en Google Contacts + Sheets igual que abrirWappWeb
   estado[selCliente.id] = { emailEnviadoEn: null, wappEnviado: true, posponerHasta: null };
   cerrarPanel();
   renderLista();
@@ -1248,6 +1398,8 @@ function conectarGoogle() {
         document.getElementById("user-name").textContent = window._currentUser?.nombre || "Google Contacts";
         document.getElementById("dot-status").style.background="#34a853";
         document.getElementById("info-text").innerHTML=`<strong style="color:#e8eaf0">${clientes.length} contactos</strong> seleccionados de ${filtrados.length} cargados · <span style="color:#4b5563;">${window._currentUser?.email || ""}</span>`;
+        calcularCategorias();
+        renderChips();
         renderLista();
       } catch(e) { mostrarError("Error: "+e.message); resetBtn(); }
     }
@@ -1338,7 +1490,7 @@ function mapContact(p) {
   const telefonoFijo  = fijo?.value  || "";
   const telefonoMovil = movil?.value || "";
   // LinkedIn
-  const linkedin = (p.urls||[]).find(u => u.value && u.value.includes("linkedin.com"))?.value || "";
+  const linkedin = (p.urls||[]).find(u => u.value && u.value.toLowerCase().includes("linkedin.com"))?.value || "";
   // Nombre desglosado
   const nombre1    = p.names?.[0]?.givenName    || "";
   const nombre2    = p.names?.[0]?.middleName   || "";
@@ -1370,21 +1522,6 @@ function mapContact(p) {
   };
 }
 
-// Mensaje de error si el navegador no consigue abrir el cliente de correo
-function mostrarErrorMailto() {
-  const prev = document.getElementById("email-fail-msg");
-  if (prev) prev.remove();
-  const div = document.createElement("div");
-  div.id = "email-fail-msg";
-  div.style.cssText = `margin-top:10px;background:#2a0a0a;border:1px solid #ff4444;border-radius:8px;padding:12px 14px;animation:fadeIn 0.2s ease;font-size:12px;color:#ff6b6b;line-height:1.6;`;
-  div.innerHTML = `
-    <strong style="color:#ff8888;">⚠️ No se ha podido abrir el cliente de correo</strong><br>
-    Tu navegador no ha lanzado el programa de correo predeterminado. Pulsa el botón <em>Copiar</em> para copiar el email y pégalo manualmente en tu correo, o configura el cliente predeterminado del sistema.
-  `;
-  const btnRow = document.querySelector("#email-result .btn-row");
-  if (btnRow) btnRow.after(div);
-}
-
 function mostrarError(msg) {
   document.getElementById("error-inner").textContent=msg;
   document.getElementById("error-box").style.display="block";
@@ -1396,7 +1533,6 @@ function resetBtn() {
   btn.innerHTML=`${gSvg(16)} Conectar Google Contacts`;
 }
 
-renderLista();
 </script>
 </body>
 </html>
