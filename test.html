@@ -419,12 +419,16 @@ function desfaseProximaAccion(c) {
 let chipsActivos = new Set();
 let desfasesIgnorados = new Set();
 
+// Etiquetas de sistema que nunca se muestran ni se usan en el filtro
+const ETIQUETAS_EXCLUIR = new Set(["MIS CONTACTOS", "MYCONTACTS", "STARRED", "ESPAÑA", "SPAIN", "CONTACTOS", "CONTACTS"]);
+const esEtiquetaSistema = et => !et || ETIQUETAS_EXCLUIR.has(et.toUpperCase().trim());
+
 function _contarEtiquetas() {
   const counts = {};
   clientes.forEach(c => {
     if (estaPostpuesto(c.id)) return;
     (c.etiquetas || []).forEach(et => {
-      if (!et || et.toUpperCase() === "MIS CONTACTOS") return;
+      if (esEtiquetaSistema(et)) return;
       counts[et] = (counts[et] || 0) + 1;
     });
   });
@@ -491,8 +495,12 @@ function renderLista() {
   const sorted = [...clientes]
     .filter(c => !busq || c.empresa.toLowerCase().includes(busq) || c.contacto.toLowerCase().includes(busq))
     .filter(c => !estaPostpuesto(c.id)) // ocultar postpuestos
-    .filter(c => !estaGestionado(c.id)) // ocultar gestionados (email reciente o wapp enviado)
-    .filter(c => chipsActivos.size === 0 || (c.etiquetas || []).some(e => chipsActivos.has(e))) // filtro por chips
+    .filter(c => !estaGestionado(c.id)) // ocultar gestionados
+    .filter(c => { // filtro por chips — solo etiquetas no-sistema
+      if (chipsActivos.size === 0) return true;
+      const etiquetasValidas = (c.etiquetas || []).filter(e => !esEtiquetaSistema(e));
+      return etiquetasValidas.some(e => chipsActivos.has(e));
+    })
     .sort((a,b) => {
       // 0. Categoría caliente — máxima prioridad por encima de todo lo demás
       const aCat = a._categoria || "frio";
