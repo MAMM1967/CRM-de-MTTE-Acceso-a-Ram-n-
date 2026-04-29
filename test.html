@@ -896,6 +896,7 @@ function proximaAccionPendiente(c) {
 
 // ── WHATSAPP ─────────────────────────────────────────────────────────────────
 async function generarWapp(c) {
+  _wappRegistrado = false; // reset al generar nuevo mensaje
   console.log("[generarWapp] Iniciando para:", c.empresa, c.contacto);
   document.getElementById("spin-wapp").style.display  = "block";
   document.getElementById("wapp-result").style.display = "none";
@@ -1261,6 +1262,8 @@ async function registrarContactoEnGoogle(c) {
   await escribirEnSheets(c); // ← nueva fila en Sheets
 }
 
+let _wappRegistrado = false; // guarda para evitar doble registro
+
 function abrirWappWeb() {
   const tel = document.getElementById("wapp-tel").value.replace(/\D/g,"");
   document.getElementById("btn-wapp-web").href = `https://wa.me/${tel}?text=${encodeURIComponent(wappMensaje)}`;
@@ -1271,7 +1274,9 @@ function abrirWappWeb() {
 }
 
 async function registrarWappEnGoogle() {
+  if (_wappRegistrado) return; // ya registrado, no duplicar
   if (!window._gToken || !selCliente?.fuenteG) return;
+  _wappRegistrado = true;
   const hoy = new Date();
   const dd = String(hoy.getDate()).padStart(2,"0");
   const mm = String(hoy.getMonth()+1).padStart(2,"0");
@@ -1289,9 +1294,9 @@ async function registrarWappEnGoogle() {
   await escribirEnSheets(selCliente); // ← nueva fila en Sheets
 }
 
-function marcarWappEnviado() {
+async function marcarWappEnviado() {
   if(!selCliente) return;
-  // Actualizar estado en memoria (Google Contacts ya fue actualizado por registrarWappEnGoogle)
+  await registrarWappEnGoogle(); // escribe en Google Contacts + Sheets igual que abrirWappWeb
   estado[selCliente.id] = { emailEnviadoEn: null, wappEnviado: true, posponerHasta: null };
   cerrarPanel();
   renderLista();
