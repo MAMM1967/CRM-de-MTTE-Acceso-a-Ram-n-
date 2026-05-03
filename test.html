@@ -222,7 +222,7 @@
 
 <script>
 const GOOGLE_CLIENT_ID = "232128500768-qgvhqkmn8383j16s5qvbsa85ot2g242i.apps.googleusercontent.com";
-const GOOGLE_SCOPES    = "https://www.googleapis.com/auth/contacts https://www.googleapis.com/auth/spreadsheets";
+const GOOGLE_SCOPES    = "https://www.googleapis.com/auth/contacts https://www.googleapis.com/auth/spreadsheets profile email";
 const STORAGE_KEY      = "mitsubishi_seguimiento";
 const SHEET_ID         = "1nKeeV1mDqtaHKdWIljitlcmck4b11sm0-RlSdeQj0YI";
 const SHEET_TAB        = "Acciones Comerciales";
@@ -235,9 +235,14 @@ const DEMO = [
 ];
 
 let clientes   = [...DEMO];
+let _todosLosContactos = [...DEMO]; // Base completa cargada desde Google (sin slice)
 let selCliente = null;
 let currentTab = "email";
 let emailAsunto = "", emailCuerpo = "", wappMensaje = "";
+
+// Límites de visualización
+const LIMITE_GLOBAL    = 100; // top sin filtro de chips
+const LIMITE_FILTRADO  = 200; // top cuando hay chips activos parciales
 
 // Estado derivado de Google Contacts (no localStorage)
 // Se reconstruye al cargar los contactos desde las notas
@@ -406,7 +411,9 @@ const esEtiquetaSistema = et => !et || ETIQUETAS_EXCLUIR.has(et.toUpperCase().tr
 
 function _contarEtiquetas() {
   const counts = {};
-  clientes.forEach(c => {
+  // Contar sobre la base completa, no sobre los clientes mostrados
+  // así los chips muestran totales reales por etiqueta en toda la base
+  _todosLosContactos.forEach(c => {
     if (estaPostpuesto(c.id)) return;
     (c.etiquetas || []).forEach(et => {
       if (esEtiquetaSistema(et)) return;
@@ -414,6 +421,85 @@ function _contarEtiquetas() {
     });
   });
   return counts;
+}
+
+// Sort de prioridad para selección inicial (mismo criterio que el sort de carga)
+function _sortPrioridad(a, b) {
+  const hoy0 = new Date(); hoy0.setHours(0,0,0,0);
+  // 1. Próxima acción vencida o hoy
+  const aPA = a.proximaAccion && new Date(a.proximaAccion) <= hoy0 ? 1 : 0;
+  const bPA = b.proximaAccion && new Date(b.proximaAccion) <= hoy0 ? 1 : 0;
+  if (bPA !== aPA) return bPA - aPA;
+  // 2. WhatsApp pendiente
+  const aW = necesitaWapp(a.id) ? 1 : 0;
+  const bW = necesitaWapp(b.id) ? 1 : 0;
+  if (bW !== aW) return bW - aW;
+  // 3. Próxima acción futura más próxima
+  const aFut = a.proximaAccion && new Date(a.proximaAccion) > hoy0 ? new Date(a.proximaAccion).getTime() : Infinity;
+  const bFut = b.proximaAccion && new Date(b.proximaAccion) > hoy0 ? new Date(b.proximaAccion).getTime() : Infinity;
+  if (aFut !== bFut) return aFut - bFut;
+  // 4. Con historial activo y +90 días sin contacto → antes que sin historial
+  const tieneHistorialActivo = c => c.historial && /\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}/.test(c.historial);
+  const aActivo = tieneHistorialActivo(a) && dias(a.ultimoContacto) >= 90 ? 1 : 0;
+  const bActivo = tieneHistorialActivo(b) && dias(b.ultimoContacto) >= 90 ? 1 : 0;
+  if (bActivo !== aActivo) return bActivo - aActivo;
+  // 5. Más días sin contacto
+  return dias(b.ultimoContacto) - dias(a.ultimoContacto);
+}
+
+// Recalcula `clientes` desde `_todosLosContactos` según los chips activos:
+// - sin chips o todas activas → top 100 global por prioridad
+// - con chips parciales → top 200 del subset filtrado por etiqueta
+function recalcularClientes() {
+  if (!_todosLosContactos || _todosLosContactos.length === 0) return;
+  const counts = _contarEtiquetas();
+  const totalEtiquetas = Object.keys(counts).length;
+  const sinFiltro = chipsActivos.size === 0 || chipsActivos.size === totalEtiquetas;
+
+  let base;
+  let limite;
+  if (sinFiltro) {
+    base   = _todosLosContactos;
+    limite = LIMITE_GLOBAL;
+  } else {
+    // Filtrar por etiquetas activas (cualquier coincidencia)
+    base = _todosLosContactos.filter(c => {
+      const etiquetasValidas = (c.etiquetas || []).filter(e => !esEtiquetaSistema(e));
+      return etiquetasValidas.some(e => chipsActivos.has(e));
+    });
+    limite = LIMITE_FILTRADO;
+  }
+
+  clientes = base
+    .filter(c => !estaPostpuesto(c.id))
+    .sort(_sortPrioridad)
+    .slice(0, limite);
+
+  actualizarInfoText();
+}
+
+// Actualiza el texto informativo bajo el header según el estado de filtros
+function actualizarInfoText() {
+  const info = document.getElementById("info-text");
+  if (!info || !_todosLosContactos || _todosLosContactos.length === 0) return;
+  // Si seguimos mostrando solo demo, no tocamos
+  if (_todosLosContactos === DEMO || (_todosLosContactos[0] && !_todosLosContactos[0].fuenteG)) return;
+  const counts = _contarEtiquetas();
+  const totalEtiquetas = Object.keys(counts).length;
+  const sinFiltro = chipsActivos.size === 0 || chipsActivos.size === totalEtiquetas;
+  const totalBase = _todosLosContactos.length;
+  const userEmail = window._currentUser?.email || "";
+  if (sinFiltro) {
+    info.innerHTML = `<strong style="color:#e8eaf0">${clientes.length} contactos</strong> (top ${LIMITE_GLOBAL} de ${totalBase}) · <span style="color:#4b5563;">${userEmail}</span>`;
+  } else {
+    const etiquetasArr = [...chipsActivos];
+    const etqTxt = etiquetasArr.length === 1 ? `«${etiquetasArr[0]}»` : `${etiquetasArr.length} etiquetas`;
+    const totalFiltrado = _todosLosContactos.filter(c => {
+      const etiquetasValidas = (c.etiquetas || []).filter(e => !esEtiquetaSistema(e));
+      return etiquetasValidas.some(e => chipsActivos.has(e));
+    }).length;
+    info.innerHTML = `<strong style="color:#e8eaf0">${clientes.length} contactos</strong> con ${etqTxt} (de ${totalFiltrado} en esa selección, ${totalBase} totales) · <span style="color:#4b5563;">${userEmail}</span>`;
+  }
 }
 
 function renderChips() {
@@ -425,7 +511,7 @@ function renderChips() {
   if (ordenadas.length === 0) { cont.innerHTML = ""; return; }
   const total = ordenadas.length;
   const todasActivas = chipsActivos.size === total;
-  const totalVisible = clientes.filter(c => !estaPostpuesto(c.id)).length;
+  const totalVisible = _todosLosContactos.filter(c => !estaPostpuesto(c.id)).length;
   let html = `<button class="chip chip-todos ${todasActivas ? "active" : ""}" onclick="toggleTodas()">${todasActivas ? "✓ " : ""}Todas · ${totalVisible}</button>`;
   ordenadas.forEach(([etq, n]) => {
     const active = chipsActivos.has(etq);
@@ -443,6 +529,7 @@ function toggleTodas() {
   } else {
     Object.keys(counts).forEach(et => chipsActivos.add(et)); // activar todas
   }
+  recalcularClientes();
   renderChips();
   renderLista();
 }
@@ -460,6 +547,7 @@ function toggleChip(etq) {
   } else {
     chipsActivos.add(etq);
   }
+  recalcularClientes();
   renderChips();
   renderLista();
 }
@@ -477,11 +565,8 @@ function renderLista() {
     .filter(c => !busq || c.empresa.toLowerCase().includes(busq) || c.contacto.toLowerCase().includes(busq))
     .filter(c => !estaPostpuesto(c.id)) // ocultar postpuestos
     .filter(c => !estaGestionado(c.id)) // ocultar gestionados
-    .filter(c => { // filtro por chips — solo etiquetas no-sistema
-      if (chipsActivos.size === 0) return true;
-      const etiquetasValidas = (c.etiquetas || []).filter(e => !esEtiquetaSistema(e));
-      return etiquetasValidas.some(e => chipsActivos.has(e));
-    })
+    // Nota: el filtro por chips se aplica en recalcularClientes() al cambiar
+    // los chips, no aquí. Así `clientes` ya viene pre-filtrado por etiqueta.
     .sort((a,b) => {
       // 0. Categoría caliente — máxima prioridad por encima de todo lo demás
       const aCat = a._categoria || "frio";
@@ -1364,43 +1449,25 @@ function conectarGoogle() {
         estado = {};
         filtrados.forEach(c => reconstruirEstado(c));
 
-        // Ordenar y seleccionar los 100 más relevantes
-        const hoy0 = new Date(); hoy0.setHours(0,0,0,0);
-        const tieneHistorialActivo = c => c.historial && /\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}/.test(c.historial);
-        const seleccionados = filtrados
-          .filter(c => !estaPostpuesto(c.id))
-          .sort((a, b) => {
-            // 1. Próxima acción vencida o hoy
-            const aPA = a.proximaAccion && new Date(a.proximaAccion) <= hoy0 ? 1 : 0;
-            const bPA = b.proximaAccion && new Date(b.proximaAccion) <= hoy0 ? 1 : 0;
-            if (bPA !== aPA) return bPA - aPA;
-            // 2. WhatsApp pendiente
-            const aW = necesitaWapp(a.id) ? 1 : 0;
-            const bW = necesitaWapp(b.id) ? 1 : 0;
-            if (bW !== aW) return bW - aW;
-            // 3. Próxima acción futura más próxima
-            const aFut = a.proximaAccion && new Date(a.proximaAccion) > hoy0 ? new Date(a.proximaAccion).getTime() : Infinity;
-            const bFut = b.proximaAccion && new Date(b.proximaAccion) > hoy0 ? new Date(b.proximaAccion).getTime() : Infinity;
-            if (aFut !== bFut) return aFut - bFut;
-            // 4. Con historial activo y +90 días sin contacto → antes que sin historial
-            const aActivo = tieneHistorialActivo(a) && dias(a.ultimoContacto) >= 90 ? 1 : 0;
-            const bActivo = tieneHistorialActivo(b) && dias(b.ultimoContacto) >= 90 ? 1 : 0;
-            if (bActivo !== aActivo) return bActivo - aActivo;
-            // 5. Más días sin contacto
-            return dias(b.ultimoContacto) - dias(a.ultimoContacto);
-          })
-          .slice(0, 100);
-
-        clientes = seleccionados.length > 0 ? seleccionados : [...DEMO];
-        if (!seleccionados.length) mostrarError("No se encontraron contactos. Mostrando demo.");
+        // Guardar TODA la base de contactos válidos.
+        // recalcularClientes() decidirá cuáles mostrar según los chips.
+        _todosLosContactos = filtrados;
+        if (filtrados.length === 0) {
+          _todosLosContactos = [...DEMO];
+          clientes = [...DEMO];
+          mostrarError("No se encontraron contactos. Mostrando demo.");
+        } else {
+          // Calcular categorías ANTES de recalcular (el sort las consulta)
+          calcularCategorias();
+          recalcularClientes(); // genera `clientes` con top 100 global por defecto
+        }
         document.getElementById("btn-google").style.display="none";
         document.getElementById("user-badge").style.display="flex";
         document.getElementById("user-name").textContent = window._currentUser?.nombre || "Google Contacts";
         document.getElementById("dot-status").style.background="#34a853";
-        document.getElementById("info-text").innerHTML=`<strong style="color:#e8eaf0">${clientes.length} contactos</strong> seleccionados de ${filtrados.length} cargados · <span style="color:#4b5563;">${window._currentUser?.email || ""}</span>`;
-        calcularCategorias();
         renderChips();
         renderLista();
+        // info-text lo escribe recalcularClientes() vía actualizarInfoText()
       } catch(e) { mostrarError("Error: "+e.message); resetBtn(); }
     }
   }).requestAccessToken();
