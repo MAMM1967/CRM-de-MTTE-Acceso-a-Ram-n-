@@ -258,7 +258,7 @@ function reconstruirEstado(c) {
 
   // Buscar último "Envío email de seguimiento"
   let fechaEmail = null, idxEmail = -1;
-  // Buscar último "Envío WhatsApp de seguimiento"  
+  // Buscar último "Envío WhatsApp de seguimiento"
   let wappEnviado = false;
   // Buscar última "Próxima acción llamarle en" futura → posponer
   let posponerHasta = null;
@@ -269,7 +269,12 @@ function reconstruirEstado(c) {
       const mF = lFecha.match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
       if (mF) {
         const ts = new Date(`${mF[3]}-${mF[2].padStart(2,"0")}-${mF[1].padStart(2,"0")}`).getTime();
-        if (!isNaN(ts)) { fechaEmail = ts; idxEmail = i; }
+        if (!isNaN(ts)) {
+          fechaEmail = ts;
+          idxEmail = i;
+          // RESET: nuevo email después del wapp → ciclo reiniciado, ya no contemplamos wapp como gestionado
+          wappEnviado = false;
+        }
       }
     }
     if (l.includes("Envío WhatsApp de seguimiento")) {
@@ -282,10 +287,15 @@ function reconstruirEstado(c) {
       if (mF) {
         const fechaISO = `${mF[3]}-${mF[2].padStart(2,"0")}-${mF[1].padStart(2,"0")}`;
         const fechaTs = new Date(fechaISO).getTime();
-        if (!isNaN(fechaTs) && fechaTs > hoyMs) {
-          posponerHasta = fechaISO;
-        } else {
-          posponerHasta = null; // fecha pasada, ya no posponer
+        if (!isNaN(fechaTs)) {
+          if (fechaTs > hoyMs) {
+            posponerHasta = fechaISO;
+          } else {
+            posponerHasta = null; // fecha pasada, ya no posponer
+          }
+          // RESET: cualquier "Próxima acción" anotada DESPUÉS del wapp indica seguimiento activo
+          // (independientemente de si su fecha es futura o pasada — la acción manual es lo que cuenta)
+          wappEnviado = false;
         }
       }
     }
@@ -967,6 +977,11 @@ function estaPostpuesto(id) {
 function estaGestionado(id) {
   const e = estado[id];
   if (!e) return false;
+  // RED DE SEGURIDAD: si tiene una próxima acción vencida o de hoy,
+  // nunca lo ocultamos como "gestionado". Una acción vencida es prioritaria
+  // por definición y debe aparecer en la lista, pase lo que pase.
+  const c = clientes.find(x => x.id === id) || _todosLosContactos.find(x => x.id === id);
+  if (c && proximaAccionPendiente(c)) return false;
   if (e.wappEnviado) return true;                        // WhatsApp enviado → ocultar
   if (e.emailEnviadoEn && !necesitaWapp(id)) return true; // Email reciente sin respuesta aún → ocultar hasta que pasen 2 días
   return false;
@@ -1517,18 +1532,20 @@ function extraerProximaAccion(texto) {
   }
   if (bloqueActual.length > 0) bloques.push(bloqueActual);
 
-  // Buscar en el ÚLTIMO bloque una línea de próxima acción
+  // Buscar en el ÚLTIMO bloque una línea de próxima acción.
+  // Si hay varias en el mismo bloque, devolvemos la ÚLTIMA escrita (la más reciente cronológicamente).
   const ultimoBloque = bloques[bloques.length - 1] || [];
+  let ultimaProxima = null;
   for (const linea of ultimoBloque) {
     if (/pr[oó]xima/i.test(linea) && /acci[oó]n/i.test(linea)) {
       const mF = linea.match(/(\d{1,2})[\-\/\.](\d{1,2})[\-\/\.](\d{4})/);
       if (mF) {
         const fecha = `${mF[3]}-${mF[2].padStart(2,"0")}-${mF[1].padStart(2,"0")}`;
-        if (!isNaN(new Date(fecha).getTime())) return fecha;
+        if (!isNaN(new Date(fecha).getTime())) ultimaProxima = fecha;
       }
     }
   }
-  return null;
+  return ultimaProxima;
 }
 
 function mapContact(p) {
