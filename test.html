@@ -177,7 +177,7 @@
               <a class="btn-primary" id="btn-abrir-email" href="#">✉ Abrir email</a>
               <button class="btn-secondary" onclick="copiarEmail()">Copiar</button>
             </div>
-            <button class="btn-marcar" onclick="marcarEmailEnviado()">✓ Marcar email enviado — esperar respuesta 2 días</button>
+            <button class="btn-marcar" id="btn-marcar-enviado" onclick="marcarEmailEnviado()">✓ Marcar email enviado — esperar respuesta 2 días</button>
           </div>
           <!-- Posponer / Ignorar siempre visibles en el tab email -->
           <div style="display:flex;gap:6px;margin-top:8px;">
@@ -266,31 +266,51 @@ function reconstruirEstado(c) {
   const esLineaSistemaProxima = l =>
     /^pr[oó]xima\s+acci[oó]n\s+llamarle\s+en\s+\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}\.?$/i.test(l.trim());
 
-  // Buscar último "Envío email de seguimiento"
-  let fechaEmail = null, idxEmail = -1;
-  // Buscar último "Envío WhatsApp de seguimiento"
-  let wappEnviado = false;
-  // Buscar última "Próxima acción llamarle en" futura → posponer
-  let posponerHasta = null;
+  // Detectores de envíos automáticos de la app (cada tipo en su slot).
+  // Capturan tanto el formato fallback como variantes generadas por la IA.
+  const esLineaEnvioEmail    = l => /^env[ií]o\s+email\b/i.test(l.trim());
+  const esLineaEnvioLinkedin = l => /^env[ií]o\s+mensaje\s+linkedin\b/i.test(l.trim());
+  const esLineaEnvioWapp     = l => /^env[ií]o\s+whatsapp\b/i.test(l.trim());
+
+  // Slots separados para cada canal: timestamp del último envío
+  let emailEnviadoEn    = null;
+  let wappEnviadoEn     = null;
+  let linkedinEnviadoEn = null;
+  let posponerHasta     = null;
+
+  // Helper para extraer fecha de la línea anterior (header del bloque)
+  const fechaDeBloqueEn = (i) => {
+    const lFecha = lineas[i-1] || "";
+    const mF = lFecha.match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
+    if (!mF) return null;
+    const ts = new Date(`${mF[3]}-${mF[2].padStart(2,"0")}-${mF[1].padStart(2,"0")}`).getTime();
+    return isNaN(ts) ? null : ts;
+  };
 
   lineas.forEach((l, i) => {
-    if (l.includes("Envío email de seguimiento")) {
-      const lFecha = lineas[i-1] || "";
-      const mF = lFecha.match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
-      if (mF) {
-        const ts = new Date(`${mF[3]}-${mF[2].padStart(2,"0")}-${mF[1].padStart(2,"0")}`).getTime();
-        if (!isNaN(ts)) {
-          fechaEmail = ts;
-          idxEmail = i;
-          // RESET: nuevo email después del wapp → ciclo reiniciado
-          wappEnviado = false;
-        }
+    if (esLineaEnvioEmail(l)) {
+      const ts = fechaDeBloqueEn(i);
+      if (ts !== null) {
+        emailEnviadoEn = ts;
+        // Reset del ciclo: nuevo email reinicia toda la cadena
+        wappEnviadoEn = null;
+        linkedinEnviadoEn = null;
       }
     }
-    if (l.includes("Envío WhatsApp de seguimiento")) {
-      // Si hay WhatsApp enviado después del email, el email ya no está pendiente
-      wappEnviado = true;
-      fechaEmail = null; // reset — ya no esperamos respuesta al email
+    else if (esLineaEnvioWapp(l)) {
+      const ts = fechaDeBloqueEn(i);
+      if (ts !== null) {
+        wappEnviadoEn = ts;
+        // WApp es paso 2: NO resetea emailEnviadoEn (info útil), pero sí limpia linkedin
+        linkedinEnviadoEn = null;
+      }
+    }
+    else if (esLineaEnvioLinkedin(l)) {
+      const ts = fechaDeBloqueEn(i);
+      if (ts !== null) {
+        linkedinEnviadoEn = ts;
+        // LinkedIn es paso 3 (último): no resetea nada
+      }
     }
     if (/pr[oó]xima/i.test(l) && /acci[oó]n/i.test(l)) {
       const esSistema = esLineaSistemaProxima(l);
@@ -300,35 +320,37 @@ function reconstruirEstado(c) {
         const fechaTs = new Date(fechaISO).getTime();
         if (!isNaN(fechaTs)) {
           if (esSistema) {
-            // Línea AUTOMÁTICA del sistema (escrita por la app al marcar email/WApp/posponer)
             if (fechaTs > hoyMs) {
-              // Fecha futura: ocultar hasta esa fecha
               posponerHasta = fechaISO;
-              // wappEnviado y fechaEmail mantienen su valor — la app gestiona el ciclo
             } else {
-              // Fecha pasada: ya tocó actuar, des-ocultar
               posponerHasta = null;
-              wappEnviado = false;
+              // Fecha sistema vencida → des-bloqueamos el ciclo (toca actuar)
+              wappEnviadoEn = null;
+              linkedinEnviadoEn = null;
             }
           } else {
-            // Línea MANUAL del usuario (anotada directamente en Google Contacts)
-            // Indica seguimiento activo: aunque haya WApp previo, el usuario sigue trabajando
+            // Línea MANUAL del usuario: indica seguimiento activo
             if (fechaTs > hoyMs) posponerHasta = fechaISO;
             else posponerHasta = null;
-            wappEnviado = false; // hubo actividad manual posterior
+            // Una nota manual posterior reinicia el ciclo
+            wappEnviadoEn = null;
+            linkedinEnviadoEn = null;
           }
         }
       }
     }
   });
 
-  // Si hay WhatsApp enviado DESPUÉS del email, limpiar emailEnviadoEn
-  if (wappEnviado) {
-    estado[c.id] = { emailEnviadoEn: null, wappEnviado: true, posponerHasta };
-  } else if (fechaEmail) {
-    estado[c.id] = { emailEnviadoEn: fechaEmail, wappEnviado: false, posponerHasta };
-  } else if (posponerHasta) {
-    estado[c.id] = { emailEnviadoEn: null, wappEnviado: false, posponerHasta };
+  // Solo guardamos estado si hay alguna información útil
+  if (emailEnviadoEn || wappEnviadoEn || linkedinEnviadoEn || posponerHasta) {
+    estado[c.id] = {
+      emailEnviadoEn,
+      wappEnviadoEn,
+      linkedinEnviadoEn,
+      // Compatibilidad con código existente
+      wappEnviado: !!wappEnviadoEn,
+      posponerHasta
+    };
   }
 }
 
@@ -343,8 +365,18 @@ function diasSinRespuesta(id) {
 }
 
 function necesitaWapp(id) {
-  const d = diasSinRespuesta(id);
-  return d !== null && d >= 2 && !estado[id]?.wappEnviado;
+  const c = clientes.find(x => x.id === id) || (_todosLosContactos||[]).find(x => x.id === id);
+  if (!c) return false;
+  const a = accionPara(c);
+  return !!a && (a.tipo === "wapp_seguimiento" || a.tipo === "wapp_primer_contacto");
+}
+
+// ¿La próxima acción a proponer es LinkedIn?
+function necesitaLinkedIn(id) {
+  const c = clientes.find(x => x.id === id) || (_todosLosContactos||[]).find(x => x.id === id);
+  if (!c) return false;
+  const a = accionPara(c);
+  return !!a && a.tipo === "linkedin";
 }
 
 function ultimaAccion(historial) {
@@ -469,6 +501,10 @@ function _sortPrioridad(a, b) {
   const aW = necesitaWapp(a.id) ? 1 : 0;
   const bW = necesitaWapp(b.id) ? 1 : 0;
   if (bW !== aW) return bW - aW;
+  // 2b. LinkedIn pendiente (escalón 3 del ciclo)
+  const aL = necesitaLinkedIn(a.id) ? 1 : 0;
+  const bL = necesitaLinkedIn(b.id) ? 1 : 0;
+  if (bL !== aL) return bL - aL;
   // 3. Próxima acción futura más próxima
   const aFut = a.proximaAccion && new Date(a.proximaAccion) > hoy0 ? new Date(a.proximaAccion).getTime() : Infinity;
   const bFut = b.proximaAccion && new Date(b.proximaAccion) > hoy0 ? new Date(b.proximaAccion).getTime() : Infinity;
@@ -626,6 +662,10 @@ function renderLista() {
       const aw = necesitaWapp(a.id) ? 1 : 0;
       const bw = necesitaWapp(b.id) ? 1 : 0;
       if (bw !== aw) return bw - aw;
+      // 2b. LinkedIn pendiente
+      const aL = necesitaLinkedIn(a.id) ? 1 : 0;
+      const bL = necesitaLinkedIn(b.id) ? 1 : 0;
+      if (bL !== aL) return bL - aL;
       // 3. Con historial activo y sin contacto hace +90 días → antes que los sin historial
       const tieneHistorial = c => c.historial && /\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}/.test(c.historial);
       const aActivo = tieneHistorial(a) && dias(a.ultimoContacto) >= 90 ? 1 : 0;
@@ -655,6 +695,8 @@ function renderLista() {
         const e   = estado[c.id] || {};
         const dsR = diasSinRespuesta(c.id);
         const nW  = necesitaWapp(c.id);
+        const tw  = tipoWappPara(c);            // tipo de WApp si aplica (incluye nW)
+        const usaWapp = !!tw;                   // ¿se propondrá WApp como acción primaria?
         const cat = c._categoria || "frio";
         const cD  = CATEGORIAS[cat];
         const desf = desfaseProximaAccion(c);
@@ -669,6 +711,7 @@ function renderLista() {
               ${c.linkedin ? `<span style="font-size:10px;color:#0a66c2;background:#0a1929;border:1px solid #0a66c244;padding:1px 6px;border-radius:7px;">💼 LinkedIn</span>` : ""}
               ${proximaAccionPendiente(c) ? `<span class="badge-proxima">📅 Acción hoy</span>` : c.proximaAccion && new Date(c.proximaAccion) > hoy ? `<span style="font-size:10px;color:#a78bfa;font-weight:600;">📅 ${fmt(c.proximaAccion)}</span>` : ""}
               ${nW ? `<span class="badge-wapp">💬 WhatsApp pendiente</span>` : ""}
+              ${necesitaLinkedIn(c.id) ? `<span style="font-size:10px;color:#0a66c2;background:#0a1929;border:1px solid #0a66c2;padding:1px 6px;border-radius:7px;font-weight:600;">💼 LinkedIn pendiente</span>` : ""}
               ${e.emailEnviadoEn && !nW && !e.wappEnviado && dsR !== null ? `<span style="font-size:10px;color:#ffaa00;">⏳ Email enviado hace ${dsR}d</span>` : ""}
               ${e.wappEnviado ? `<span style="font-size:10px;color:#25d366;font-weight:600;">✓ WApp enviado</span>` : ""}
               ${e.ultimoContacto && !e.emailEnviadoEn ? `<span style="font-size:10px;color:#00cc88;font-weight:600;">✓ Contactado</span>` : ""}
@@ -690,22 +733,106 @@ function renderLista() {
             <div style="font-size:26px;font-weight:800;line-height:1;color:${nW ? '#25d366' : p.color};">${d}</div>
             <div style="font-size:10px;color:#6b7280;margin-top:1px;">días</div>
             <div style="font-size:10px;color:#4b5563;margin-top:4px;">${fmt(c.ultimoContacto)}</div>
-            <div style="margin-top:7px;font-size:11px;color:${nW?'#25d366':'#e63946'};font-weight:600;background:${nW?'#001a0d':'#1a0608'};border-radius:5px;padding:2px 8px;border:1px solid ${nW?'#25d36633':'#3d0d12'};">
-              ${nW ? "💬 Enviar WApp" : c.linkedin && !c.email ? "💼 LinkedIn" : "✉ Email IA"}
-            </div>
+            ${(() => {
+              const a = accionPara(c);
+              const tipo = a?.tipo;
+              let label, color, bg, border;
+              if (tipo === "wapp_seguimiento" || tipo === "wapp_primer_contacto") {
+                label = "💬 Enviar WApp";   color = "#25d366"; bg = "#001a0d"; border = "#25d36633";
+              } else if (tipo === "linkedin") {
+                label = "💼 Enviar LinkedIn"; color = "#0a66c2"; bg = "#0a1929"; border = "#0a66c244";
+              } else if (tipo === "email") {
+                label = "✉ Enviar email";   color = "#e63946"; bg = "#1a0608"; border = "#3d0d12";
+              } else {
+                label = "✉ Email IA";       color = "#e63946"; bg = "#1a0608"; border = "#3d0d12";
+              }
+              return `<div style="margin-top:7px;font-size:11px;color:${color};font-weight:600;background:${bg};border-radius:5px;padding:2px 8px;border:1px solid ${border};">${label}</div>`;
+            })()}
           </div>
         </div>`;
       }).join("");
 }
 
+// Días desde un timestamp (null si no hay)
+function diasDesde(ts) {
+  if (!ts) return null;
+  return Math.floor((Date.now() - ts) / 86400000);
+}
+
+// Decide la PRÓXIMA acción a proponer según la secuencia obligatoria:
+// Email → (2d sin respuesta) → WhatsApp → (2d sin respuesta) → LinkedIn → cierre
+//
+// Devuelve { tipo, motivo } o null si no hay acción posible.
+// tipo: "email" | "wapp_seguimiento" | "wapp_primer_contacto" | "linkedin"
+function accionPara(c) {
+  if (!c) return null;
+  const e = estado[c.id] || {};
+  const dE = diasDesde(e.emailEnviadoEn);
+  const dW = diasDesde(e.wappEnviadoEn);
+  const dL = diasDesde(e.linkedinEnviadoEn);
+
+  // ESCALÓN 3: ¿LinkedIn enviado? → ciclo cerrado, no se propone nada hasta que pase el posponer
+  if (dL !== null) return null;
+
+  // ESCALÓN 2: ¿WApp enviado?
+  if (dW !== null) {
+    // Si pasaron 2+ días sin respuesta y tiene LinkedIn → siguiente paso
+    if (dW >= 2 && c.linkedin) return { tipo: "linkedin", motivo: `WApp enviado hace ${dW} días sin respuesta` };
+    // Si no tiene LinkedIn o aún no han pasado 2 días → esperar (no proponer nada)
+    return null;
+  }
+
+  // ESCALÓN 1: ¿Email enviado?
+  if (dE !== null) {
+    // Si pasaron 2+ días sin respuesta → toca WApp (si tiene móvil) o LinkedIn (si no)
+    if (dE >= 2) {
+      if (c.telefonoMovil) return { tipo: "wapp_seguimiento", motivo: `Email enviado hace ${dE} días sin respuesta` };
+      if (c.linkedin)      return { tipo: "linkedin",         motivo: `Email enviado hace ${dE} días sin respuesta y sin móvil` };
+      return null; // sin canales alternativos
+    }
+    return null; // email reciente, esperar
+  }
+
+  // INICIO DE CICLO: ningún envío previo, decidir por canales disponibles
+  // Prioridad: email > wapp (sin email pero con móvil) > linkedin
+  if (c.email) return { tipo: "email", motivo: "Inicio de ciclo" };
+  if (c.telefonoMovil) return { tipo: "wapp_primer_contacto", motivo: "Sin email, contacto inicial por WApp" };
+  if (c.linkedin) return { tipo: "linkedin", motivo: "Sin email ni móvil, contacto inicial por LinkedIn" };
+  return null; // sin canales
+}
+
+// Helper legacy para compatibilidad con código que aún consulta tipoWappPara
+function tipoWappPara(c) {
+  const a = accionPara(c);
+  if (!a) return null;
+  if (a.tipo === "wapp_seguimiento")    return "seguimiento";
+  if (a.tipo === "wapp_primer_contacto") return "primer_contacto";
+  return null;
+}
+
 function clickCliente(id) {
   selCliente = clientes.find(c => c.id === id);
   renderLista();
-  const tab = necesitaWapp(id) ? "wapp" : "email";
-  abrirPanel(selCliente, tab);
-  if (tab === "wapp") generarWapp(selCliente);
-  else if (selCliente.linkedin && !selCliente.email) generarMensajeLinkedIn(selCliente);
-  else generarEmail(selCliente);
+  const c = selCliente;
+  const a = accionPara(c);
+  // Sin acción concreta → abrir tab email genérico (usuario podrá generar manualmente)
+  if (!a) {
+    abrirPanel(c, "email");
+    if (c.email) generarEmail(c);
+    else if (c.linkedin) generarMensajeLinkedIn(c);
+    else generarEmail(c); // caso degenerado
+    return;
+  }
+  if (a.tipo === "email") {
+    abrirPanel(c, "email");
+    generarEmail(c);
+  } else if (a.tipo === "wapp_seguimiento" || a.tipo === "wapp_primer_contacto") {
+    abrirPanel(c, "wapp");
+    generarWapp(c, a.tipo === "wapp_seguimiento" ? "seguimiento" : "primer_contacto");
+  } else if (a.tipo === "linkedin") {
+    abrirPanel(c, "email"); // tab email pero contenido LinkedIn
+    generarMensajeLinkedIn(c);
+  }
 }
 
 function abrirPanel(c, tab="email") {
@@ -757,16 +884,22 @@ function switchTab(tab) {
 
 function actualizarWappPanel() {
   const id = selCliente?.id;
+  const c  = selCliente;
   const activo = document.getElementById("wapp-activo");
   const info   = document.getElementById("wapp-estado-info");
-  if (necesitaWapp(id)) {
+  const tw     = tipoWappPara(c);
+  if (tw) {
     info.style.display  = "none";
     activo.style.display = "block";
-    if (!wappMensaje) generarWapp(selCliente);
+    if (!wappMensaje) generarWapp(c, tw);
   } else {
     const dsR = diasSinRespuesta(id);
     if (dsR !== null) {
       info.innerHTML = `⏳ Email enviado hace <strong style="color:#ffaa00;">${dsR} día${dsR!==1?"s":""}</strong>.<br>El WhatsApp se activará cuando pasen <strong>2 días</strong> sin respuesta.`;
+    } else if (c && !c.telefonoMovil && !c.email) {
+      info.innerHTML = `💬 Este contacto no tiene email ni móvil registrado.<br>Añade un teléfono móvil en Google Contacts para usar WhatsApp.`;
+    } else if (c && !c.telefonoMovil) {
+      info.innerHTML = `💬 Genera primero el email y márcalo como enviado.<br>El WhatsApp se activa si en <strong>2 días</strong> no hay respuesta, o si añades un móvil al contacto.`;
     } else {
       info.innerHTML = `💬 Genera primero el email y márcalo como enviado.<br>El WhatsApp se activa si en <strong>2 días</strong> no hay respuesta.`;
     }
@@ -778,6 +911,8 @@ function actualizarWappPanel() {
 // ── EMAIL ────────────────────────────────────────────────────────────────────
 async function generarEmail(c) {
   console.log("[generarEmail] Iniciando para:", c.empresa, c.contacto);
+  // Limpiar flag de LinkedIn por si venimos de un mensaje LinkedIn previo
+  if (c) c._linkedinUsado = false;
   document.getElementById("spin-email").style.display  = "block";
   document.getElementById("email-result").style.display = "none";
   const d = dias(c.ultimoContacto);
@@ -879,11 +1014,15 @@ ASUNTO: [asunto específico, no genérico]
     document.getElementById("cuerpo-text").textContent = emailCuerpo;
     
     const btnEmail = document.getElementById("btn-abrir-email");
+    btnEmail.textContent = "✉ Abrir email";
+    btnEmail.target = "";
     btnEmail.href = `mailto:${c.email}?subject=${encodeURIComponent(emailAsunto)}&body=${encodeURIComponent(emailCuerpo)}`;
     btnEmail.onclick = () => {
       // Registrar como enviado directamente al hacer clic — el mailto se abre via href
       marcarEmailEnviado();
     };
+    const btnMarcar = document.getElementById("btn-marcar-enviado");
+    if (btnMarcar) btnMarcar.textContent = "✓ Marcar email enviado — esperar respuesta 2 días";
     
   } catch(err) { 
     console.error("[generarEmail] ❌ Error:", err.message, err);
@@ -911,12 +1050,33 @@ async function marcarEmailEnviado() {
     return;
   }
   
-  console.log("[marcarEmailEnviado] Marcando email como enviado para:", c.empresa);
+  const esLinkedin = !!c._linkedinUsado;
+  console.log("[marcarEmailEnviado] Marcando", esLinkedin ? "LinkedIn" : "email", "enviado para:", c.empresa);
   
   // Escribir en Google Contacts y Google Sheets SIEMPRE al marcar enviado
   await registrarContactoEnGoogle(c);
-  // Actualizar estado en memoria
-  estado[c.id] = { emailEnviadoEn: Date.now(), wappEnviado: false, posponerHasta: null };
+  // Actualizar estado en memoria.
+  // ocultoEnSesion: cubre email Y mensajes LinkedIn (comparten este flujo).
+  // Cada uno se anota en su slot dedicado para que la cadena Email→WApp→LinkedIn funcione bien.
+  const estadoPrev = estado[c.id] || {};
+  if (esLinkedin) {
+    estado[c.id] = {
+      ...estadoPrev,
+      linkedinEnviadoEn: Date.now(),
+      ocultoEnSesion: true,
+      posponerHasta: null
+    };
+  } else {
+    // Email enviado: reinicia el ciclo (reset wapp/linkedin si los hubiera)
+    estado[c.id] = {
+      emailEnviadoEn: Date.now(),
+      wappEnviadoEn: null,
+      linkedinEnviadoEn: null,
+      wappEnviado: false,
+      ocultoEnSesion: true,
+      posponerHasta: null
+    };
+  }
   cerrarPanel();
   recalcularClientes();
   renderChips();
@@ -985,8 +1145,15 @@ async function posponer(numDias) {
 
 async function posponerAFecha(isoFecha, fechaDisplay) {
   if(!selCliente) return;
-  // Actualizar estado en memoria (Google Contacts actualizado por actualizarNotasGoogle)
-  estado[selCliente.id] = { emailEnviadoEn: null, wappEnviado: false, posponerHasta: isoFecha };
+  // Actualizar estado en memoria (Google Contacts actualizado por actualizarNotasGoogle).
+  // Posponer reinicia el ciclo: ya no proponemos email/wapp/linkedin hasta que llegue la fecha.
+  estado[selCliente.id] = {
+    emailEnviadoEn: null,
+    wappEnviadoEn: null,
+    linkedinEnviadoEn: null,
+    wappEnviado: false,
+    posponerHasta: isoFecha
+  };
   // Escribir en Google Contacts
   const hoy = new Date();
   const hdd = String(hoy.getDate()).padStart(2,"0");
@@ -1028,9 +1195,10 @@ function estaPostpuesto(id) {
 function estaGestionado(id) {
   const e = estado[id];
   if (!e) return false;
-  // Si el WApp se marcó en ESTA sesión, oculto fijo: no aplicamos red de seguridad
-  // ni reevaluación. Solo reaparecerá al recargar contactos desde Google.
-  if (e.wappEnviadoEnSesion) return true;
+  // Si la acción se marcó en ESTA sesión (email/WApp/LinkedIn), oculto fijo:
+  // no aplicamos red de seguridad ni reevaluación. Solo reaparecerá al
+  // recargar contactos desde Google.
+  if (e.ocultoEnSesion) return true;
   // RED DE SEGURIDAD: si tiene una próxima acción vencida o de hoy,
   // nunca lo ocultamos como "gestionado". Una acción vencida es prioritaria
   // por definición y debe aparecer en la lista, pase lo que pase.
@@ -1049,18 +1217,52 @@ function proximaAccionPendiente(c) {
 }
 
 // ── WHATSAPP ─────────────────────────────────────────────────────────────────
-async function generarWapp(c) {
+async function generarWapp(c, tipo = "seguimiento") {
   _wappRegistrado = false; // reset al generar nuevo mensaje
-  console.log("[generarWapp] Iniciando para:", c.empresa, c.contacto);
+  console.log("[generarWapp] Iniciando para:", c.empresa, c.contacto, "tipo:", tipo);
   document.getElementById("spin-wapp").style.display  = "block";
   document.getElementById("wapp-result").style.display = "none";
   const dsR = diasSinRespuesta(c.id);
-  
-  try {
-    const payload = {
-      model:"claude-sonnet-4-20250514", 
-      max_tokens:600,
-      messages:[{role:"user", content:
+  const d = dias(c.ultimoContacto);
+  const tipoCliente = c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario ? "Intermediario (carrocero/renting/servicio oficial)" : "General";
+
+  // Construir el prompt según el tipo de mensaje
+  let promptContent;
+  if (tipo === "primer_contacto") {
+    // WApp como primer canal de contacto: no hay email previo
+    promptContent =
+`Eres el director comercial de Mitsubishi Equipos Frigoríficos para Transporte en España.
+Hoy es ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
+
+CONTACTO:
+- Nombre: ${c.contacto}${c.cargo ? ` (${c.cargo})` : ""}
+- Empresa: ${c.empresa}
+- Sector: ${c.sector}
+- Equipos actuales: ${c.equipos}
+- Último contacto: hace ${d} días
+- Tipo de cliente: ${tipoCliente}
+
+HISTORIAL DE NOTAS:
+"""
+${c.historial}
+"""
+
+Vas a contactar a ${c.contacto} por WhatsApp. No tenemos email registrado, así que este es el primer canal de contacto.
+
+Redacta un mensaje WhatsApp breve y natural:
+- Tono: cercano, profesional, sin presión
+- Identifícate brevemente (Mitsubishi Equipos Frigoríficos)
+- ${c.historial && c.historial !== "Sin historial." ? "Haz UNA referencia concreta al historial si tienes algún detalle relevante" : "Si no nos conocemos previamente, preséntate de forma breve"}
+- ${c.esClienteFinal ? "Pregunta por próximas renovaciones de flota frigorífica" : c.esIntermediario ? "Pregunta por proyectos en marcha donde podamos colaborar" : "Pregunta si tienen previstas renovaciones o ampliaciones de flota"}
+- Termina con una pregunta abierta o propuesta de breve charla
+- Máximo 4-5 líneas
+- Sin asteriscos ni formato especial, texto plano para WhatsApp
+- Sin saludos formales excesivos tipo "Espero que se encuentre bien"
+
+Solo el mensaje, sin explicaciones adicionales.`;
+  } else {
+    // Seguimiento tras email enviado sin respuesta
+    promptContent =
 `Eres el director comercial de Mitsubishi Equipos Frigoríficos para Transporte en España.
 Hoy es ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
 Hace ${dsR||2} días enviaste un email a ${c.contacto} de ${c.empresa} sin obtener respuesta.
@@ -1072,7 +1274,14 @@ Redacta un mensaje de WhatsApp breve y natural para hacer seguimiento.
 - Máximo 3-4 líneas, sin saludos formales excesivos
 - Sin asteriscos ni formato especial, texto plano para WhatsApp
 
-Solo el mensaje, sin explicaciones adicionales.`}]
+Solo el mensaje, sin explicaciones adicionales.`;
+  }
+
+  try {
+    const payload = {
+      model:"claude-sonnet-4-20250514",
+      max_tokens:600,
+      messages:[{role:"user", content: promptContent}]
     };
     
     console.log("[generarWapp] Enviando request a proxy...");
@@ -1210,6 +1419,8 @@ Solo el mensaje, sin explicaciones.`}]
       });
       marcarEmailEnviado();
     };
+    const btnMarcar = document.getElementById("btn-marcar-enviado");
+    if (btnMarcar) btnMarcar.textContent = "✓ Marcar mensaje LinkedIn enviado";
     
   } catch(err) { 
     console.error("[generarMensajeLinkedIn] ❌ Error:", err.message, err);
@@ -1451,10 +1662,21 @@ async function registrarWappEnGoogle() {
 async function marcarWappEnviado() {
   if(!selCliente) return;
   await registrarWappEnGoogle(); // escribe en Google Contacts + Sheets igual que abrirWappWeb
-  // wappEnviadoEnSesion: flag SOLO en memoria. Garantiza que tras marcar WApp
-  // el contacto desaparece de la lista durante toda la sesión actual,
-  // sin importar lo que diga reconstruirEstado al recargar contactos.
-  estado[selCliente.id] = { emailEnviadoEn: null, wappEnviado: true, wappEnviadoEnSesion: true, posponerHasta: null };
+  // ocultoEnSesion: flag SOLO en memoria, unificado para email/WApp/LinkedIn.
+  // Garantiza que tras marcar la acción, el contacto desaparece de la lista
+  // durante toda la sesión actual. Solo reaparece al recargar contactos
+  // desde Google (donde reconstruirEstado decide según las notas).
+  // Mantenemos emailEnviadoEn anterior si existía — útil para dE en accionPara
+  // pero el ciclo avanza al escalón WApp.
+  const prev = estado[selCliente.id] || {};
+  estado[selCliente.id] = {
+    emailEnviadoEn: prev.emailEnviadoEn || null,
+    wappEnviadoEn: Date.now(),
+    linkedinEnviadoEn: null,
+    wappEnviado: true,
+    ocultoEnSesion: true,
+    posponerHasta: null
+  };
   cerrarPanel();
   recalcularClientes();
   renderChips();
