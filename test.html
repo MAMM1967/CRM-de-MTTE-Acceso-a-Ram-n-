@@ -179,8 +179,11 @@
             </div>
             <button class="btn-marcar" onclick="marcarEmailEnviado()">✓ Marcar email enviado — esperar respuesta 2 días</button>
           </div>
-          <!-- Posponer siempre visible en el tab email -->
-          <button class="btn-obviar" onclick="togglePosponer()" style="margin-top:8px;">⏭ No procede ahora — posponer</button>
+          <!-- Posponer / Ignorar siempre visibles en el tab email -->
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <button class="btn-obviar" onclick="togglePosponer()" style="margin-top:0;flex:1;">⏭ Posponer</button>
+            <button class="btn-obviar" onclick="ignorarContacto(selCliente?.id)" style="margin-top:0;flex:1;" title="Ocultar de la lista durante esta sesión. Reaparece al recargar contactos.">🚫 Ignorar por hoy</button>
+          </div>
           <div class="posponer-row" id="posponer-row" style="display:none;">
             <button class="btn-posponer" onclick="posponer(30)">+1 mes</button>
             <button class="btn-posponer" onclick="posponer(90)">+3 meses</button>
@@ -256,6 +259,13 @@ function reconstruirEstado(c) {
   const lineas = c.historial.split("\n").map(l => l.trim()).filter(l => l);
   const hoyMs = Date.now();
 
+  // Detector de línea AUTOMÁTICA del sistema:
+  // formato exacto que escribe la app al marcar email/WApp enviado o al posponer:
+  //   "Próxima acción llamarle en DD-MM-YYYY"
+  // Cualquier otra variante con "próxima" + "acción" + fecha es MANUAL del usuario.
+  const esLineaSistemaProxima = l =>
+    /^pr[oó]xima\s+acci[oó]n\s+llamarle\s+en\s+\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}\.?$/i.test(l.trim());
+
   // Buscar último "Envío email de seguimiento"
   let fechaEmail = null, idxEmail = -1;
   // Buscar último "Envío WhatsApp de seguimiento"
@@ -272,7 +282,7 @@ function reconstruirEstado(c) {
         if (!isNaN(ts)) {
           fechaEmail = ts;
           idxEmail = i;
-          // RESET: nuevo email después del wapp → ciclo reiniciado, ya no contemplamos wapp como gestionado
+          // RESET: nuevo email después del wapp → ciclo reiniciado
           wappEnviado = false;
         }
       }
@@ -283,19 +293,30 @@ function reconstruirEstado(c) {
       fechaEmail = null; // reset — ya no esperamos respuesta al email
     }
     if (/pr[oó]xima/i.test(l) && /acci[oó]n/i.test(l)) {
+      const esSistema = esLineaSistemaProxima(l);
       const mF = l.match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
       if (mF) {
         const fechaISO = `${mF[3]}-${mF[2].padStart(2,"0")}-${mF[1].padStart(2,"0")}`;
         const fechaTs = new Date(fechaISO).getTime();
         if (!isNaN(fechaTs)) {
-          if (fechaTs > hoyMs) {
-            posponerHasta = fechaISO;
+          if (esSistema) {
+            // Línea AUTOMÁTICA del sistema (escrita por la app al marcar email/WApp/posponer)
+            if (fechaTs > hoyMs) {
+              // Fecha futura: ocultar hasta esa fecha
+              posponerHasta = fechaISO;
+              // wappEnviado y fechaEmail mantienen su valor — la app gestiona el ciclo
+            } else {
+              // Fecha pasada: ya tocó actuar, des-ocultar
+              posponerHasta = null;
+              wappEnviado = false;
+            }
           } else {
-            posponerHasta = null; // fecha pasada, ya no posponer
+            // Línea MANUAL del usuario (anotada directamente en Google Contacts)
+            // Indica seguimiento activo: aunque haya WApp previo, el usuario sigue trabajando
+            if (fechaTs > hoyMs) posponerHasta = fechaISO;
+            else posponerHasta = null;
+            wappEnviado = false; // hubo actividad manual posterior
           }
-          // RESET: cualquier "Próxima acción" anotada DESPUÉS del wapp indica seguimiento activo
-          // (independientemente de si su fecha es futura o pasada — la acción manual es lo que cuenta)
-          wappEnviado = false;
         }
       }
     }
@@ -414,6 +435,9 @@ function desfaseProximaAccion(c) {
 // ── CHIPS — filtro por etiqueta de Google Contacts ───────────────────────────
 let chipsActivos = new Set();
 let desfasesIgnorados = new Set();
+// Contactos "ignorados por hoy": ocultos durante esta sesión, sin escribir nada
+// en Google Contacts. Se borra automáticamente al recargar la página.
+let ignoradosEnSesion = new Set();
 
 // Etiquetas de sistema que nunca se muestran ni se usan en el filtro
 const ETIQUETAS_EXCLUIR = new Set(["MIS CONTACTOS", "MYCONTACTS", "STARRED", "ESPAÑA", "SPAIN", "CONTACTOS", "CONTACTS"]);
@@ -425,6 +449,7 @@ function _contarEtiquetas() {
   // así los chips muestran totales reales por etiqueta en toda la base
   _todosLosContactos.forEach(c => {
     if (estaPostpuesto(c.id)) return;
+    if (ignoradosEnSesion.has(c.id)) return;
     (c.etiquetas || []).forEach(et => {
       if (esEtiquetaSistema(et)) return;
       counts[et] = (counts[et] || 0) + 1;
@@ -482,6 +507,7 @@ function recalcularClientes() {
 
   clientes = base
     .filter(c => !estaPostpuesto(c.id))
+    .filter(c => !ignoradosEnSesion.has(c.id))
     .sort(_sortPrioridad)
     .slice(0, limite);
 
@@ -575,6 +601,7 @@ function renderLista() {
     .filter(c => !busq || c.empresa.toLowerCase().includes(busq) || c.contacto.toLowerCase().includes(busq))
     .filter(c => !estaPostpuesto(c.id)) // ocultar postpuestos
     .filter(c => !estaGestionado(c.id)) // ocultar gestionados
+    .filter(c => !ignoradosEnSesion.has(c.id)) // ocultar ignorados en esta sesión
     // Nota: el filtro por chips se aplica en recalcularClientes() al cambiar
     // los chips, no aquí. Así `clientes` ya viene pre-filtrado por etiqueta.
     .sort((a,b) => {
@@ -656,6 +683,7 @@ function renderLista() {
             ${desf && !desfasesIgnorados.has(c.id) ? `<div class="aviso-desfase">⚠️ ${cD.label.toLowerCase()} ${desf.tipo === "sin_fecha" ? "sin próxima acción programada" : `con próxima acción a ${desf.dias} días`} <button onclick="ignorarDesfase('${c.id}',event)" style="margin-left:8px;background:none;border:1px solid #ffaa0066;border-radius:5px;color:#ffaa00;font-size:10px;padding:1px 7px;cursor:pointer;">✕ No adelantar</button></div>` : ""}
             <div style="display:flex;gap:6px;margin-top:6px;">
               <button onclick="event.stopPropagation();posponerDesdeCard('${c.id}')" style="background:#111827;color:#6b7280;border:1px solid #1e2535;border-radius:5px;padding:3px 8px;font-size:10px;cursor:pointer;">⏭ Posponer</button>
+              <button onclick="ignorarDesdeCard('${c.id}',event)" style="background:#111827;color:#6b7280;border:1px solid #1e2535;border-radius:5px;padding:3px 8px;font-size:10px;cursor:pointer;" title="Ocultar de la lista durante esta sesión. Reaparece al recargar.">🚫 Ignorar</button>
             </div>
           </div>
           <div style="text-align:right;min-width:80px;">
@@ -890,6 +918,8 @@ async function marcarEmailEnviado() {
   // Actualizar estado en memoria
   estado[c.id] = { emailEnviadoEn: Date.now(), wappEnviado: false, posponerHasta: null };
   cerrarPanel();
+  recalcularClientes();
+  renderChips();
   renderLista();
 }
 
@@ -924,6 +954,25 @@ function togglePosponer() {
   row.style.display = row.style.display === "none" ? "flex" : "none";
 }
 
+// Ignorar contacto: oculta de la lista durante esta sesión, sin escribir nada
+// en Google Contacts ni en Sheets. Reaparece al recargar contactos desde Google.
+function ignorarContacto(id) {
+  if (!id) return;
+  ignoradosEnSesion.add(id);
+  cerrarPanel();
+  recalcularClientes();
+  renderChips();
+  renderLista();
+}
+
+function ignorarDesdeCard(id, event) {
+  if (event) event.stopPropagation();
+  ignoradosEnSesion.add(id);
+  recalcularClientes();
+  renderChips();
+  renderLista();
+}
+
 async function posponer(numDias) {
   if(!selCliente) return;
   const hasta = new Date();
@@ -946,6 +995,8 @@ async function posponerAFecha(isoFecha, fechaDisplay) {
   const nuevaLinea = `\n${hdd}-${hmm}-${hyyyy}\nPróxima acción llamarle en ${fechaDisplay}`;
   await actualizarNotasGoogle(selCliente.id, nuevaLinea);
   cerrarPanel();
+  recalcularClientes();
+  renderChips();
   renderLista();
 }
 
@@ -977,6 +1028,9 @@ function estaPostpuesto(id) {
 function estaGestionado(id) {
   const e = estado[id];
   if (!e) return false;
+  // Si el WApp se marcó en ESTA sesión, oculto fijo: no aplicamos red de seguridad
+  // ni reevaluación. Solo reaparecerá al recargar contactos desde Google.
+  if (e.wappEnviadoEnSesion) return true;
   // RED DE SEGURIDAD: si tiene una próxima acción vencida o de hoy,
   // nunca lo ocultamos como "gestionado". Una acción vencida es prioritaria
   // por definición y debe aparecer en la lista, pase lo que pase.
@@ -1397,8 +1451,13 @@ async function registrarWappEnGoogle() {
 async function marcarWappEnviado() {
   if(!selCliente) return;
   await registrarWappEnGoogle(); // escribe en Google Contacts + Sheets igual que abrirWappWeb
-  estado[selCliente.id] = { emailEnviadoEn: null, wappEnviado: true, posponerHasta: null };
+  // wappEnviadoEnSesion: flag SOLO en memoria. Garantiza que tras marcar WApp
+  // el contacto desaparece de la lista durante toda la sesión actual,
+  // sin importar lo que diga reconstruirEstado al recargar contactos.
+  estado[selCliente.id] = { emailEnviadoEn: null, wappEnviado: true, wappEnviadoEnSesion: true, posponerHasta: null };
   cerrarPanel();
+  recalcularClientes();
+  renderChips();
   renderLista();
 }
 
