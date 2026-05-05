@@ -1856,6 +1856,11 @@ function conectarGoogle() {
         } else {
           // Calcular categorías ANTES de recalcular (el sort las consulta)
           calcularCategorias();
+          // Auto-activar todos los chips de etiqueta: así el estado por defecto
+          // es "todas activas" y deseleccionar una excluye esa etiqueta realmente.
+          // Sin esto, chipsActivos arranca vacío → sinFiltroE = true → no filtra.
+          const etiquetasIniciales = _contarEtiquetas();
+          Object.keys(etiquetasIniciales).forEach(et => chipsActivos.add(et));
           recalcularClientes(); // genera `clientes` con top 100 global por defecto
         }
         document.getElementById("btn-google").style.display="none";
@@ -1998,6 +2003,12 @@ function resetBtn() {
   btn.disabled=false;
   btn.innerHTML=`${gSvg(16)} Conectar Google Contacts`;
 }
+
+// Render inicial: muestra los contactos demo en la lista al cargar la página.
+// Sin esto, la lista queda vacía hasta que el usuario conecta Google o
+// interactúa con algún control que dispare un re-render.
+calcularCategorias();
+renderLista();
 
 </script>
 </body>
