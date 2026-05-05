@@ -43,17 +43,13 @@
     .badge-google  { font-size:10px; color:#34a853; background:#0d1a0d; border:1px solid #34a85344; padding:1px 6px; border-radius:7px; display:inline-flex; align-items:center; gap:3px; }
     .badge-wapp    { font-size:10px; color:#25d366; background:#001a0d; border:1px solid #25d36644; padding:1px 6px; border-radius:7px; }
 
-    /* CHIPS — filtro por etiqueta y provincia */
-    #chips-container { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; padding:2px; }
+    /* CHIPS — filtro por etiqueta */
+    #chips-container { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; padding:2px; }
     #chips-container:empty { display:none; }
-    .chips-row { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
-    .chips-label { font-size:10px; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px; margin-right:4px; font-weight:700; min-width:62px; }
     .chip { background:#0d1117; border:1px solid #1e2535; color:#9ca3af; border-radius:14px; padding:4px 12px; font-size:11px; font-weight:600; cursor:pointer; transition:all 0.12s; white-space:nowrap; font-family:inherit; }
     .chip:hover { border-color:#374151; color:#e8eaf0; }
     .chip.active { background:linear-gradient(135deg,#c1121f,#e63946); color:#fff; border-color:#e63946; }
     .chip-todos.active { background:linear-gradient(135deg,#1a3a00,#2d6a00); border-color:#4a9900; color:#a3e635; }
-    .chip-prov.active { background:linear-gradient(135deg,#1e40af,#3b82f6); color:#fff; border-color:#3b82f6; }
-    .chip-prov-todas.active { background:linear-gradient(135deg,#1a3a00,#2d6a00); border-color:#4a9900; color:#a3e635; }
 
     /* CATEGORÍAS calientes */
     .badge-cat { font-size:10px; font-weight:700; padding:1px 7px; border-radius:10px; }
@@ -470,7 +466,6 @@ function desfaseProximaAccion(c) {
 
 // ── CHIPS — filtro por etiqueta de Google Contacts ───────────────────────────
 let chipsActivos = new Set();
-let provinciasActivas = new Set();
 let desfasesIgnorados = new Set();
 // Contactos "ignorados por hoy": ocultos durante esta sesión, sin escribir nada
 // en Google Contacts. Se borra automáticamente al recargar la página.
@@ -491,17 +486,6 @@ function _contarEtiquetas() {
       if (esEtiquetaSistema(et)) return;
       counts[et] = (counts[et] || 0) + 1;
     });
-  });
-  return counts;
-}
-
-function _contarProvincias() {
-  const counts = {};
-  _todosLosContactos.forEach(c => {
-    if (estaPostpuesto(c.id)) return;
-    if (ignoradosEnSesion.has(c.id)) return;
-    const prov = (c.provincia && c.provincia.trim()) || "Sin provincia";
-    counts[prov] = (counts[prov] || 0) + 1;
   });
   return counts;
 }
@@ -535,32 +519,27 @@ function _sortPrioridad(a, b) {
 }
 
 // Recalcula `clientes` desde `_todosLosContactos` según los chips activos:
-// - sin chips o todas activas en ambas dimensiones → top 100 global por prioridad
-// - con cualquier filtro parcial (etiqueta y/o provincia) → top 200 del subset (AND)
+// - sin chips o todas activas → top 100 global por prioridad
+// - con chips parciales → top 200 del subset filtrado por etiqueta
 function recalcularClientes() {
   if (!_todosLosContactos || _todosLosContactos.length === 0) return;
-  const countsE = _contarEtiquetas();
-  const countsP = _contarProvincias();
-  const totalE = Object.keys(countsE).length;
-  const totalP = Object.keys(countsP).length;
-  const sinFiltroE = chipsActivos.size === 0 || chipsActivos.size === totalE;
-  const sinFiltroP = provinciasActivas.size === 0 || provinciasActivas.size === totalP;
-  const sinFiltro = sinFiltroE && sinFiltroP;
+  const counts = _contarEtiquetas();
+  const totalEtiquetas = Object.keys(counts).length;
+  const sinFiltro = chipsActivos.size === 0 || chipsActivos.size === totalEtiquetas;
 
-  let base = _todosLosContactos;
-  if (!sinFiltroE) {
-    base = base.filter(c => {
+  let base;
+  let limite;
+  if (sinFiltro) {
+    base   = _todosLosContactos;
+    limite = LIMITE_GLOBAL;
+  } else {
+    // Filtrar por etiquetas activas (cualquier coincidencia)
+    base = _todosLosContactos.filter(c => {
       const etiquetasValidas = (c.etiquetas || []).filter(e => !esEtiquetaSistema(e));
       return etiquetasValidas.some(e => chipsActivos.has(e));
     });
+    limite = LIMITE_FILTRADO;
   }
-  if (!sinFiltroP) {
-    base = base.filter(c => {
-      const prov = (c.provincia && c.provincia.trim()) || "Sin provincia";
-      return provinciasActivas.has(prov);
-    });
-  }
-  const limite = sinFiltro ? LIMITE_GLOBAL : LIMITE_FILTRADO;
 
   clientes = base
     .filter(c => !estaPostpuesto(c.id))
@@ -577,91 +556,40 @@ function actualizarInfoText() {
   if (!info || !_todosLosContactos || _todosLosContactos.length === 0) return;
   // Si seguimos mostrando solo demo, no tocamos
   if (_todosLosContactos === DEMO || (_todosLosContactos[0] && !_todosLosContactos[0].fuenteG)) return;
-  const countsE = _contarEtiquetas();
-  const countsP = _contarProvincias();
-  const totalE = Object.keys(countsE).length;
-  const totalP = Object.keys(countsP).length;
-  const sinFiltroE = chipsActivos.size === 0 || chipsActivos.size === totalE;
-  const sinFiltroP = provinciasActivas.size === 0 || provinciasActivas.size === totalP;
-  const sinFiltro = sinFiltroE && sinFiltroP;
+  const counts = _contarEtiquetas();
+  const totalEtiquetas = Object.keys(counts).length;
+  const sinFiltro = chipsActivos.size === 0 || chipsActivos.size === totalEtiquetas;
   const totalBase = _todosLosContactos.length;
   const userEmail = window._currentUser?.email || "";
   if (sinFiltro) {
     info.innerHTML = `<strong style="color:#e8eaf0">${clientes.length} contactos</strong> (top ${LIMITE_GLOBAL} de ${totalBase}) · <span style="color:#4b5563;">${userEmail}</span>`;
   } else {
-    // Subset real filtrado (sin slice) — para mostrar tamaño de la selección
-    let baseFiltrada = _todosLosContactos;
-    if (!sinFiltroE) {
-      baseFiltrada = baseFiltrada.filter(c => {
-        const ev = (c.etiquetas || []).filter(e => !esEtiquetaSistema(e));
-        return ev.some(e => chipsActivos.has(e));
-      });
-    }
-    if (!sinFiltroP) {
-      baseFiltrada = baseFiltrada.filter(c => {
-        const prov = (c.provincia && c.provincia.trim()) || "Sin provincia";
-        return provinciasActivas.has(prov);
-      });
-    }
-    const totalFiltrado = baseFiltrada.length;
-    // Descripción de filtros activos
-    const partes = [];
-    if (!sinFiltroE) {
-      const arr = [...chipsActivos];
-      partes.push(arr.length === 1 ? `etiqueta «${arr[0]}»` : `${arr.length} etiquetas`);
-    }
-    if (!sinFiltroP) {
-      const arr = [...provinciasActivas];
-      partes.push(arr.length === 1 ? `provincia «${arr[0]}»` : `${arr.length} provincias`);
-    }
-    const filtroTxt = partes.join(" + ");
-    info.innerHTML = `<strong style="color:#e8eaf0">${clientes.length} contactos</strong> con ${filtroTxt} (de ${totalFiltrado} en esa selección, ${totalBase} totales) · <span style="color:#4b5563;">${userEmail}</span>`;
+    const etiquetasArr = [...chipsActivos];
+    const etqTxt = etiquetasArr.length === 1 ? `«${etiquetasArr[0]}»` : `${etiquetasArr.length} etiquetas`;
+    const totalFiltrado = _todosLosContactos.filter(c => {
+      const etiquetasValidas = (c.etiquetas || []).filter(e => !esEtiquetaSistema(e));
+      return etiquetasValidas.some(e => chipsActivos.has(e));
+    }).length;
+    info.innerHTML = `<strong style="color:#e8eaf0">${clientes.length} contactos</strong> con ${etqTxt} (de ${totalFiltrado} en esa selección, ${totalBase} totales) · <span style="color:#4b5563;">${userEmail}</span>`;
   }
 }
 
 function renderChips() {
   const cont = document.getElementById("chips-container");
   if (!cont) return;
-  const countsE = _contarEtiquetas();
-  const countsP = _contarProvincias();
-  const ordenadasE = Object.entries(countsE).sort((a,b) => a[0].localeCompare(b[0], 'es'));
-  const ordenadasP = Object.entries(countsP).sort((a,b) => a[0].localeCompare(b[0], 'es'));
-  if (ordenadasE.length === 0 && ordenadasP.length === 0) { cont.innerHTML = ""; return; }
-
-  let html = "";
-
-  // Fila 1 — Etiquetas
-  if (ordenadasE.length > 0) {
-    const totalE = ordenadasE.length;
-    const todasActivasE = chipsActivos.size === totalE;
-    const totalVisible = _todosLosContactos.filter(c => !estaPostpuesto(c.id) && !ignoradosEnSesion.has(c.id)).length;
-    html += `<div class="chips-row">`;
-    html += `<span class="chips-label">Etiqueta</span>`;
-    html += `<button class="chip chip-todos ${todasActivasE ? "active" : ""}" onclick="toggleTodas()">${todasActivasE ? "✓ " : ""}Todas · ${totalVisible}</button>`;
-    ordenadasE.forEach(([etq, n]) => {
-      const active = chipsActivos.has(etq);
-      const safe = etq.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-      html += `<button class="chip ${active ? "active" : ""}" onclick="toggleChip('${safe}')">${etq} · ${n}</button>`;
-    });
-    html += `</div>`;
-  }
-
-  // Fila 2 — Provincias
-  if (ordenadasP.length > 0) {
-    const totalP = ordenadasP.length;
-    const todasActivasP = provinciasActivas.size === totalP;
-    const totalVisibleP = _todosLosContactos.filter(c => !estaPostpuesto(c.id) && !ignoradosEnSesion.has(c.id)).length;
-    html += `<div class="chips-row">`;
-    html += `<span class="chips-label">Provincia</span>`;
-    html += `<button class="chip chip-prov-todas ${todasActivasP ? "active" : ""}" onclick="toggleTodasProvincias()">${todasActivasP ? "✓ " : ""}Todas · ${totalVisibleP}</button>`;
-    ordenadasP.forEach(([prov, n]) => {
-      const active = provinciasActivas.has(prov);
-      const safe = prov.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-      html += `<button class="chip chip-prov ${active ? "active" : ""}" onclick="toggleProvincia('${safe}')">${prov} · ${n}</button>`;
-    });
-    html += `</div>`;
-  }
-
+  const counts = _contarEtiquetas();
+  // Orden alfabético
+  const ordenadas = Object.entries(counts).sort((a,b) => a[0].localeCompare(b[0], 'es'));
+  if (ordenadas.length === 0) { cont.innerHTML = ""; return; }
+  const total = ordenadas.length;
+  const todasActivas = chipsActivos.size === total;
+  const totalVisible = _todosLosContactos.filter(c => !estaPostpuesto(c.id)).length;
+  let html = `<button class="chip chip-todos ${todasActivas ? "active" : ""}" onclick="toggleTodas()">${todasActivas ? "✓ " : ""}Todas · ${totalVisible}</button>`;
+  ordenadas.forEach(([etq, n]) => {
+    const active = chipsActivos.has(etq);
+    const safe = etq.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    html += `<button class="chip ${active ? "active" : ""}" onclick="toggleChip('${safe}')">${etq} · ${n}</button>`;
+  });
   cont.innerHTML = html;
 }
 
@@ -690,35 +618,6 @@ function toggleChip(etq) {
     // Si queda vacío ya actúa como "sin filtro" por el filtro en renderLista
   } else {
     chipsActivos.add(etq);
-  }
-  recalcularClientes();
-  renderChips();
-  renderLista();
-}
-
-function toggleTodasProvincias() {
-  const counts = _contarProvincias();
-  const total = Object.keys(counts).length;
-  if (provinciasActivas.size === total) {
-    provinciasActivas.clear(); // todas activas → limpiar
-  } else {
-    Object.keys(counts).forEach(p => provinciasActivas.add(p)); // activar todas
-  }
-  recalcularClientes();
-  renderChips();
-  renderLista();
-}
-
-function toggleProvincia(prov) {
-  const counts = _contarProvincias();
-  const total = Object.keys(counts).length;
-  const todasActivas = provinciasActivas.size === total;
-  if (todasActivas) {
-    provinciasActivas.delete(prov);
-  } else if (provinciasActivas.has(prov)) {
-    provinciasActivas.delete(prov);
-  } else {
-    provinciasActivas.add(prov);
   }
   recalcularClientes();
   renderChips();
@@ -1856,6 +1755,10 @@ function conectarGoogle() {
         } else {
           // Calcular categorías ANTES de recalcular (el sort las consulta)
           calcularCategorias();
+          // Auto-activar todos los chips de etiqueta: así el estado por defecto
+          // es "todas activas" y deseleccionar una excluye esa etiqueta realmente.
+          const etiquetasIniciales = _contarEtiquetas();
+          Object.keys(etiquetasIniciales).forEach(et => chipsActivos.add(et));
           recalcularClientes(); // genera `clientes` con top 100 global por defecto
         }
         document.getElementById("btn-google").style.display="none";
