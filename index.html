@@ -470,7 +470,13 @@ function detectarCategoria(c) {
 }
 
 function calcularCategorias() {
-  clientes.forEach(c => { c._categoria = detectarCategoria(c); });
+  // Calculamos categorías sobre la base COMPLETA (_todosLosContactos)
+  // porque _sortPrioridad las consulta para seleccionar el top 100, y ese
+  // sort opera sobre la base completa, no solo sobre `clientes`.
+  // Si _todosLosContactos no está poblado aún (antes de conectar Google),
+  // caemos a `clientes` (los demos).
+  const base = (_todosLosContactos && _todosLosContactos.length > 0) ? _todosLosContactos : clientes;
+  base.forEach(c => { c._categoria = detectarCategoria(c); });
 }
 
 // Aviso de desfase: cliente caliente con próxima acción a más de 7 días vista
@@ -525,28 +531,35 @@ function _contarProvincias() {
 // Sort de prioridad para selección inicial (mismo criterio que el sort de carga)
 function _sortPrioridad(a, b) {
   const hoy0 = new Date(); hoy0.setHours(0,0,0,0);
-  // 1. Próxima acción vencida o hoy
+  // 1. Próxima acción vencida o hoy → primero, fecha más antigua
   const aPA = a.proximaAccion && new Date(a.proximaAccion) <= hoy0 ? 1 : 0;
   const bPA = b.proximaAccion && new Date(b.proximaAccion) <= hoy0 ? 1 : 0;
   if (bPA !== aPA) return bPA - aPA;
+  if (aPA && bPA) return new Date(a.proximaAccion) - new Date(b.proximaAccion);
   // 2. WhatsApp pendiente
   const aW = necesitaWapp(a.id) ? 1 : 0;
   const bW = necesitaWapp(b.id) ? 1 : 0;
   if (bW !== aW) return bW - aW;
-  // 2b. LinkedIn pendiente (escalón 3 del ciclo)
+  // 3. LinkedIn pendiente
   const aL = necesitaLinkedIn(a.id) ? 1 : 0;
   const bL = necesitaLinkedIn(b.id) ? 1 : 0;
   if (bL !== aL) return bL - aL;
-  // 3. Próxima acción futura más próxima
-  const aFut = a.proximaAccion && new Date(a.proximaAccion) > hoy0 ? new Date(a.proximaAccion).getTime() : Infinity;
-  const bFut = b.proximaAccion && new Date(b.proximaAccion) > hoy0 ? new Date(b.proximaAccion).getTime() : Infinity;
-  if (aFut !== bFut) return aFut - bFut;
-  // 4. Con historial activo y +90 días sin contacto → antes que sin historial
+  // 4. Con historial activo → sub-orden por categoría caliente, luego días sin contacto
   const tieneHistorialActivo = c => c.historial && /\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}/.test(c.historial);
-  const aActivo = tieneHistorialActivo(a) && dias(a.ultimoContacto) >= 90 ? 1 : 0;
-  const bActivo = tieneHistorialActivo(b) && dias(b.ultimoContacto) >= 90 ? 1 : 0;
+  const aActivo = tieneHistorialActivo(a) ? 1 : 0;
+  const bActivo = tieneHistorialActivo(b) ? 1 : 0;
   if (bActivo !== aActivo) return bActivo - aActivo;
-  // 5. Más días sin contacto
+  if (aActivo && bActivo) {
+    const aCatP = CATEGORIAS[a._categoria || "frio"].prio;
+    const bCatP = CATEGORIAS[b._categoria || "frio"].prio;
+    if (aCatP !== bCatP) return aCatP - bCatP;
+    return dias(b.ultimoContacto) - dias(a.ultimoContacto);
+  }
+  // 5. Email recién enviado al final
+  const aEspera = estado[a.id]?.emailEnviadoEn && !necesitaWapp(a.id) && !estado[a.id]?.wappEnviado ? 1 : 0;
+  const bEspera = estado[b.id]?.emailEnviadoEn && !necesitaWapp(b.id) && !estado[b.id]?.wappEnviado ? 1 : 0;
+  if (aEspera !== bEspera) return aEspera - bEspera;
+  // 6. Por días sin contacto
   return dias(b.ultimoContacto) - dias(a.ultimoContacto);
 }
 
@@ -1314,15 +1327,15 @@ function estaPostpuesto(id) {
 function estaGestionado(id) {
   const e = estado[id];
   if (!e) return false;
-  // Si la acción se marcó en ESTA sesión (email/WApp/LinkedIn), oculto fijo:
-  // no aplicamos red de seguridad ni reevaluación. Solo reaparecerá al
-  // recargar contactos desde Google.
-  if (e.ocultoEnSesion) return true;
-  // RED DE SEGURIDAD: si tiene una próxima acción vencida o de hoy,
-  // nunca lo ocultamos como "gestionado". Una acción vencida es prioritaria
-  // por definición y debe aparecer en la lista, pase lo que pase.
+  // RED DE SEGURIDAD (PRIORIDAD MÁXIMA): si tiene una próxima acción vencida
+  // o de hoy, NUNCA lo ocultamos. Una acción vencida es prioritaria por
+  // definición — debe aparecer en la lista pase lo que pase, incluso si
+  // hemos interactuado con él en esta sesión.
   const c = clientes.find(x => x.id === id) || _todosLosContactos.find(x => x.id === id);
   if (c && proximaAccionPendiente(c)) return false;
+  // Si la acción se marcó en ESTA sesión (email/WApp/LinkedIn), oculto fijo:
+  // Solo reaparecerá al recargar contactos desde Google.
+  if (e.ocultoEnSesion) return true;
   if (e.wappEnviado) return true;                        // WhatsApp enviado → ocultar
   if (e.emailEnviadoEn && !necesitaWapp(id)) return true; // Email reciente sin respuesta aún → ocultar hasta que pasen 2 días
   return false;
