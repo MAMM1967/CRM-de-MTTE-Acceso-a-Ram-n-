@@ -1036,13 +1036,14 @@ async function generarEmail(c) {
   document.getElementById("spin-email").style.display  = "block";
   document.getElementById("email-result").style.display = "none";
   const d = dias(c.ultimoContacto);
+  const miNombre = window._currentUser?.nombre || "el director comercial";
   
   try {
     const payload = { 
       model:"claude-sonnet-4-20250514", 
       max_tokens:1000,
       messages:[{role:"user", content:
-`Eres el asistente comercial del Director de Mitsubishi Equipos Frigoríficos para Transporte en España.
+`Eres el asistente comercial de ${miNombre}, Director de Mitsubishi Equipos Frigoríficos para Transporte en España.
 Hoy es ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
 
 CLIENTE:
@@ -1353,13 +1354,14 @@ async function generarWapp(c, tipo = "seguimiento") {
   const dsR = diasSinRespuesta(c.id);
   const d = dias(c.ultimoContacto);
   const tipoCliente = c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario ? "Intermediario (carrocero/renting/servicio oficial)" : "General";
+  const miNombre = window._currentUser?.nombre || "el director comercial";
 
   // Construir el prompt según el tipo de mensaje
   let promptContent;
   if (tipo === "primer_contacto") {
     // WApp como primer canal de contacto: no hay email previo
     promptContent =
-`Eres el director comercial de Mitsubishi Equipos Frigoríficos para Transporte en España.
+`Eres ${miNombre}, director comercial de Mitsubishi Equipos Frigoríficos para Transporte en España.
 Hoy es ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
 
 CONTACTO:
@@ -1379,7 +1381,7 @@ Vas a contactar a ${c.contacto} por WhatsApp. No tenemos email registrado, así 
 
 Redacta un mensaje WhatsApp breve y natural:
 - Tono: cercano, profesional, sin presión
-- Identifícate brevemente (Mitsubishi Equipos Frigoríficos)
+- Identifícate brevemente (${miNombre}, Mitsubishi Equipos Frigoríficos)
 - ${c.historial && c.historial !== "Sin historial." ? "Haz UNA referencia concreta al historial si tienes algún detalle relevante" : "Si no nos conocemos previamente, preséntate de forma breve"}
 - ${c.esClienteFinal ? "Pregunta por próximas renovaciones de flota frigorífica" : c.esIntermediario ? "Pregunta por proyectos en marcha donde podamos colaborar" : "Pregunta si tienen previstas renovaciones o ampliaciones de flota"}
 - Termina con una pregunta abierta o propuesta de breve charla
@@ -1391,7 +1393,7 @@ Solo el mensaje, sin explicaciones adicionales.`;
   } else {
     // Seguimiento tras email enviado sin respuesta
     promptContent =
-`Eres el director comercial de Mitsubishi Equipos Frigoríficos para Transporte en España.
+`Eres ${miNombre}, director comercial de Mitsubishi Equipos Frigoríficos para Transporte en España.
 Hoy es ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
 Hace ${dsR||2} días enviaste un email a ${c.contacto} de ${c.empresa} sin obtener respuesta.
 
@@ -1472,13 +1474,14 @@ async function generarMensajeLinkedIn(c) {
   document.getElementById("spin-email").style.display   = "block";
   document.getElementById("email-result").style.display = "none";
   const d = Math.floor((Date.now() - new Date(c.ultimoContacto)) / 86400000);
+  const miNombre = window._currentUser?.nombre || "el director comercial";
   
   try {
     const payload = {
       model:"claude-sonnet-4-20250514", 
       max_tokens:400,
       messages:[{role:"user", content:
-`Eres el director comercial de Mitsubishi Equipos Frigoríficos para Transporte en España.
+`Eres ${miNombre}, director comercial de Mitsubishi Equipos Frigoríficos para Transporte en España.
 Hoy es ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
 
 CONTACTO:
