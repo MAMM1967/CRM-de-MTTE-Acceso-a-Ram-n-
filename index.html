@@ -108,6 +108,12 @@
     .wapp-api-input { width:100%; background:#0d1117; border:1px solid #1e2535; border-radius:6px; padding:7px 10px; color:#e8eaf0; font-size:12px; outline:none; margin-bottom:6px; }
     .btn-wapp-api { width:100%; background:#1a2a1a; color:#25d366; border:1px solid #25d36644; border-radius:7px; padding:8px; font-size:12px; cursor:pointer; font-weight:600; }
 
+    .motor-switcher { display:flex; background:#111827; border:1px solid #1e2535; border-radius:8px; padding:2px; gap:2px; }
+    .motor-btn { background:none; border:none; border-radius:6px; padding:4px 11px; font-size:11px; font-weight:700; cursor:pointer; color:#6b7280; transition:all 0.15s; white-space:nowrap; }
+    .motor-btn:hover { color:#9ca3af; }
+    .motor-btn.active-claude  { background:#1a0608; color:#e63946; }
+    .motor-btn.active-workers { background:#0a1220; color:#60a5fa; }
+    .motor-btn:disabled { opacity:0.4; cursor:not-allowed; }
     .pendiente-wapp { background:#001a0d; border:1px solid #25d36633; border-radius:6px; padding:3px 8px; font-size:10px; color:#25d366; font-weight:600; }
   </style>
 </head>
@@ -124,6 +130,10 @@
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;">
+        <div class="motor-switcher" id="motor-switcher" title="Motor de IA activo">
+          <button class="motor-btn active-claude" id="btn-motor-claude" onclick="setMotorIA('anthropic')">⚡ Claude</button>
+          <button class="motor-btn" id="btn-motor-workers" onclick="setMotorIA('workersai')">☁️ Workers AI</button>
+        </div>
         <div id="badge-urgent"></div>
         <div id="user-badge">
           <div style="width:7px;height:7px;border-radius:50%;background:#34a853;"></div>
@@ -233,6 +243,12 @@ const GOOGLE_SCOPES    = "https://www.googleapis.com/auth/contacts https://www.g
 const STORAGE_KEY      = "mitsubishi_seguimiento";
 const SHEET_ID         = "1nKeeV1mDqtaHKdWIljitlcmck4b11sm0-RlSdeQj0YI";
 const SHEET_TAB        = "Acciones Comerciales";
+// URLs de los motores de IA disponibles
+const PROXY_ANTHROPIC  = "https://damp-limit-0374.mezquiriz.workers.dev";
+const PROXY_WORKERS_AI = "https://proxy-workers-ai.mezquiriz.workers.dev"; // Worker de Llama 4 Scout en Workers AI
+
+let PROXY_URL    = PROXY_ANTHROPIC; // motor activo (cambia con setMotorIA)
+let _motorActivo = "anthropic";
 
 const DEMO = [
   { id:"d1", empresa:"Transportes García & Hijos",  contacto:"Javier García", cargo:"Director de Operaciones", email:"jgarcia@transportesgarcia.es",   telefono:"+34 612 345 678", sector:"Transporte frigorífico nacional", equipos:"3x Mitsubishi FRC-520, 1x FRC-320", ultimoContacto:"2024-10-15", historial:"Renovaron flota en 2021. Interesados en equipos eléctricos. Posible ampliación en 2025.", fuenteG:false },
@@ -1064,7 +1080,7 @@ ASUNTO: [asunto específico, no genérico]
     };
     
     console.log("[generarEmail] Enviando request a proxy...");
-    const res = await fetch("https://damp-limit-0374.mezquiriz.workers.dev",{
+    const res = await fetch(PROXY_URL,{
       method:"POST", 
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify(payload)
@@ -1079,10 +1095,18 @@ ASUNTO: [asunto específico, no genérico]
     }
     
     const data = await res.json();
-    console.log("[generarEmail] Response data recibida, procesando...");
+    
+    // Error estructurado de Anthropic (proxy reenvía tal cual)
+    if (data.type === "error" && data.error) {
+      const msg = data.error.message || "Error desconocido";
+      if (/credit balance/i.test(msg)) {
+        throw new Error("⚠️ Sin créditos en la cuenta de Anthropic. Recarga en console.anthropic.com → Plans & Billing.");
+      }
+      throw new Error(`API Anthropic: ${msg}`);
+    }
     
     if (!data.content || !Array.isArray(data.content)) {
-      throw new Error("Respuesta inesperada del API: sin campo 'content' o no es array");
+      throw new Error(`Respuesta inesperada del API: ${JSON.stringify(data).slice(0, 200)}`);
     }
     
     const txt  = data.content?.map(b=>b.text||"").join("\n") || "";
@@ -1380,7 +1404,7 @@ Solo el mensaje, sin explicaciones adicionales.`;
     };
     
     console.log("[generarWapp] Enviando request a proxy...");
-    const res = await fetch("https://damp-limit-0374.mezquiriz.workers.dev",{
+    const res = await fetch(PROXY_URL,{
       method:"POST", 
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify(payload)
@@ -1396,6 +1420,14 @@ Solo el mensaje, sin explicaciones adicionales.`;
     
     const data = await res.json();
     console.log("[generarWapp] Response data recibida");
+    
+    if (data.type === "error" && data.error) {
+      const msg = data.error.message || "Error desconocido";
+      if (/credit balance/i.test(msg)) {
+        throw new Error("⚠️ Sin créditos en la cuenta de Anthropic. Recarga en console.anthropic.com → Plans & Billing.");
+      }
+      throw new Error(`API Anthropic: ${msg}`);
+    }
     
     if (!data.content || !Array.isArray(data.content)) {
       throw new Error("Respuesta inesperada del API: sin campo 'content'");
@@ -1460,7 +1492,7 @@ Solo el mensaje, sin explicaciones.`}]
     };
     
     console.log("[generarMensajeLinkedIn] Enviando request a proxy...");
-    const res = await fetch("https://damp-limit-0374.mezquiriz.workers.dev", {
+    const res = await fetch(PROXY_URL, {
       method:"POST", 
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify(payload)
@@ -1476,6 +1508,14 @@ Solo el mensaje, sin explicaciones.`}]
     
     const data = await res.json();
     console.log("[generarMensajeLinkedIn] Response data recibida");
+    
+    if (data.type === "error" && data.error) {
+      const msg = data.error.message || "Error desconocido";
+      if (/credit balance/i.test(msg)) {
+        throw new Error("⚠️ Sin créditos en la cuenta de Anthropic. Recarga en console.anthropic.com → Plans & Billing.");
+      }
+      throw new Error(`API Anthropic: ${msg}`);
+    }
     
     if (!data.content || !Array.isArray(data.content)) {
       throw new Error("Respuesta inesperada del API");
@@ -1538,7 +1578,7 @@ async function generarResumenAccion(tipoMensaje, asunto, cuerpo) {
   const fallback = `Envío ${tipoMensaje} de seguimiento`;
   if (!cuerpo || cuerpo.trim().length === 0) return fallback;
   try {
-    const res = await fetch("https://damp-limit-0374.mezquiriz.workers.dev", {
+    const res = await fetch(PROXY_URL, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514", max_tokens: 80,
@@ -1573,7 +1613,7 @@ async function calcularProximaAccionIA(notas, tipoContacto, esWapp) {
   const mm = String(hoy.getMonth()+1).padStart(2,"0");
   const yyyy = hoy.getFullYear();
   try {
-    const res = await fetch("https://damp-limit-0374.mezquiriz.workers.dev", {
+    const res = await fetch(PROXY_URL, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514", max_tokens: 100,
@@ -1997,6 +2037,37 @@ function resetBtn() {
   btn.disabled=false;
   btn.innerHTML=`${gSvg(16)} Conectar Google Contacts`;
 }
+
+// ── SELECTOR DE MOTOR DE IA ───────────────────────────────────────────────────
+function setMotorIA(motor) {
+  const btnClaude   = document.getElementById("btn-motor-claude");
+  const btnWorkers  = document.getElementById("btn-motor-workers");
+  const isWorkers   = motor === "workersai";
+
+  // Validar que Workers AI tiene URL configurada
+  if (isWorkers && !PROXY_WORKERS_AI) {
+    mostrarError("☁️ Workers AI no configurado aún. Crea el Worker y añade su URL en PROXY_WORKERS_AI.");
+    return;
+  }
+
+  _motorActivo = motor;
+  PROXY_URL    = isWorkers ? PROXY_WORKERS_AI : PROXY_ANTHROPIC;
+
+  // Actualizar botones
+  btnClaude.classList.toggle("active-claude",   !isWorkers);
+  btnWorkers.classList.toggle("active-workers",  isWorkers);
+
+  // Guardar en sessionStorage (persiste mientras la pestaña esté abierta)
+  try { sessionStorage.setItem("motorIA", motor); } catch(e) {}
+
+  console.log("[IA] Motor activo:", motor, "→", PROXY_URL);
+}
+
+// Restaurar motor de la sesión anterior (si se recargan los contactos en otra pestaña ya activa)
+try {
+  const saved = sessionStorage.getItem("motorIA");
+  if (saved === "workersai" && PROXY_WORKERS_AI) setMotorIA("workersai");
+} catch(e) {}
 
 // Render inicial: muestra los contactos demo en la lista al cargar la página.
 // Sin esto, la lista queda vacía hasta que el usuario conecta Google o
