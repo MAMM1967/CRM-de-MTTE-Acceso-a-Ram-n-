@@ -1079,10 +1079,10 @@ ASUNTO: [asunto específico, no genérico]
     }
     
     const data = await res.json();
-    console.log("[generarEmail] Response data recibida, procesando...");
+    console.log("[generarEmail] Response data completa:", JSON.stringify(data).slice(0, 500));
     
     if (!data.content || !Array.isArray(data.content)) {
-      throw new Error("Respuesta inesperada del API: sin campo 'content' o no es array");
+      throw new Error(`Respuesta inesperada del API: ${JSON.stringify(data).slice(0, 200)}`);
     }
     
     const txt  = data.content?.map(b=>b.text||"").join("\n") || "";
