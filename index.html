@@ -742,41 +742,35 @@ function renderLista() {
     // Nota: el filtro por chips se aplica en recalcularClientes() al cambiar
     // los chips, no aquí. Así `clientes` ya viene pre-filtrado por etiqueta.
     .sort((a,b) => {
-      // 0. Categoría caliente — máxima prioridad por encima de todo lo demás
-      const aCat = a._categoria || "frio";
-      const bCat = b._categoria || "frio";
-      const aCP  = CATEGORIAS[aCat].prio;
-      const bCP  = CATEGORIAS[bCat].prio;
-      if (aCP !== bCP) return aCP - bCP;
-      // Si ambos son la misma categoría caliente (1-4), ordenar por días sin contacto desc
-      if (aCP < 5) return dias(b.ultimoContacto) - dias(a.ultimoContacto);
-      // A partir de aquí ambos son fríos — lógica existente
-      // 1. Próxima acción vencida → primero, ordenados por fecha más antigua
+      // 1. Próxima acción vencida o de hoy → primero, por fecha más antigua
       const aPA = proximaAccionPendiente(a) ? 1 : 0;
       const bPA = proximaAccionPendiente(b) ? 1 : 0;
       if (bPA !== aPA) return bPA - aPA;
-      if (aPA && bPA) {
-        // Entre vencidas: la más antigua primero (lleva más tiempo esperando)
-        return new Date(a.proximaAccion) - new Date(b.proximaAccion);
-      }
+      if (aPA && bPA) return new Date(a.proximaAccion) - new Date(b.proximaAccion);
       // 2. WhatsApp pendiente
       const aw = necesitaWapp(a.id) ? 1 : 0;
       const bw = necesitaWapp(b.id) ? 1 : 0;
       if (bw !== aw) return bw - aw;
-      // 2b. LinkedIn pendiente
+      // 3. LinkedIn pendiente
       const aL = necesitaLinkedIn(a.id) ? 1 : 0;
       const bL = necesitaLinkedIn(b.id) ? 1 : 0;
       if (bL !== aL) return bL - aL;
-      // 3. Con historial activo y sin contacto hace +90 días → antes que los sin historial
+      // 4. Con historial activo → sub-orden por categoría caliente, luego días sin contacto
       const tieneHistorial = c => c.historial && /\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}/.test(c.historial);
-      const aActivo = tieneHistorial(a) && dias(a.ultimoContacto) >= 90 ? 1 : 0;
-      const bActivo = tieneHistorial(b) && dias(b.ultimoContacto) >= 90 ? 1 : 0;
+      const aActivo = tieneHistorial(a) ? 1 : 0;
+      const bActivo = tieneHistorial(b) ? 1 : 0;
       if (bActivo !== aActivo) return bActivo - aActivo;
-      // 4. Email recién enviado (menos de 2 días) → van al final, esperando respuesta
+      if (aActivo && bActivo) {
+        const aCatP = CATEGORIAS[a._categoria || "frio"].prio;
+        const bCatP = CATEGORIAS[b._categoria || "frio"].prio;
+        if (aCatP !== bCatP) return aCatP - bCatP;
+        return dias(b.ultimoContacto) - dias(a.ultimoContacto);
+      }
+      // 5. Por días sin contacto (sin historial activo)
       const aEspera = estado[a.id]?.emailEnviadoEn && !necesitaWapp(a.id) && !estado[a.id]?.wappEnviado ? 1 : 0;
       const bEspera = estado[b.id]?.emailEnviadoEn && !necesitaWapp(b.id) && !estado[b.id]?.wappEnviado ? 1 : 0;
       if (aEspera !== bEspera) return aEspera - bEspera;
-      // 5. Por días sin contacto
+      // 6. Email recién enviado (menos de 2 días) → al final
       return dias(b.ultimoContacto) - dias(a.ultimoContacto);
     });
 
