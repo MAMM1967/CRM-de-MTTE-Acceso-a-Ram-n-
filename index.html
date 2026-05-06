@@ -250,6 +250,40 @@ const PROXY_WORKERS_AI = "https://proxy-workers-ai.mezquiriz.workers.dev"; // Wo
 let PROXY_URL    = PROXY_ANTHROPIC; // motor activo (cambia con setMotorIA)
 let _motorActivo = "anthropic";
 
+// Mapeo de usuarios → nombre completo y nombre corto.
+// Detecta por displayName de Google (puede venir como "MAMM") o por email.
+// Si añadimos más usuarios, solo hay que ampliar este array.
+const USUARIOS_CONOCIDOS = [
+  {
+    nombre: "Miguel Angel Mezquiriz",
+    nombreCorto: "Miguel Angel",
+    matches: ["mamm", "mezquiriz", "miguel angel mezquiriz", "miguelangel mezquiriz"],
+    emailMatches: ["mezquiriz", "mamezquiriz", "mmezquiriz", "miguel.angel"]
+  },
+  {
+    nombre: "Ramón Estrela",
+    nombreCorto: "Ramón",
+    matches: ["ramón estrela", "ramon estrela", "estrela", "re"],
+    emailMatches: ["estrela", "ramon", "ramón", "restrela"]
+  }
+];
+
+function normalizarUsuario(displayName, email) {
+  const n = (displayName || "").toLowerCase().trim();
+  const e = (email || "").toLowerCase().trim();
+  for (const u of USUARIOS_CONOCIDOS) {
+    const matchNombre = u.matches.some(m => n === m || n.includes(m));
+    const matchEmail  = u.emailMatches.some(m => e.includes(m));
+    if (matchNombre || matchEmail) {
+      return { nombre: u.nombre, nombreCorto: u.nombreCorto };
+    }
+  }
+  // Fallback: nombre tal cual de Google + primera palabra como nombre corto
+  const nombre = displayName || "Director comercial";
+  const nombreCorto = nombre.split(/\s+/)[0] || nombre;
+  return { nombre, nombreCorto };
+}
+
 const DEMO = [
   { id:"d1", empresa:"Transportes García & Hijos",  contacto:"Javier García", cargo:"Director de Operaciones", email:"jgarcia@transportesgarcia.es",   telefono:"+34 612 345 678", sector:"Transporte frigorífico nacional", equipos:"3x Mitsubishi FRC-520, 1x FRC-320", ultimoContacto:"2024-10-15", historial:"Renovaron flota en 2021. Interesados en equipos eléctricos. Posible ampliación en 2025.", fuenteG:false },
   { id:"d2", empresa:"Logística Frescos del Norte", contacto:"María Suárez",  cargo:"Gerente de Flota",        email:"msuarez@frescosnorte.com",       telefono:"+34 688 901 234", sector:"Distribución alimentaria",        equipos:"6x Mitsubishi FRC-680 (2019)",        ultimoContacto:"2024-11-02", historial:"Flota de 2019, 5 años de uso. Preguntaron por garantías extendidas. Posible renovación total.", fuenteG:false },
@@ -1036,7 +1070,8 @@ async function generarEmail(c) {
   document.getElementById("spin-email").style.display  = "block";
   document.getElementById("email-result").style.display = "none";
   const d = dias(c.ultimoContacto);
-  const miNombre = window._currentUser?.nombre || "el director comercial";
+  const miNombre      = window._currentUser?.nombre      || "el director comercial";
+  const miNombreCorto = window._currentUser?.nombreCorto || "el director";
   
   try {
     const payload = { 
@@ -1343,7 +1378,8 @@ async function generarWapp(c, tipo = "seguimiento") {
   const dsR = diasSinRespuesta(c.id);
   const d = dias(c.ultimoContacto);
   const tipoCliente = c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario ? "Intermediario (carrocero/renting/servicio oficial)" : "General";
-  const miNombre = window._currentUser?.nombre || "el director comercial";
+  const miNombre      = window._currentUser?.nombre      || "el director comercial";
+  const miNombreCorto = window._currentUser?.nombreCorto || "el director";
 
   // Construir el prompt según el tipo de mensaje
   let promptContent;
@@ -1366,7 +1402,7 @@ INSTRUCCIONES:
 
 1. Saludo corto: "Hola ${c.contacto.split(" ")[0]},".
 
-2. Preséntate en una frase: "Soy ${miNombre}, de Mitsubishi Equipos Frigoríficos."
+2. Preséntate en una frase: "Soy ${miNombreCorto}, de Mitsubishi Equipos Frigoríficos."
 
 3. Si hay un detalle concreto en el historial (un proyecto, un equipo, alguien), menciónalo. Si no, di "te escribo por si os puede interesar lo que hacemos en frigoríficos para transporte".
 
@@ -1376,7 +1412,7 @@ INSTRUCCIONES:
 
 EJEMPLO DEL ESTILO:
 "Hola Pedro,
-Soy Miguel Angel, de Mitsubishi Equipos Frigoríficos. Vi que llevas la flota de MercaFrío.
+Soy ${miNombreCorto}, de Mitsubishi Equipos Frigoríficos. Vi que llevas la flota de MercaFrío.
 ¿Tenéis previsto renovar equipos en los próximos meses?
 Si te encaja, te llamo cuando me digas."
 
@@ -1472,7 +1508,8 @@ async function generarMensajeLinkedIn(c) {
   document.getElementById("spin-email").style.display   = "block";
   document.getElementById("email-result").style.display = "none";
   const d = Math.floor((Date.now() - new Date(c.ultimoContacto)) / 86400000);
-  const miNombre = window._currentUser?.nombre || "el director comercial";
+  const miNombre      = window._currentUser?.nombre      || "el director comercial";
+  const miNombreCorto = window._currentUser?.nombreCorto || "el director";
   
   try {
     const payload = {
@@ -1857,12 +1894,16 @@ function conectarGoogle() {
             { headers: { Authorization: `Bearer ${resp.access_token}` } }
           );
           const meData = await meRes.json();
+          const displayName = meData.names?.[0]?.displayName || "Usuario";
+          const userEmail   = meData.emailAddresses?.[0]?.value || "";
+          const u = normalizarUsuario(displayName, userEmail);
           window._currentUser = {
-            nombre: meData.names?.[0]?.displayName || "Usuario",
-            email:  meData.emailAddresses?.[0]?.value || ""
+            nombre: u.nombre,
+            nombreCorto: u.nombreCorto,
+            email: userEmail
           };
         } catch(e) {
-          window._currentUser = { nombre: "Usuario", email: "" };
+          window._currentUser = { nombre: "Usuario", nombreCorto: "Usuario", email: "" };
         }
         // Cargar grupos para obtener nombres de etiquetas
         const grRes = await (await fetch("https://people.googleapis.com/v1/contactGroups?pageSize=200",{headers:{Authorization:`Bearer ${resp.access_token}`}})).json();
