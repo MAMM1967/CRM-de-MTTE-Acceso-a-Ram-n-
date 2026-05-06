@@ -1043,50 +1043,39 @@ async function generarEmail(c) {
       model:"claude-sonnet-4-20250514", 
       max_tokens:1000,
       messages:[{role:"user", content:
-`Eres el asistente comercial de ${miNombre}, Director de Mitsubishi Equipos Frigoríficos para Transporte en España.
-Hoy es ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
+`Tu rol: ${miNombre}, director comercial de Mitsubishi Equipos Frigoríficos en España.
+Hoy: ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
 
 CLIENTE:
-- Empresa: ${c.empresa}
-- Contacto: ${c.contacto}${c.cargo?` (${c.cargo})`:""}
-- Sector: ${c.sector}
-- Equipos actuales: ${c.equipos}
-- Último contacto: hace ${d} días (${fmt(c.ultimoContacto)})
+Empresa: ${c.empresa}
+Contacto: ${c.contacto}${c.cargo?` (${c.cargo})`:""}
+Sector: ${c.sector}
+Equipos: ${c.equipos}
+Último contacto: hace ${d} días
+Tipo: ${c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario ? "Intermediario (carrocero/renting/servicio oficial)" : "General"}
 
-HISTORIAL COMPLETO DE NOTAS (lee con atención, contiene detalles concretos de conversaciones, intereses y proyectos previos):
-"""
+HISTORIAL DE NOTAS:
 ${c.historial}
-"""
 
-TIPO DE CLIENTE: ${c.esClienteFinal ? "CLIENTE FINAL (tiene flota propia)" : c.esIntermediario ? "INTERMEDIARIO (carrocero/renting/servicio oficial)" : "GENERAL"}
+INSTRUCCIONES (sigue las 5 reglas):
 
-${c.esClienteFinal ?
-  "OBJETIVO: Reactivar el contacto preguntando por próximas renovaciones de flota donde podamos asesorarle." :
-  c.esIntermediario ?
-  "OBJETIVO: Reactivar el contacto preguntando por proyectos que esté gestionando donde podamos colaborar." :
-  "OBJETIVO: Reactivar el contacto y explorar si tienen previsto renovar o ampliar flota frigorífica."
-}
+1. ABRE DIRECTO. Nada de "Espero que esté bien" ni "Le escribo para hacer seguimiento".
 
-INSTRUCCIONES CRÍTICAS — léelas todas antes de redactar:
+2. UNA REFERENCIA AL HISTORIAL. Busca un detalle concreto (proyecto, equipo, conversación previa, persona) y menciónalo en la primera frase. Si el historial solo tiene fechas, di simplemente: "Hace tiempo que no hablamos".
 
-1. PERSONALIZACIÓN OBLIGATORIA: Identifica EN EL HISTORIAL al menos UN detalle concreto (un proyecto mencionado, un equipo específico, una conversación previa, una persona, una fecha o evento, un interés expresado, un problema comentado) y haz REFERENCIA EXPLÍCITA a ello en el cuerpo. Si el historial está vacío o solo contiene fechas/líneas de sistema, indícalo de forma natural ("hace tiempo que no estamos en contacto") sin inventar nada.
+3. UNA SOLA PETICIÓN. Llamada O visita O enviar info. No tres cosas a la vez.
 
-2. EVITAR PLANTILLAS: NO uses frases comodín tipo "espero que se encuentre bien", "le escribo para hacer seguimiento", "no quería dejar pasar más tiempo sin contactar", "me gustaría retomar el contacto". Empieza el email de forma directa y específica al cliente.
+4. MÁXIMO 100 PALABRAS. Corto y útil. Sin floritura.
 
-3. VARIEDAD EN LA APERTURA: Cada email debe abrirse de forma distinta. Puedes empezar con: una pregunta directa, una referencia concreta a la conversación previa, un dato relevante de la actualidad del sector, un comentario sobre los equipos que ya tienen, etc. NO empieces siempre igual.
+5. NO firmes el email. Sin "Saludos" ni nombre al final.
 
-4. TONO: Director senior, cercano, no agresivo. Trato de "tú" o "usted" según lo que sugiera el historial — si no hay pista, usa "tú".
+EJEMPLO DEL ESTILO QUE BUSCO:
+"Hola Pedro, vi en mi nota que en agosto comentaste estudiar 3-4 unidades nuevas para Q2. ¿Sigue en pie? Tenemos disponibilidad inmediata en FRC-420 y precio mejor que el año pasado. ¿Te llamo el martes?"
 
-5. MITSUBISHI: Menciona sutilmente UNA ventaja concreta (eficiencia energética, fiabilidad, red de soporte en España, modelos eléctricos/híbridos, etc.) — sólo si encaja con lo que el cliente necesita según su historial.
+FORMATO:
+ASUNTO: [breve, específico al cliente, sin "seguimiento" ni "contacto"]
 
-6. LONGITUD: Máximo 130 palabras. Mejor corto y específico que largo y genérico.
-
-7. CIERRE: Termina con una pregunta concreta o una propuesta clara (llamada, visita, envío de información). NO incluyas firma, despedida formal ni nombre al final.
-
-Formato exacto de salida:
-ASUNTO: [asunto específico, no genérico]
-
-[cuerpo del email]`}]
+[cuerpo en 4-5 líneas naturales]`}]
     };
     
     console.log("[generarEmail] Enviando request a proxy...");
@@ -1361,50 +1350,59 @@ async function generarWapp(c, tipo = "seguimiento") {
   if (tipo === "primer_contacto") {
     // WApp como primer canal de contacto: no hay email previo
     promptContent =
-`Eres ${miNombre}, director comercial de Mitsubishi Equipos Frigoríficos para Transporte en España.
-Hoy es ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
+`Tu rol: ${miNombre}, director de Mitsubishi Equipos Frigoríficos en España.
+Vas a escribir un WhatsApp a ${c.contacto} de ${c.empresa}. Nunca habéis hablado por email.
 
-CONTACTO:
-- Nombre: ${c.contacto}${c.cargo ? ` (${c.cargo})` : ""}
-- Empresa: ${c.empresa}
-- Sector: ${c.sector}
-- Equipos actuales: ${c.equipos}
-- Último contacto: hace ${d} días
-- Tipo de cliente: ${tipoCliente}
+DATOS:
+Cargo: ${c.cargo || "—"}
+Sector: ${c.sector}
+Equipos: ${c.equipos}
+Tipo: ${tipoCliente}
 
 HISTORIAL DE NOTAS:
-"""
 ${c.historial}
-"""
 
-Vas a contactar a ${c.contacto} por WhatsApp. No tenemos email registrado, así que este es el primer canal de contacto.
+INSTRUCCIONES:
 
-Redacta un mensaje WhatsApp breve y natural:
-- Tono: cercano, profesional, sin presión
-- Identifícate brevemente (${miNombre}, Mitsubishi Equipos Frigoríficos)
-- ${c.historial && c.historial !== "Sin historial." ? "Haz UNA referencia concreta al historial si tienes algún detalle relevante" : "Si no nos conocemos previamente, preséntate de forma breve"}
-- ${c.esClienteFinal ? "Pregunta por próximas renovaciones de flota frigorífica" : c.esIntermediario ? "Pregunta por proyectos en marcha donde podamos colaborar" : "Pregunta si tienen previstas renovaciones o ampliaciones de flota"}
-- Termina con una pregunta abierta o propuesta de breve charla
-- Máximo 4-5 líneas
-- Sin asteriscos ni formato especial, texto plano para WhatsApp
-- Sin saludos formales excesivos tipo "Espero que se encuentre bien"
+1. Saludo corto: "Hola ${c.contacto.split(" ")[0]},".
 
-Solo el mensaje, sin explicaciones adicionales.`;
+2. Preséntate en una frase: "Soy ${miNombre}, de Mitsubishi Equipos Frigoríficos."
+
+3. Si hay un detalle concreto en el historial (un proyecto, un equipo, alguien), menciónalo. Si no, di "te escribo por si os puede interesar lo que hacemos en frigoríficos para transporte".
+
+4. Pregunta concreta: ${c.esClienteFinal ? '"¿Tenéis previsto renovar flota frigorífica próximamente?"' : c.esIntermediario ? '"¿Estás trabajando en algún proyecto donde podamos colaborar?"' : '"¿Tenéis algún proyecto de flota frigorífica en marcha?"'}
+
+5. Máximo 4 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
+
+EJEMPLO DEL ESTILO:
+"Hola Pedro,
+Soy Miguel Angel, de Mitsubishi Equipos Frigoríficos. Vi que llevas la flota de MercaFrío.
+¿Tenéis previsto renovar equipos en los próximos meses?
+Si te encaja, te llamo cuando me digas."
+
+Devuelve solo el mensaje.`;
   } else {
     // Seguimiento tras email enviado sin respuesta
     promptContent =
-`Eres ${miNombre}, director comercial de Mitsubishi Equipos Frigoríficos para Transporte en España.
-Hoy es ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
-Hace ${dsR||2} días enviaste un email a ${c.contacto} de ${c.empresa} sin obtener respuesta.
+`Tu rol: ${miNombre}, director de Mitsubishi Equipos Frigoríficos.
+Hace ${dsR||2} días mandaste un email a ${c.contacto} de ${c.empresa} y no responde.
 
-Redacta un mensaje de WhatsApp breve y natural para hacer seguimiento. 
-- Tono: cercano, directo, sin presión
-- Haz referencia al email enviado de forma natural
-- Pregunta si lo recibieron o si tienen un momento para hablar
-- Máximo 3-4 líneas, sin saludos formales excesivos
-- Sin asteriscos ni formato especial, texto plano para WhatsApp
+INSTRUCCIONES:
 
-Solo el mensaje, sin explicaciones adicionales.`;
+1. Saludo corto: "Hola ${c.contacto.split(" ")[0]},".
+
+2. Una sola frase: "Te mandé un email hace unos días sobre [tema] y no sé si te llegó."
+
+3. Pregunta directa: "¿Tienes 5 minutos esta semana para hablar?"
+
+4. Máximo 3 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
+
+EJEMPLO:
+"Hola Pedro,
+Te escribí el otro día sobre las unidades nuevas, no sé si te llegó.
+¿Tienes 5 min esta semana para hablarlo?"
+
+Devuelve solo el mensaje.`;
   }
 
   try {
@@ -1481,26 +1479,34 @@ async function generarMensajeLinkedIn(c) {
       model:"claude-sonnet-4-20250514", 
       max_tokens:400,
       messages:[{role:"user", content:
-`Eres ${miNombre}, director comercial de Mitsubishi Equipos Frigoríficos para Transporte en España.
-Hoy es ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
+`Tu rol: ${miNombre}, director de Mitsubishi Equipos Frigoríficos en España.
+Vas a escribir un mensaje LinkedIn a ${c.contacto} (${c.cargo || "—"}) de ${c.empresa}.
 
-CONTACTO:
-- Nombre: ${c.contacto}${c.cargo ? ` (${c.cargo})` : ""}
-- Empresa: ${c.empresa}
-- Sector: ${c.sector}
-- Último contacto: hace ${d} días
-- Historial: ${c.historial}
+DATOS:
+Sector: ${c.sector}
+Último contacto: hace ${d} días
+Tipo: ${c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario ? "Intermediario" : "General"}
 
-TIPO: ${c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario ? "Intermediario (carrocero/renting/servicio oficial)" : "General"}
+HISTORIAL:
+${c.historial}
 
-Redacta un mensaje de LinkedIn para retomar contacto. 
-- Tono: cercano y profesional, sin ser comercial agresivo
-- Máximo 4-5 líneas
-- ${c.esIntermediario ? "Pregunta si gestiona proyectos donde podamos colaborar con equipos frigoríficos" : "Pregunta si tienen previstas renovaciones o ampliaciones de flota"}
-- Sin saludos formales excesivos
-- Sin asteriscos ni formato especial
+INSTRUCCIONES:
 
-Solo el mensaje, sin explicaciones.`}]
+1. Saludo corto: "Hola ${c.contacto.split(" ")[0]},".
+
+2. Una frase con UN detalle del historial (proyecto, equipo, conversación). Si no hay nada concreto, di: "Hace tiempo que no hablamos".
+
+3. Pregunta abierta: ${c.esIntermediario ? '"¿Estás llevando algún proyecto donde podamos colaborar?"' : '"¿Tenéis planes de renovación o ampliación de flota?"'}
+
+4. Máximo 4 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
+
+EJEMPLO:
+"Hola Pedro,
+Hace tiempo que no hablamos. Vi que MercaFrío sigue creciendo.
+¿Tenéis planes de renovar la flota frigorífica?
+Si te encaja, charlamos."
+
+Devuelve solo el mensaje.`}]
     };
     
     console.log("[generarMensajeLinkedIn] Enviando request a proxy...");
