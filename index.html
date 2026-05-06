@@ -858,6 +858,7 @@ function renderLista() {
               ${cat !== "frio" ? `<span class="badge-cat ${cD.cls}">${cD.emoji} ${cD.label}</span>` : ""}
               <span class="badge badge-${p.label}">${p.label}</span>
               ${c.fuenteG ? `<span class="badge-google">${gSvg(9)} Google</span>` : ""}
+              ${(c.etiquetas||[]).some(et => et.toUpperCase().includes("NO EMAILS COMERCIALES")) ? `<span style="font-size:10px;color:#ff6b6b;background:#2a0a0a;border:1px solid #ff6b6b66;padding:1px 6px;border-radius:7px;font-weight:600;" title="Contacto con etiqueta NO EMAILS COMERCIALES — no enviar emails comerciales automáticos, usar otros canales (llamada, WhatsApp, LinkedIn)">🚫 No emails</span>` : ""}
               ${c.linkedin ? `<span style="font-size:10px;color:#0a66c2;background:#0a1929;border:1px solid #0a66c244;padding:1px 6px;border-radius:7px;">💼 LinkedIn</span>` : ""}
               ${proximaAccionPendiente(c) ? `<span class="badge-proxima">📅 Acción hoy</span>` : c.proximaAccion && new Date(c.proximaAccion) > hoy ? `<span style="font-size:10px;color:#a78bfa;font-weight:600;">📅 ${fmt(c.proximaAccion)}</span>` : ""}
               ${nW ? `<span class="badge-wapp">💬 WhatsApp pendiente</span>` : ""}
@@ -1926,14 +1927,20 @@ function conectarGoogle() {
           document.getElementById("info-text").innerHTML = `Cargando... ${todosContactos.length} contactos`;
         } while (nextPageToken && paginas < 20);
 
-        // Filtrar los de NO EMAILS COMERCIALES
-        const filtrados = todosContactos.filter(p => {
-          const membs = p.memberships || [];
-          return !membs.some(m => {
-            const n = gruposMap[m.contactGroupMembership?.contactGroupResourceName] || "";
-            return n.toUpperCase().includes("NO EMAILS COMERCIALES");
-          });
-        }).map(mapContact);
+        // Filtrar contactos:
+        // - Sin etiqueta "NO EMAILS COMERCIALES" → siempre se cargan
+        // - Con etiqueta "NO EMAILS COMERCIALES" → solo si tienen próxima acción vencida o de hoy
+        //   (así Samuel u otros contactos sin email comercial siguen apareciendo cuando hay tarea pendiente)
+        const hoyMs = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
+        const filtrados = todosContactos.map(mapContact).filter(c => {
+          const tieneNoEmails = (c.etiquetas||[]).some(et => et.toUpperCase().includes("NO EMAILS COMERCIALES"));
+          if (!tieneNoEmails) return true;
+          // Tiene "NO EMAILS COMERCIALES" → solo entra si tiene próxima acción vencida/hoy
+          if (!c.proximaAccion) return false;
+          const fechaPA = new Date(c.proximaAccion).getTime();
+          if (isNaN(fechaPA)) return false;
+          return fechaPA <= hoyMs;
+        });
 
         // Reconstruir estado desde notas de Google Contacts (sin localStorage)
         estado = {};
