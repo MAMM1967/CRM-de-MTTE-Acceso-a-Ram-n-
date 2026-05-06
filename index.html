@@ -349,11 +349,13 @@ function reconstruirEstado(c) {
               linkedinEnviadoEn = null;
             }
           } else {
-            // Línea MANUAL del usuario: indica seguimiento activo
+            // Línea MANUAL del usuario: indica seguimiento activo programado
+            // Reinicia el CICLO COMPLETO (email + wapp + linkedin) — la nota
+            // del usuario indica "empezar de cero esta fecha".
             if (fechaTs > hoyMs) posponerHasta = fechaISO;
             else posponerHasta = null;
-            // Una nota manual posterior reinicia el ciclo
-            wappEnviadoEn = null;
+            emailEnviadoEn    = null;
+            wappEnviadoEn     = null;
             linkedinEnviadoEn = null;
           }
         }
@@ -544,17 +546,12 @@ function _sortPrioridad(a, b) {
   const aL = necesitaLinkedIn(a.id) ? 1 : 0;
   const bL = necesitaLinkedIn(b.id) ? 1 : 0;
   if (bL !== aL) return bL - aL;
-  // 4. Con historial activo → sub-orden por categoría caliente, luego días sin contacto
+  // 4. Con historial activo → más días sin contacto primero (sin categorías calientes)
   const tieneHistorialActivo = c => c.historial && /\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}/.test(c.historial);
   const aActivo = tieneHistorialActivo(a) ? 1 : 0;
   const bActivo = tieneHistorialActivo(b) ? 1 : 0;
   if (bActivo !== aActivo) return bActivo - aActivo;
-  if (aActivo && bActivo) {
-    const aCatP = CATEGORIAS[a._categoria || "frio"].prio;
-    const bCatP = CATEGORIAS[b._categoria || "frio"].prio;
-    if (aCatP !== bCatP) return aCatP - bCatP;
-    return dias(b.ultimoContacto) - dias(a.ultimoContacto);
-  }
+  if (aActivo && bActivo) return dias(b.ultimoContacto) - dias(a.ultimoContacto);
   // 5. Email recién enviado al final
   const aEspera = estado[a.id]?.emailEnviadoEn && !necesitaWapp(a.id) && !estado[a.id]?.wappEnviado ? 1 : 0;
   const bEspera = estado[b.id]?.emailEnviadoEn && !necesitaWapp(b.id) && !estado[b.id]?.wappEnviado ? 1 : 0;
@@ -784,22 +781,17 @@ function renderLista() {
       const aL = necesitaLinkedIn(a.id) ? 1 : 0;
       const bL = necesitaLinkedIn(b.id) ? 1 : 0;
       if (bL !== aL) return bL - aL;
-      // 4. Con historial activo → sub-orden por categoría caliente, luego días sin contacto
+      // 4. Con historial activo → más días sin contacto primero (sin categorías calientes)
       const tieneHistorial = c => c.historial && /\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}/.test(c.historial);
       const aActivo = tieneHistorial(a) ? 1 : 0;
       const bActivo = tieneHistorial(b) ? 1 : 0;
       if (bActivo !== aActivo) return bActivo - aActivo;
-      if (aActivo && bActivo) {
-        const aCatP = CATEGORIAS[a._categoria || "frio"].prio;
-        const bCatP = CATEGORIAS[b._categoria || "frio"].prio;
-        if (aCatP !== bCatP) return aCatP - bCatP;
-        return dias(b.ultimoContacto) - dias(a.ultimoContacto);
-      }
-      // 5. Por días sin contacto (sin historial activo)
+      if (aActivo && bActivo) return dias(b.ultimoContacto) - dias(a.ultimoContacto);
+      // 5. Email recién enviado (menos de 2 días) → al final
       const aEspera = estado[a.id]?.emailEnviadoEn && !necesitaWapp(a.id) && !estado[a.id]?.wappEnviado ? 1 : 0;
       const bEspera = estado[b.id]?.emailEnviadoEn && !necesitaWapp(b.id) && !estado[b.id]?.wappEnviado ? 1 : 0;
       if (aEspera !== bEspera) return aEspera - bEspera;
-      // 6. Email recién enviado (menos de 2 días) → al final
+      // 6. Por días sin contacto (sin historial activo)
       return dias(b.ultimoContacto) - dias(a.ultimoContacto);
     });
 
@@ -900,7 +892,11 @@ function accionPara(c) {
 
   // ESCALÓN 2: ¿WApp enviado?
   if (dW !== null) {
-    // Si pasaron 2+ días sin respuesta y tiene LinkedIn → siguiente paso
+    // Si NO había email previo, fue WApp como PRIMER CONTACTO → ciclo cerrado.
+    // No insistimos con LinkedIn ni más WApps. La próxima acción la pone la
+    // IA (típicamente 3 meses) al marcar el WApp como enviado.
+    if (dE === null) return null;
+    // Si había email + WApp, después de 2+ días sin respuesta → LinkedIn (si tiene)
     if (dW >= 2 && c.linkedin) return { tipo: "linkedin", motivo: `WApp enviado hace ${dW} días sin respuesta` };
     // Si no tiene LinkedIn o aún no han pasado 2 días → esperar (no proponer nada)
     return null;
