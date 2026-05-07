@@ -1086,36 +1086,39 @@ async function generarEmail(c) {
       model:"claude-sonnet-4-20250514", 
       max_tokens:1000,
       messages:[{role:"user", content:
-`Eres ${miNombre}, director comercial de Mitsubishi Equipos Frigoríficos en España. Hoy es ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
+`Tu rol: ${miNombre}, director comercial de Mitsubishi Equipos Frigoríficos en España.
+Hoy: ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
 
-Escribe un email comercial en español con este formato exacto:
-
-ASUNTO: [una línea, sin las palabras "seguimiento" ni "contacto"]
-CUERPO:
-[el email aquí]
-
-DATOS DEL CLIENTE:
-- Empresa: ${c.empresa}
-- Contacto: ${c.contacto}${c.cargo ? ` (${c.cargo})` : ""}
-- Sector: ${c.sector}
-- Equipos actuales: ${c.equipos}
-- Días sin contacto: ${d}
-- Tipo: ${c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario ? "Intermediario (carrocero/renting/servicio oficial)" : "General"}
+CLIENTE:
+Empresa: ${c.empresa}
+Contacto: ${c.contacto}${c.cargo?` (${c.cargo})`:""}
+Sector: ${c.sector}
+Equipos: ${c.equipos}
+Último contacto: hace ${d} días
+Tipo: ${c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario ? "Intermediario (carrocero/renting/servicio oficial)" : "General"}
 
 HISTORIAL DE NOTAS:
 ${c.historial}
 
-REGLAS OBLIGATORIAS:
-1. Primera frase: menciona UN detalle concreto del historial (proyecto, equipo, fecha, nombre). Si el historial no tiene detalles útiles, escribe "Hace tiempo que no hablamos".
-2. Haz UNA sola petición: llamada, visita o enviar info. No las tres.
-3. Máximo 5 líneas en el cuerpo. Sin párrafos de relleno.
-4. Prohibido escribir: "Espero que esté bien", "Me pongo en contacto", "Aprovecho para", "Un cordial saludo", ni ninguna despedida.
-5. No escribas tu nombre ni firma al final.
+INSTRUCCIONES (sigue las 5 reglas):
 
-EJEMPLO DE EMAIL CORRECTO:
-ASUNTO: Unidades FRC-420 para Q2 — disponibilidad inmediata
-CUERPO:
-Hola Pedro, en agosto comentaste estudiar 3-4 unidades nuevas para Q2. ¿Sigue en pie? Tenemos disponibilidad inmediata en FRC-420 y precio mejor que el año pasado. ¿Te llamo el martes?`}]
+1. ABRE DIRECTO. Nada de "Espero que esté bien" ni "Le escribo para hacer seguimiento".
+
+2. UNA REFERENCIA AL HISTORIAL. Busca un detalle concreto (proyecto, equipo, conversación previa, persona) y menciónalo en la primera frase. Si el historial solo tiene fechas, di simplemente: "Hace tiempo que no hablamos".
+
+3. UNA SOLA PETICIÓN. Llamada O visita O enviar info. No tres cosas a la vez.
+
+4. MÁXIMO 100 PALABRAS. Corto y útil. Sin floritura.
+
+5. NO firmes el email. Sin "Saludos" ni nombre al final.
+
+EJEMPLO DEL ESTILO QUE BUSCO:
+"Hola Pedro, vi en mi nota que en agosto comentaste estudiar 3-4 unidades nuevas para Q2. ¿Sigue en pie? Tenemos disponibilidad inmediata en FRC-420 y precio mejor que el año pasado. ¿Te llamo el martes?"
+
+FORMATO:
+ASUNTO: [breve, específico al cliente, sin "seguimiento" ni "contacto"]
+
+[cuerpo en 4-5 líneas naturales]`}]
     };
     
     console.log("[generarEmail] Enviando request a proxy...");
@@ -1156,15 +1159,9 @@ Hola Pedro, en agosto comentaste estudiar 3-4 unidades nuevas para Q2. ¿Sigue e
     console.log("[generarEmail] Texto recibido (" + txt.length + " caracteres)");
     
     const ls   = txt.split("\n");
-    const al   = ls.find(l=>l.trim().startsWith("ASUNTO:"));
-    emailAsunto = al ? al.replace(/^ASUNTO:\s*/i,"").trim() : "Sin asunto";
-    // Nuevo formato: cuerpo puede venir tras línea "CUERPO:" o simplemente sin las líneas de cabecera
-    const idxCuerpo = ls.findIndex(l=>l.trim().startsWith("CUERPO:"));
-    if (idxCuerpo !== -1) {
-      emailCuerpo = ls.slice(idxCuerpo + 1).join("\n").trim();
-    } else {
-      emailCuerpo = ls.filter(l => !l.trim().startsWith("ASUNTO:")).join("\n").trim();
-    }
+    const al   = ls.find(l=>l.startsWith("ASUNTO:"));
+    emailAsunto = al ? al.replace("ASUNTO:","").trim() : "Sin asunto";
+    emailCuerpo = ls.filter(l=>!l.startsWith("ASUNTO:")).join("\n").trim();
     
     if (!emailAsunto || !emailCuerpo) {
       console.warn("[generarEmail] ⚠️ Email incompleto - Asunto:", emailAsunto.substring(0,50), "Cuerpo:", emailCuerpo.substring(0,50));
@@ -1415,44 +1412,59 @@ async function generarWapp(c, tipo = "seguimiento") {
   if (tipo === "primer_contacto") {
     // WApp como primer canal de contacto: no hay email previo
     promptContent =
-`Eres ${miNombre}, director de Mitsubishi Equipos Frigoríficos en España.
-Escribe un mensaje de WhatsApp en español para el primer contacto con ${c.contacto} de ${c.empresa}.
+`Tu rol: ${miNombre}, director de Mitsubishi Equipos Frigoríficos en España.
+Vas a escribir un WhatsApp a ${c.contacto} de ${c.empresa}. Nunca habéis hablado por email.
 
 DATOS:
-- Cargo: ${c.cargo || "—"}
-- Sector: ${c.sector}
-- Equipos: ${c.equipos}
-- Tipo de cliente: ${tipoCliente}
+Cargo: ${c.cargo || "—"}
+Sector: ${c.sector}
+Equipos: ${c.equipos}
+Tipo: ${tipoCliente}
 
 HISTORIAL DE NOTAS:
 ${c.historial}
 
-ESTRUCTURA EXACTA (4 líneas, en este orden):
-Línea 1: "Hola ${c.contacto.split(" ")[0]},"
-Línea 2: "Soy ${miNombreCorto}, de Mitsubishi Equipos Frigoríficos." + [si hay un detalle concreto en el historial (proyecto, equipo, nombre), añádelo aquí en la misma línea. Si no hay nada concreto, no añadas nada.]
-Línea 3: ${c.esClienteFinal ? '"¿Tenéis previsto renovar flota frigorífica próximamente?"' : c.esIntermediario ? '"¿Estás trabajando en algún proyecto donde podamos colaborar?"' : '"¿Tenéis algún proyecto de flota frigorífica en marcha?"'}
-Línea 4: "Si te encaja, te llamo cuando me digas."
+INSTRUCCIONES:
 
-PROHIBIDO: asteriscos, emojis, "Espero que estés bien", saludos formales, más de 4 líneas.
+1. Saludo corto: "Hola ${c.contacto.split(" ")[0]},".
 
-Devuelve solo el mensaje, sin explicaciones ni comillas externas.`;
+2. Preséntate en una frase: "Soy ${miNombreCorto}, de Mitsubishi Equipos Frigoríficos."
+
+3. Si hay un detalle concreto en el historial (un proyecto, un equipo, alguien), menciónalo. Si no, di "te escribo por si os puede interesar lo que hacemos en frigoríficos para transporte".
+
+4. Pregunta concreta: ${c.esClienteFinal ? '"¿Tenéis previsto renovar flota frigorífica próximamente?"' : c.esIntermediario ? '"¿Estás trabajando en algún proyecto donde podamos colaborar?"' : '"¿Tenéis algún proyecto de flota frigorífica en marcha?"'}
+
+5. Máximo 4 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
+
+EJEMPLO DEL ESTILO:
+"Hola Pedro,
+Soy ${miNombreCorto}, de Mitsubishi Equipos Frigoríficos. Vi que llevas la flota de MercaFrío.
+¿Tenéis previsto renovar equipos en los próximos meses?
+Si te encaja, te llamo cuando me digas."
+
+Devuelve solo el mensaje.`;
   } else {
     // Seguimiento tras email enviado sin respuesta
     promptContent =
-`Eres ${miNombre}, director de Mitsubishi Equipos Frigoríficos.
-Escribe un mensaje de WhatsApp en español de seguimiento. Hace ${dsR||2} días enviaste un email a ${c.contacto} de ${c.empresa} y no ha respondido.
+`Tu rol: ${miNombre}, director de Mitsubishi Equipos Frigoríficos.
+Hace ${dsR||2} días mandaste un email a ${c.contacto} de ${c.empresa} y no responde.
 
-ESTRUCTURA EXACTA (3 líneas, en este orden):
-Línea 1: "Hola ${c.contacto.split(" ")[0]},"
-Línea 2: "Te mandé un email hace unos días sobre [resume en 3-5 palabras el tema del email, basándote en el historial si lo hay] y no sé si te llegó."
-Línea 3: "¿Tienes 5 minutos esta semana para hablar?"
+INSTRUCCIONES:
 
-HISTORIAL para contexto del tema:
-${c.historial}
+1. Saludo corto: "Hola ${c.contacto.split(" ")[0]},".
 
-PROHIBIDO: asteriscos, emojis, "Espero que estés bien", más de 3 líneas, añadir más preguntas.
+2. Una sola frase: "Te mandé un email hace unos días sobre [tema] y no sé si te llegó."
 
-Devuelve solo el mensaje, sin explicaciones ni comillas externas.`;
+3. Pregunta directa: "¿Tienes 5 minutos esta semana para hablar?"
+
+4. Máximo 3 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
+
+EJEMPLO:
+"Hola Pedro,
+Te escribí el otro día sobre las unidades nuevas, no sé si te llegó.
+¿Tienes 5 min esta semana para hablarlo?"
+
+Devuelve solo el mensaje.`;
   }
 
   try {
@@ -1530,26 +1542,34 @@ async function generarMensajeLinkedIn(c) {
       model:"claude-sonnet-4-20250514", 
       max_tokens:400,
       messages:[{role:"user", content:
-`Eres ${miNombre}, director de Mitsubishi Equipos Frigoríficos en España.
-Escribe un mensaje de LinkedIn en español para ${c.contacto} (${c.cargo || "—"}) de ${c.empresa}.
+`Tu rol: ${miNombre}, director de Mitsubishi Equipos Frigoríficos en España.
+Vas a escribir un mensaje LinkedIn a ${c.contacto} (${c.cargo || "—"}) de ${c.empresa}.
 
 DATOS:
-- Sector: ${c.sector}
-- Días sin contacto: ${d}
-- Tipo: ${c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario ? "Intermediario" : "General"}
+Sector: ${c.sector}
+Último contacto: hace ${d} días
+Tipo: ${c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario ? "Intermediario" : "General"}
 
 HISTORIAL:
 ${c.historial}
 
-ESTRUCTURA EXACTA (4 líneas, en este orden):
-Línea 1: "Hola ${c.contacto.split(" ")[0]},"
-Línea 2: [Una frase con UN detalle concreto del historial: proyecto, equipo, conversación. Si no hay ningún detalle útil, escribe exactamente: "Hace tiempo que no hablamos."]
-Línea 3: ${c.esIntermediario ? '"¿Estás llevando algún proyecto donde podamos colaborar?"' : '"¿Tenéis planes de renovación o ampliación de flota?"'}
-Línea 4: "Si te encaja, charlamos."
+INSTRUCCIONES:
 
-PROHIBIDO: asteriscos, emojis, "Espero que estés bien", más de 4 líneas, firma, despedida formal.
+1. Saludo corto: "Hola ${c.contacto.split(" ")[0]},".
 
-Devuelve solo el mensaje, sin explicaciones ni comillas externas.`}]
+2. Una frase con UN detalle del historial (proyecto, equipo, conversación). Si no hay nada concreto, di: "Hace tiempo que no hablamos".
+
+3. Pregunta abierta: ${c.esIntermediario ? '"¿Estás llevando algún proyecto donde podamos colaborar?"' : '"¿Tenéis planes de renovación o ampliación de flota?"'}
+
+4. Máximo 4 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
+
+EJEMPLO:
+"Hola Pedro,
+Hace tiempo que no hablamos. Vi que MercaFrío sigue creciendo.
+¿Tenéis planes de renovar la flota frigorífica?
+Si te encaja, charlamos."
+
+Devuelve solo el mensaje.`}]
     };
     
     console.log("[generarMensajeLinkedIn] Enviando request a proxy...");
@@ -1608,15 +1628,16 @@ Devuelve solo el mensaje, sin explicaciones ni comillas externas.`}]
       btnEmail.target = "";
       mostrarError("⚠️ URL de LinkedIn no encontrada o incorrecta para este contacto. Ábrelo manualmente.");
     }
-    btnEmail.onclick = () => {
-      // Leer texto EDITADO actual (puede haber cambios del usuario)
+    // El botón "Abrir LinkedIn" solo copia el mensaje y abre el perfil.
+    // El registro en Google Contacts se hace EXCLUSIVAMENTE desde "Marcar enviado"
+    // para evitar el doble disparo que ocurría cuando onclick + href se procesaban juntos.
+    btnEmail.onclick = (ev) => {
       const cuerpoFinal = document.getElementById("cuerpo-text").value || emailCuerpo;
-      emailCuerpo = cuerpoFinal; // sincronizar para que el resumen IA use el texto final
+      emailCuerpo = cuerpoFinal; // sincronizar para resumen IA posterior
       navigator.clipboard.writeText(cuerpoFinal).then(() => {
         console.log("[generarMensajeLinkedIn] Mensaje copiado al portapapeles");
-        alert("✅ Mensaje copiado al portapapeles — pégalo en LinkedIn");
-      });
-      marcarEmailEnviado();
+      }).catch(() => {});
+      // No llamamos a marcarEmailEnviado() aquí — solo abrimos LinkedIn
     };
     const btnMarcar = document.getElementById("btn-marcar-enviado");
     if (btnMarcar) btnMarcar.textContent = "✓ Marcar mensaje LinkedIn enviado";
@@ -1650,13 +1671,12 @@ async function generarResumenAccion(tipoMensaje, asunto, cuerpo) {
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514", max_tokens: 80,
         messages: [{ role: "user", content:
-`Resume en UNA SOLA FRASE de 10-18 palabras el contenido de este ${tipoMensaje} comercial.
-
-Formato obligatorio: empieza con "Envío ${tipoMensaje}" y luego describe el tema concreto tratado.
-Responde ÚNICAMENTE con la frase. Sin comillas. Sin explicaciones. Sin saltos de línea.
+`Resume en UNA SOLA FRASE de 10-18 palabras lo más relevante de este ${tipoMensaje} comercial enviado a un cliente. Empieza con "Envío ${tipoMensaje}" seguido de los puntos concretos tratados. No uses comillas. No hagas comentarios. Solo la frase.
 
 ${asunto ? `ASUNTO: ${asunto}\n\n` : ""}MENSAJE:
+"""
 ${cuerpo}
+"""
 
 Frase:`
         }]
@@ -1686,22 +1706,21 @@ async function calcularProximaAccionIA(notas, tipoContacto, esWapp) {
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514", max_tokens: 100,
         messages: [{ role: "user", content:
-`Determina la fecha de próxima acción comercial para este contacto.
-
-Hoy: ${dd}-${mm}-${yyyy}
-Acabamos de enviar: ${esWapp ? "un WhatsApp" : "un email"} de seguimiento
-Tipo de cliente: ${tipoContacto}
+`Eres un asistente comercial. Analiza las notas de este contacto y determina la fecha de próxima acción comercial.
 
 NOTAS DEL CONTACTO:
 ${notas}
 
-CRITERIOS (aplica el primero que corresponda):
-- Oferta enviada, negociación activa o cliente con interés confirmado → suma 2 días hábiles a hoy
-- Seguimiento concreto pendiente (llamada, visita, propuesta) → estima el plazo razonable
-- Sin respuesta o sin urgencia → suma 3 meses a hoy
-- Nunca elijas sábado ni domingo
+CONTEXTO: Hoy es ${dd}-${mm}-${yyyy}. Acabamos de enviar ${esWapp ? "un WhatsApp" : "un email"} de seguimiento.
+TIPO DE CLIENTE: ${tipoContacto}
 
-Responde ÚNICAMENTE con la fecha en formato DD-MM-YYYY. Sin texto adicional.`
+REGLAS:
+- Si hay una oferta pendiente, negociación activa o el cliente mostró interés reciente → 2 días hábiles desde hoy
+- Si hay que hacer seguimiento concreto (llamada, visita, propuesta) → estima el plazo razonable (días o semanas)
+- Si el cliente no responde o no hay nada urgente → 3 meses desde hoy
+- Evita fines de semana (sábado y domingo)
+
+Responde ÚNICAMENTE con la fecha en formato DD-MM-YYYY, sin explicación.`
         }]
       })
     });
@@ -1715,56 +1734,92 @@ Responde ÚNICAMENTE con la fecha en formato DD-MM-YYYY. Sin texto adicional.`
   return `${String(fallback.getDate()).padStart(2,"0")}-${String(fallback.getMonth()+1).padStart(2,"0")}-${fallback.getFullYear()}`;
 }
 
-// Renueva el token de Google silenciosamente
-async function renovarTokenGoogle() {
-  return new Promise((resolve) => {
-    if (!window.google?.accounts) { resolve(false); return; }
-    window.google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID, scope: GOOGLE_SCOPES,
-      prompt: "",  // sin pantalla de login si ya está autorizado
-      callback: (resp) => {
-        if (resp.error) { resolve(false); return; }
-        window._gToken = resp.access_token;
-        resolve(true);
-      }
-    }).requestAccessToken();
-  });
+// Muestra un banner de token expirado con botón de reconexión.
+// La renovación silenciosa (sin gesto del usuario) falla siempre en navegadores modernos
+// porque bloquean popups no iniciados por interacción directa. La única solución fiable
+// es pedirle al usuario que haga clic él mismo en el botón de reconexión.
+function mostrarBannerTokenExpirado() {
+  // Solo mostrar una vez si ya está visible
+  if (document.getElementById("banner-token")) return;
+  const banner = document.createElement("div");
+  banner.id = "banner-token";
+  banner.style.cssText = `
+    position:fixed; bottom:20px; right:20px; z-index:9999;
+    background:#1a0608; border:1px solid #e63946; border-radius:10px;
+    padding:14px 18px; max-width:320px; box-shadow:0 4px 24px #00000066;
+    animation:fadeIn 0.2s ease;
+  `;
+  banner.innerHTML = `
+    <div style="font-size:13px;font-weight:700;color:#e63946;margin-bottom:6px;">⚠️ Sesión de Google expirada</div>
+    <div style="font-size:12px;color:#9ca3af;margin-bottom:12px;line-height:1.6;">
+      El token de Google Contacts ha caducado (dura ~1h).<br>
+      <strong style="color:#e8eaf0;">La acción se marcó correctamente</strong> en la app,<br>
+      pero no se pudo guardar en Google Contacts ni en Sheets.
+    </div>
+    <button onclick="reconectarGoogle()" style="
+      width:100%; background:linear-gradient(135deg,#c1121f,#e63946);
+      color:#fff; border:none; border-radius:7px; padding:9px;
+      font-size:13px; font-weight:700; cursor:pointer;
+    ">🔄 Reconectar Google</button>
+    <button onclick="document.getElementById('banner-token').remove()" style="
+      width:100%; margin-top:6px; background:none; color:#6b7280;
+      border:1px solid #374151; border-radius:7px; padding:7px;
+      font-size:12px; cursor:pointer;
+    ">Cerrar (no guardar)</button>
+  `;
+  document.body.appendChild(banner);
 }
 
-// Actualiza las notas de un contacto en Google con texto nuevo (con reintento si expira el token)
+// Reconexión manual iniciada por el usuario: el popup SÍ se abre porque viene de un gesto directo.
+// Tras reconectar, el token se renueva pero los datos pendientes ya no se reenvían
+// (el usuario habrá ya marcado la acción como enviada en la app).
+function reconectarGoogle() {
+  const banner = document.getElementById("banner-token");
+  if (banner) banner.remove();
+  if (!window.google?.accounts) return;
+  window.google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID, scope: GOOGLE_SCOPES,
+    prompt: "",
+    callback: (resp) => {
+      if (resp.error) { mostrarError("Error al reconectar: " + resp.error); return; }
+      window._gToken = resp.access_token;
+      console.log("✅ Token renovado correctamente");
+      mostrarError("✅ Google reconectado. Las próximas acciones se guardarán con normalidad.");
+    }
+  }).requestAccessToken();
+}
+
+// Actualiza las notas de un contacto en Google Contacts.
+// Si el token está expirado (401), muestra el banner de reconexión en lugar de
+// intentar renovar silenciosamente (lo cual falla siempre por bloqueo de popup).
 async function actualizarNotasGoogle(contactoId, nuevaLinea) {
   if (!window._gToken) return;
-  for (let intento = 0; intento < 2; intento++) {
-    try {
-      const getRes = await fetch(
-        `https://people.googleapis.com/v1/${contactoId}?personFields=biographies,metadata`,
-        { headers: { "Authorization": `Bearer ${window._gToken}` } }
-      );
-      if (getRes.status === 401) {
-        // Token expirado — renovar y reintentar
-        console.log("Token expirado, renovando...");
-        const ok = await renovarTokenGoogle();
-        if (!ok) { console.log("No se pudo renovar el token"); return; }
-        continue;
-      }
-      if (!getRes.ok) { console.log("Error obteniendo contacto:", getRes.status); return; }
-      const contactData = await getRes.json();
-      const etag = contactData.etag;
-      const notasActuales = contactData.biographies?.[0]?.value || "";
-      const notasNuevas = notasActuales + nuevaLinea;
-      const updateRes = await fetch(
-        `https://people.googleapis.com/v1/${contactoId}:updateContact?updatePersonFields=biographies`,
-        {
-          method: "PATCH",
-          headers: { "Authorization": `Bearer ${window._gToken}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ etag, biographies: [{ value: notasNuevas, contentType: "TEXT_PLAIN" }] })
-        }
-      );
-      if (updateRes.ok) { console.log("Notas actualizadas en Google Contacts OK"); return; }
-      else console.log("Error actualizando:", await updateRes.json());
+  try {
+    const getRes = await fetch(
+      `https://people.googleapis.com/v1/${contactoId}?personFields=biographies,metadata`,
+      { headers: { "Authorization": `Bearer ${window._gToken}` } }
+    );
+    if (getRes.status === 401) {
+      console.log("Token expirado — mostrando banner de reconexión");
+      mostrarBannerTokenExpirado();
       return;
-    } catch(e) { console.log("No se pudo actualizar nota en Google:", e.message); return; }
-  }
+    }
+    if (!getRes.ok) { console.log("Error obteniendo contacto:", getRes.status); return; }
+    const contactData = await getRes.json();
+    const etag = contactData.etag;
+    const notasActuales = contactData.biographies?.[0]?.value || "";
+    const notasNuevas = notasActuales + nuevaLinea;
+    const updateRes = await fetch(
+      `https://people.googleapis.com/v1/${contactoId}:updateContact?updatePersonFields=biographies`,
+      {
+        method: "PATCH",
+        headers: { "Authorization": `Bearer ${window._gToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ etag, biographies: [{ value: notasNuevas, contentType: "TEXT_PLAIN" }] })
+      }
+    );
+    if (updateRes.ok) { console.log("Notas actualizadas en Google Contacts OK"); }
+    else console.log("Error actualizando:", await updateRes.json());
+  } catch(e) { console.log("No se pudo actualizar nota en Google:", e.message); }
 }
 
 // ── GOOGLE SHEETS ─────────────────────────────────────────────────────────────
