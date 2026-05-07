@@ -2254,8 +2254,15 @@ function setMotorIA(motor) {
   console.log("[IA] Motor activo:", motor, "→", PROXY_URL);
 }
 
-// Restaurar motor de la sesión anterior (default: Llama; si el usuario eligió Claude antes, lo restauramos)
+// Restaurar motor de la sesión anterior (default: Llama; si el usuario eligió Claude antes, lo restauramos).
+// Migración v2 (2026-05-07): cambio de default de Claude → Llama. Limpiamos sessionStorage previo
+// para que el cambio surta efecto incluso en pestañas que ya tenían "anthropic" guardado.
+// Esto solo se ejecuta una vez por pestaña gracias al flag motorIA_v2.
 try {
+  if (!sessionStorage.getItem("motorIA_v2")) {
+    sessionStorage.removeItem("motorIA"); // borrar elección antigua
+    sessionStorage.setItem("motorIA_v2", "1"); // marcar migración aplicada
+  }
   const saved = sessionStorage.getItem("motorIA");
   if (saved === "anthropic") setMotorIA("anthropic");
 } catch(e) {}
