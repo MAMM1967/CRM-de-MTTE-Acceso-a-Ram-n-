@@ -1,0 +1,2270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mitsubishi · Seguimiento Comercial</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0a0d14; color: #e8eaf0; font-family: 'DM Sans','Segoe UI',sans-serif; min-height: 100vh; }
+    @keyframes spin   { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+    input::placeholder { color: #4b5563; }
+    a { text-decoration: none; }
+
+    #header { background: linear-gradient(135deg,#0d1117,#111827); border-bottom: 1px solid #1e2535; padding: 0 24px; }
+    #header-inner { max-width: 1140px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .logo-box { width:36px; height:36px; border-radius:8px; background:linear-gradient(135deg,#e63946,#c1121f); display:flex; align-items:center; justify-content:center; font-weight:900; font-size:18px; color:#fff; }
+
+    #btn-google { background:#fff; color:#3c4043; border:1px solid #dadce0; border-radius:8px; padding:7px 16px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; }
+    #btn-google:disabled { background:#1e2535; color:#6b7280; cursor:not-allowed; border-color:#374151; }
+    #user-badge { display:none; align-items:center; gap:7px; background:#0d1a0d; border:1px solid #34a85344; border-radius:20px; padding:5px 14px; font-size:12px; color:#34a853; font-weight:600; }
+    #badge-urgent { background:#2a0a0a; border:1px solid #ff4444; border-radius:20px; padding:4px 12px; font-size:12px; color:#ff6b6b; font-weight:600; display:none; }
+
+    #info-bar { max-width:1140px; margin:10px auto 0; padding:0 24px; display:flex; align-items:center; gap:8px; font-size:12px; color:#6b7280; }
+
+    #error-box { max-width:1140px; margin:14px auto 0; padding:0 24px; display:none; }
+    #error-inner { background:#0d1a2a; border:1px solid #4285f444; border-radius:10px; padding:14px 18px; font-size:13px; color:#93c5fd; line-height:1.8; }
+
+    #main { max-width:1140px; margin:0 auto; padding:18px 24px; display:grid; grid-template-columns:1fr; gap:20px; align-items:start; }
+    #main.with-panel { grid-template-columns: 1fr 480px; }
+
+    #search { width:100%; background:#0d1117; border:1px solid #1e2535; border-radius:8px; padding:9px 14px; color:#e8eaf0; font-size:13px; outline:none; margin-bottom:14px; }
+
+    .cliente-card { background:#0d1117; border:1px solid #1e2535; border-radius:10px; padding:13px 16px; cursor:pointer; display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; transition:background 0.12s; animation:fadeIn 0.2s ease; margin-bottom:8px; }
+    .cliente-card:hover, .cliente-card.selected { background:#111827; border-color: #374151; }
+    .badge { font-size:10px; font-weight:700; padding:1px 7px; border-radius:10px; }
+    .badge-OK      { background:#002a1a; color:#00cc88; border:1px solid #00cc8844; }
+    .badge-PRÓXIMO { background:#2a1a00; color:#ffaa00; border:1px solid #ffaa0044; }
+    .badge-URGENTE { background:#2a0a0a; color:#ff4444; border:1px solid #ff44440a; }
+    .badge-google  { font-size:10px; color:#34a853; background:#0d1a0d; border:1px solid #34a85344; padding:1px 6px; border-radius:7px; display:inline-flex; align-items:center; gap:3px; }
+    .badge-wapp    { font-size:10px; color:#25d366; background:#001a0d; border:1px solid #25d36644; padding:1px 6px; border-radius:7px; }
+
+    /* CHIPS — filtro por etiqueta y provincia */
+    #chips-container { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; padding:2px; }
+    #chips-container:empty { display:none; }
+    .chips-row { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+    .chips-label { font-size:10px; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px; margin-right:4px; font-weight:700; min-width:62px; }
+    .chip { background:#0d1117; border:1px solid #1e2535; color:#9ca3af; border-radius:14px; padding:4px 12px; font-size:11px; font-weight:600; cursor:pointer; transition:all 0.12s; white-space:nowrap; font-family:inherit; }
+    .chip:hover { border-color:#374151; color:#e8eaf0; }
+    .chip.active { background:linear-gradient(135deg,#c1121f,#e63946); color:#fff; border-color:#e63946; }
+    .chip-todos.active { background:linear-gradient(135deg,#1a3a00,#2d6a00); border-color:#4a9900; color:#a3e635; }
+    .chip-prov.active { background:linear-gradient(135deg,#1e40af,#3b82f6); color:#fff; border-color:#3b82f6; }
+    .chip-prov-todas.active { background:linear-gradient(135deg,#1a3a00,#2d6a00); border-color:#4a9900; color:#a3e635; }
+
+    /* CATEGORÍAS calientes */
+    .badge-cat { font-size:10px; font-weight:700; padding:1px 7px; border-radius:10px; }
+    .badge-cat-oferta     { background:#2a0a0a; color:#ff4444; border:1px solid #ff444466; }
+    .badge-cat-respondio  { background:#2a1a08; color:#ff9933; border:1px solid #ff993366; }
+    .badge-cat-renovacion { background:#2a2408; color:#ffd633; border:1px solid #ffd63366; }
+    .badge-cat-info       { background:#0a1a2a; color:#3b82f6; border:1px solid #3b82f666; }
+    .aviso-desfase { font-size:11px; color:#ffaa00; background:#2a1a00; border:1px solid #ffaa0044; border-radius:6px; padding:5px 9px; margin-top:6px; line-height:1.5; }
+
+    /* PANEL */
+    #panel { background:#0d1117; border:1px solid #1e2535; border-radius:12px; overflow:hidden; position:sticky; top:24px; max-height:calc(100vh - 80px); display:none; flex-direction:column; }
+    #panel.visible { display:flex; }
+    #panel-header { background:linear-gradient(135deg,#1a0608,#1e0a0d); border-bottom:1px solid #2d1015; padding:13px 16px; display:flex; align-items:center; justify-content:space-between; }
+    #panel-tabs { display:flex; gap:4px; padding:10px 16px 0; border-bottom:1px solid #1e2535; }
+    .tab-btn { background:none; border:none; color:#6b7280; font-size:12px; font-weight:600; cursor:pointer; padding:6px 14px; border-radius:6px 6px 0 0; border-bottom:2px solid transparent; transition:all 0.12s; }
+    .tab-btn.active { color:#e8eaf0; border-bottom:2px solid #e63946; background:#111827; }
+    #panel-body { padding:16px; overflow-y:auto; flex:1; }
+
+    .dest-grid { background:#111827; border-radius:8px; padding:12px; margin-bottom:12px; font-size:12px; border:1px solid #1e2535; display:grid; grid-template-columns:auto 1fr; gap:5px 12px; color:#9ca3af; }
+    .dest-label { color:#6b7280; }
+    .dest-name  { font-weight:600; color:#e8eaf0; }
+
+    .spin-wrap { text-align:center; padding:50px 0; }
+    .spin-circle { width:34px; height:34px; border:3px solid #1e2535; border-top:3px solid #e63946; border-radius:50%; margin:0 auto 14px; animation:spin 0.8s linear infinite; }
+    .spin-wrap.wapp .spin-circle { border-top-color:#25d366; }
+
+    .asunto-box { background:#111827; border-radius:7px; padding:9px 12px; margin-bottom:9px; border:1px solid #1e2535; }
+    .asunto-input { width:100%; background:transparent; color:#e8eaf0; border:none; outline:none; font-size:13px; font-weight:600; font-family:inherit; padding:0; margin-top:2px; }
+    .msg-edit { width:100%; background:#111827; border-radius:8px; padding:14px; font-size:13px; line-height:1.8; color:#d1d5db; border:1px solid #1e2535; font-family:inherit; outline:none; resize:vertical; min-height:140px; box-sizing:border-box; transition:border-color 0.15s; }
+    .msg-edit:focus { border-color:#374151; }
+    .msg-edit.wapp:focus { border-color:#25d36655; }
+    .edit-hint { font-size:10px; color:#6b7280; margin-top:4px; margin-bottom:8px; display:flex; align-items:center; gap:5px; font-style:italic; }
+    .asunto-label { font-size:10px; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:3px; }
+    .msg-body { background:#111827; border-radius:8px; padding:14px; font-size:13px; line-height:1.8; color:#d1d5db; border:1px solid #1e2535; white-space:pre-wrap; }
+    .btn-row { display:flex; gap:7px; margin-top:13px; }
+    .btn-primary { flex:1; background:linear-gradient(135deg,#c1121f,#e63946); color:#fff; border:none; border-radius:8px; padding:10px; font-size:13px; font-weight:700; cursor:pointer; text-align:center; }
+    .btn-primary.wapp { background:linear-gradient(135deg,#128c4a,#25d366); }
+    .btn-secondary { background:#1e2535; color:#9ca3af; border:1px solid #374151; border-radius:8px; padding:10px 12px; font-size:12px; cursor:pointer; font-weight:600; }
+    .btn-regen { width:100%; margin-top:6px; background:none; color:#6b7280; border:1px solid #1e2535; border-radius:7px; padding:8px; font-size:12px; cursor:pointer; }
+    .btn-marcar { width:100%; margin-top:5px; background:#002a1a; color:#00cc88; border:1px solid #00cc8844; border-radius:7px; padding:8px; font-size:12px; cursor:pointer; font-weight:600; }
+    .btn-obviar { width:100%; margin-top:5px; background:#1a1a2a; color:#9ca3af; border:1px solid #374151; border-radius:7px; padding:8px; font-size:12px; cursor:pointer; font-weight:600; }
+    .posponer-row { display:flex; gap:6px; margin-top:4px; }
+    .btn-posponer { flex:1; background:#111827; color:#6b7280; border:1px solid #1e2535; border-radius:6px; padding:6px 4px; font-size:11px; cursor:pointer; font-weight:600; transition:all 0.12s; }
+    .btn-posponer:hover { background:#1e2535; color:#e8eaf0; }
+    .badge-proxima { font-size:10px; color:#a78bfa; background:#1a1030; border:1px solid #a78bfa44; padding:1px 7px; border-radius:7px; }
+    .proxima-alert { background:#1a1030; border:1px solid #a78bfa44; border-radius:8px; padding:10px 14px; font-size:12px; color:#a78bfa; margin-bottom:10px; line-height:1.6; }
+
+    /* WAPP PANEL */
+    .wapp-info { background:#001a0d; border:1px solid #25d36633; border-radius:8px; padding:12px 14px; font-size:12px; color:#6b7280; margin-bottom:12px; line-height:1.7; }
+    .wapp-info strong { color:#25d366; }
+    .wapp-tel-row { display:flex; gap:8px; margin-bottom:12px; }
+    .wapp-tel-input { flex:1; background:#111827; border:1px solid #1e2535; border-radius:7px; padding:8px 12px; color:#e8eaf0; font-size:13px; outline:none; }
+    .wapp-tel-input:focus { border-color:#25d36666; }
+    .btn-wapp-web { flex:1; background:linear-gradient(135deg,#128c4a,#25d366); color:#fff; border:none; border-radius:8px; padding:10px; font-size:13px; font-weight:700; cursor:pointer; text-align:center; display:block; }
+    .wapp-api-box { background:#111827; border:1px solid #1e2535; border-radius:8px; padding:14px; margin-top:10px; }
+    .wapp-api-title { font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; }
+    .wapp-api-input { width:100%; background:#0d1117; border:1px solid #1e2535; border-radius:6px; padding:7px 10px; color:#e8eaf0; font-size:12px; outline:none; margin-bottom:6px; }
+    .btn-wapp-api { width:100%; background:#1a2a1a; color:#25d366; border:1px solid #25d36644; border-radius:7px; padding:8px; font-size:12px; cursor:pointer; font-weight:600; }
+
+    .motor-switcher { display:flex; background:#111827; border:1px solid #1e2535; border-radius:8px; padding:2px; gap:2px; }
+    .motor-btn { background:none; border:none; border-radius:6px; padding:4px 11px; font-size:11px; font-weight:700; cursor:pointer; color:#6b7280; transition:all 0.15s; white-space:nowrap; }
+    .motor-btn:hover { color:#9ca3af; }
+    .motor-btn.active-claude  { background:#1a0608; color:#e63946; }
+    .motor-btn.active-workers { background:#0a1220; color:#60a5fa; }
+    .motor-btn:disabled { opacity:0.4; cursor:not-allowed; }
+    .pendiente-wapp { background:#001a0d; border:1px solid #25d36633; border-radius:6px; padding:3px 8px; font-size:10px; color:#25d366; font-weight:600; }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div id="header">
+    <div id="header-inner">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="logo-box">M</div>
+        <div>
+          <div style="font-size:15px;font-weight:700;letter-spacing:-0.3px;">Mitsubishi Frigoríficos</div>
+          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Seguimiento Comercial · IA</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="motor-switcher" id="motor-switcher" title="Motor de IA activo">
+          <button class="motor-btn active-claude" id="btn-motor-claude" onclick="setMotorIA('anthropic')">⚡ Claude</button>
+          <button class="motor-btn" id="btn-motor-workers" onclick="setMotorIA('workersai')">☁️ Workers AI</button>
+        </div>
+        <div id="badge-urgent"></div>
+        <div id="user-badge">
+          <div style="width:7px;height:7px;border-radius:50%;background:#34a853;"></div>
+          <span id="user-name"></span>
+        </div>
+        <button id="btn-google" onclick="conectarGoogle()">
+          <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+          Conectar Google Contacts
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="error-box"><div id="error-inner"></div></div>
+  <div id="info-bar">
+    <div style="width:6px;height:6px;border-radius:50%;background:#4b5563;" id="dot-status"></div>
+    <span id="info-text">Datos de demo · Conecta Google Contacts para ver tu cartera real</span>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="lista-col">
+      <input id="search" type="text" placeholder="🔍  Buscar empresa o contacto..." oninput="renderLista()" />
+      <div id="chips-container"></div>
+      <div id="lista"></div>
+    </div>
+
+    <!-- PANEL -->
+    <div id="panel">
+      <div id="panel-header">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#e63946;letter-spacing:0.5px;" id="panel-tag">✉ BORRADOR · IA</div>
+          <div style="font-size:12px;color:#9ca3af;margin-top:1px;" id="panel-empresa"></div>
+        </div>
+        <button onclick="cerrarPanel()" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:20px;">×</button>
+      </div>
+      <!-- TABS -->
+      <div id="panel-tabs">
+        <button class="tab-btn active" onclick="switchTab('email')" id="tab-email">✉ Email</button>
+        <button class="tab-btn" onclick="switchTab('wapp')" id="tab-wapp">💬 WhatsApp</button>
+      </div>
+      <div id="panel-body">
+        <!-- PRÓXIMA ACCIÓN ALERT -->
+        <div id="proxima-alert" class="proxima-alert" style="display:none;"></div>
+        <!-- DEST INFO -->
+        <div class="dest-grid" id="dest-grid"></div>
+
+        <!-- EMAIL TAB -->
+        <div id="content-email">
+          <div class="spin-wrap" id="spin-email"><div class="spin-circle"></div><div style="font-size:13px;color:#6b7280;">Generando email personalizado...</div></div>
+          <div id="email-result" style="display:none;animation:fadeIn 0.3s ease;">
+            <div class="asunto-box"><div class="asunto-label">Asunto</div><input type="text" class="asunto-input" id="asunto-text" /></div>
+            <textarea class="msg-edit" id="cuerpo-text" spellcheck="true"></textarea>
+            <div class="edit-hint">✏️ Puedes editar el texto antes de enviarlo. El resumen guardado en Google Contacts será del texto final.</div>
+            <div class="btn-row">
+              <a class="btn-primary" id="btn-abrir-email" href="#">✉ Abrir email</a>
+              <button class="btn-secondary" onclick="copiarEmail()">Copiar</button>
+            </div>
+            <button class="btn-marcar" id="btn-marcar-enviado" onclick="marcarEmailEnviado()">✓ Marcar email enviado — esperar respuesta 2 días</button>
+          </div>
+          <!-- Posponer / Ignorar siempre visibles en el tab email -->
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <button class="btn-obviar" onclick="togglePosponer()" style="margin-top:0;flex:1;">⏭ Posponer</button>
+            <button class="btn-obviar" onclick="ignorarContacto(selCliente?.id)" style="margin-top:0;flex:1;" title="Ocultar de la lista durante esta sesión. Reaparece al recargar contactos.">🚫 Ignorar por hoy</button>
+          </div>
+          <div class="posponer-row" id="posponer-row" style="display:none;">
+            <button class="btn-posponer" onclick="posponer(30)">+1 mes</button>
+            <button class="btn-posponer" onclick="posponer(90)">+3 meses</button>
+            <button class="btn-posponer" onclick="posponerFecha()">📅 Fecha</button>
+            <input type="text" id="fecha-posponer" placeholder="DD-MM-AAAA" style="display:none;background:#111827;border:1px solid #374151;border-radius:6px;padding:4px 8px;color:#e8eaf0;font-size:11px;flex:2;" /><button class="btn-posponer" onclick="posponerFechaElegida()" style="display:none;flex:0.5;" id="btn-fecha-ok">OK</button>
+          </div>
+        </div>
+
+        <!-- WAPP TAB -->
+        <div id="content-wapp" style="display:none;">
+          <div class="wapp-info" id="wapp-estado-info">
+            💬 Genera primero el email y márcalo como enviado.<br>
+            El WhatsApp se activa si en <strong>2 días</strong> no hay respuesta.
+          </div>
+          <div id="wapp-activo" style="display:none;">
+            <div class="spin-wrap wapp" id="spin-wapp" style="display:none;"><div class="spin-circle"></div><div style="font-size:13px;color:#6b7280;">Generando mensaje WhatsApp...</div></div>
+            <div id="wapp-result" style="display:none;animation:fadeIn 0.3s ease;">
+              <textarea class="msg-edit wapp" id="wapp-text" spellcheck="true" style="min-height:120px;"></textarea>
+              <div class="edit-hint">✏️ Puedes editar el mensaje antes de enviarlo. El resumen guardado en Google Contacts será del texto final.</div>
+              <div style="margin-top:12px;">
+                <div style="font-size:11px;color:#6b7280;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Teléfono de destino</div>
+                <div class="wapp-tel-row">
+                  <input class="wapp-tel-input" id="wapp-tel" type="tel" placeholder="+34 612 345 678" />
+                </div>
+                <div class="btn-row">
+                  <a class="btn-wapp-web" id="btn-wapp-web" href="#" target="_blank" onclick="abrirWappWeb()">💬 Abrir WhatsApp Web</a>
+                  <button class="btn-secondary" onclick="copiarWapp()">Copiar</button>
+                </div>
+                <button class="btn-regen" onclick="regenWapp()">↻ Regenerar mensaje</button>
+
+                <button class="btn-marcar" style="background:#001a0d;color:#25d366;border-color:#25d36644;margin-top:8px;" onclick="marcarWappEnviado()">✓ Marcar WhatsApp enviado</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+<script>
+const GOOGLE_CLIENT_ID = "232128500768-qgvhqkmn8383j16s5qvbsa85ot2g242i.apps.googleusercontent.com";
+const GOOGLE_SCOPES    = "https://www.googleapis.com/auth/contacts https://www.googleapis.com/auth/spreadsheets profile email";
+const STORAGE_KEY      = "mitsubishi_seguimiento";
+const SHEET_ID         = "1nKeeV1mDqtaHKdWIljitlcmck4b11sm0-RlSdeQj0YI";
+const SHEET_TAB        = "Acciones Comerciales";
+// URLs de los motores de IA disponibles
+const PROXY_ANTHROPIC  = "https://damp-limit-0374.mezquiriz.workers.dev";
+const PROXY_WORKERS_AI = "https://proxy-workers-ai.mezquiriz.workers.dev"; // Worker de Llama 4 Scout en Workers AI
+
+let PROXY_URL    = PROXY_ANTHROPIC; // motor activo (cambia con setMotorIA)
+let _motorActivo = "anthropic";
+
+// Mapeo de usuarios → nombre completo y nombre corto.
+// Detecta por displayName de Google (puede venir como "MAMM") o por email.
+// Si añadimos más usuarios, solo hay que ampliar este array.
+const USUARIOS_CONOCIDOS = [
+  {
+    nombre: "Miguel Angel Mezquiriz",
+    nombreCorto: "Miguel Angel",
+    matches: ["mamm", "mezquiriz", "miguel angel mezquiriz", "miguelangel mezquiriz"],
+    emailMatches: ["mezquiriz", "mamezquiriz", "mmezquiriz", "miguel.angel"]
+  },
+  {
+    nombre: "Ramón Estrela",
+    nombreCorto: "Ramón",
+    matches: ["ramón estrela", "ramon estrela", "estrela", "re"],
+    emailMatches: ["estrela", "ramon", "ramón", "restrela"]
+  }
+];
+
+function normalizarUsuario(displayName, email) {
+  const n = (displayName || "").toLowerCase().trim();
+  const e = (email || "").toLowerCase().trim();
+  for (const u of USUARIOS_CONOCIDOS) {
+    const matchNombre = u.matches.some(m => n === m || n.includes(m));
+    const matchEmail  = u.emailMatches.some(m => e.includes(m));
+    if (matchNombre || matchEmail) {
+      return { nombre: u.nombre, nombreCorto: u.nombreCorto };
+    }
+  }
+  // Fallback: nombre tal cual de Google + primera palabra como nombre corto
+  const nombre = displayName || "Director comercial";
+  const nombreCorto = nombre.split(/\s+/)[0] || nombre;
+  return { nombre, nombreCorto };
+}
+
+const DEMO = [
+  { id:"d1", empresa:"Transportes García & Hijos",  contacto:"Javier García", cargo:"Director de Operaciones", email:"jgarcia@transportesgarcia.es",   telefono:"+34 612 345 678", sector:"Transporte frigorífico nacional", equipos:"3x Mitsubishi FRC-520, 1x FRC-320", ultimoContacto:"2024-10-15", historial:"Renovaron flota en 2021. Interesados en equipos eléctricos. Posible ampliación en 2025.", fuenteG:false },
+  { id:"d2", empresa:"Logística Frescos del Norte", contacto:"María Suárez",  cargo:"Gerente de Flota",        email:"msuarez@frescosnorte.com",       telefono:"+34 688 901 234", sector:"Distribución alimentaria",        equipos:"6x Mitsubishi FRC-680 (2019)",        ultimoContacto:"2024-11-02", historial:"Flota de 2019, 5 años de uso. Preguntaron por garantías extendidas. Posible renovación total.", fuenteG:false },
+  { id:"d3", empresa:"MercaFrío Distribución",      contacto:"Pedro Alonso",  cargo:"CEO",                     email:"palonso@mercafrio.es",           telefono:"+34 655 123 456", sector:"Mayorista alimentación",           equipos:"2x Mitsubishi FRC-420",              ultimoContacto:"2024-08-20", historial:"Cliente desde 2018. Estudian 3-4 unidades nuevas para Q2 2025.", fuenteG:false },
+  { id:"d4", empresa:"Congelados Rápidos SL",       contacto:"Ana Bermejo",   cargo:"Directora Compras",       email:"abermejo@congeladosrapidos.com", telefono:"+34 699 876 543", sector:"Transporte de congelados",        equipos:"1x Mitsubishi FRC-220 (2020)",       ultimoContacto:"2024-07-10", historial:"Empresa en crecimiento. Interés en modelos hybrid.", fuenteG:false },
+];
+
+let clientes   = [...DEMO];
+let _todosLosContactos = [...DEMO]; // Base completa cargada desde Google (sin slice)
+let selCliente = null;
+let currentTab = "email";
+let emailAsunto = "", emailCuerpo = "", wappMensaje = "";
+
+// Límites de visualización
+const LIMITE_GLOBAL    = 100; // top sin filtro de chips
+const LIMITE_FILTRADO  = 200; // top cuando hay chips activos parciales
+
+// Estado derivado de Google Contacts (no localStorage)
+// Se reconstruye al cargar los contactos desde las notas
+let estado = {};
+
+function guardarEstado() { /* Estado en Google Contacts, no localStorage */ }
+
+// Reconstruir estado desde las notas de un contacto
+function reconstruirEstado(c) {
+  if (!c.fuenteG || !c.historial) return;
+  const lineas = c.historial.split("\n").map(l => l.trim()).filter(l => l);
+  const hoyMs = Date.now();
+
+  // Detector de línea AUTOMÁTICA del sistema:
+  // formato exacto que escribe la app al marcar email/WApp enviado o al posponer:
+  //   "Próxima acción llamarle en DD-MM-YYYY"
+  // Cualquier otra variante con "próxima" + "acción" + fecha es MANUAL del usuario.
+  const esLineaSistemaProxima = l =>
+    /^pr[oó]xima\s+acci[oó]n\s+llamarle\s+en\s+\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}\.?$/i.test(l.trim());
+
+  // Detectores de envíos automáticos de la app (cada tipo en su slot).
+  // Capturan tanto el formato fallback como variantes generadas por la IA.
+  const esLineaEnvioEmail    = l => /^env[ií]o\s+email\b/i.test(l.trim());
+  const esLineaEnvioLinkedin = l => /^env[ií]o\s+mensaje\s+linkedin\b/i.test(l.trim());
+  const esLineaEnvioWapp     = l => /^env[ií]o\s+whatsapp\b/i.test(l.trim());
+
+  // Slots separados para cada canal: timestamp del último envío
+  let emailEnviadoEn    = null;
+  let wappEnviadoEn     = null;
+  let linkedinEnviadoEn = null;
+  let posponerHasta     = null;
+
+  // Helper para extraer fecha de la línea anterior (header del bloque)
+  const fechaDeBloqueEn = (i) => {
+    const lFecha = lineas[i-1] || "";
+    const mF = lFecha.match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
+    if (!mF) return null;
+    const ts = new Date(`${mF[3]}-${mF[2].padStart(2,"0")}-${mF[1].padStart(2,"0")}`).getTime();
+    return isNaN(ts) ? null : ts;
+  };
+
+  lineas.forEach((l, i) => {
+    if (esLineaEnvioEmail(l)) {
+      const ts = fechaDeBloqueEn(i);
+      if (ts !== null) {
+        emailEnviadoEn = ts;
+        // Reset del ciclo: nuevo email reinicia toda la cadena
+        wappEnviadoEn = null;
+        linkedinEnviadoEn = null;
+      }
+    }
+    else if (esLineaEnvioWapp(l)) {
+      const ts = fechaDeBloqueEn(i);
+      if (ts !== null) {
+        wappEnviadoEn = ts;
+        // WApp es paso 2: NO resetea emailEnviadoEn (info útil), pero sí limpia linkedin
+        linkedinEnviadoEn = null;
+      }
+    }
+    else if (esLineaEnvioLinkedin(l)) {
+      const ts = fechaDeBloqueEn(i);
+      if (ts !== null) {
+        linkedinEnviadoEn = ts;
+        // LinkedIn es paso 3 (último): no resetea nada
+      }
+    }
+    if (/pr[oó]xima/i.test(l) && /acci[oó]n/i.test(l)) {
+      const esSistema = esLineaSistemaProxima(l);
+      const mF = l.match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
+      if (mF) {
+        const fechaISO = `${mF[3]}-${mF[2].padStart(2,"0")}-${mF[1].padStart(2,"0")}`;
+        const fechaTs = new Date(fechaISO).getTime();
+        if (!isNaN(fechaTs)) {
+          if (esSistema) {
+            if (fechaTs > hoyMs) {
+              posponerHasta = fechaISO;
+            } else {
+              posponerHasta = null;
+              // Fecha sistema vencida → des-bloqueamos el ciclo (toca actuar)
+              wappEnviadoEn = null;
+              linkedinEnviadoEn = null;
+            }
+          } else {
+            // Línea MANUAL del usuario: indica seguimiento activo programado
+            // Reinicia el CICLO COMPLETO (email + wapp + linkedin) — la nota
+            // del usuario indica "empezar de cero esta fecha".
+            if (fechaTs > hoyMs) posponerHasta = fechaISO;
+            else posponerHasta = null;
+            emailEnviadoEn    = null;
+            wappEnviadoEn     = null;
+            linkedinEnviadoEn = null;
+          }
+        }
+      }
+    }
+  });
+
+  // Solo guardamos estado si hay alguna información útil
+  if (emailEnviadoEn || wappEnviadoEn || linkedinEnviadoEn || posponerHasta) {
+    estado[c.id] = {
+      emailEnviadoEn,
+      wappEnviadoEn,
+      linkedinEnviadoEn,
+      // Compatibilidad con código existente
+      wappEnviado: !!wappEnviadoEn,
+      posponerHasta
+    };
+  }
+}
+
+const dias = f => Math.floor((Date.now() - new Date(f)) / 86400000);
+const fmt  = f => new Date(f).toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric"});
+const prio = d => d>=120 ? {label:"URGENTE",color:"#ff4444"} : d>=80 ? {label:"PRÓXIMO",color:"#ffaa00"} : {label:"OK",color:"#00cc88"};
+
+function diasSinRespuesta(id) {
+  const e = estado[id];
+  if (!e?.emailEnviadoEn) return null;
+  return Math.floor((Date.now() - e.emailEnviadoEn) / 86400000);
+}
+
+function necesitaWapp(id) {
+  const c = clientes.find(x => x.id === id) || (_todosLosContactos||[]).find(x => x.id === id);
+  if (!c) return false;
+  const a = accionPara(c);
+  return !!a && (a.tipo === "wapp_seguimiento" || a.tipo === "wapp_primer_contacto");
+}
+
+// ¿La próxima acción a proponer es LinkedIn?
+function necesitaLinkedIn(id) {
+  const c = clientes.find(x => x.id === id) || (_todosLosContactos||[]).find(x => x.id === id);
+  if (!c) return false;
+  const a = accionPara(c);
+  return !!a && a.tipo === "linkedin";
+}
+
+function ultimaAccion(historial) {
+  if (!historial || historial === "Sin historial.") return null;
+
+  // Normalizar: insertar saltos SOLO antes de fechas al inicio de línea o pegadas sin letras antes
+  // Evitar partir fechas que aparecen en medio de texto (ej: "llamarle el 1-03-2026 y...")
+  const textoNormalizado = historial.replace(/(^|\n|\r)(\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4})/gm, "\n$2\n");
+  const lineas = textoNormalizado.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+
+  const esSoloFecha = l => /^(\d{1,2})[\-\/\.](\d{1,2})[\-\/\.](\d{4}):?$/.test(l);
+  const esLineaSistema = l =>
+    /^envío email/i.test(l) ||
+    /^envío whatsapp/i.test(l) ||
+    /^wapp previsto/i.test(l) ||
+    /^pr[oó]xima.+acci[oó]n.+\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}/i.test(l);
+
+  // Encontrar el índice de la ÚLTIMA fecha que inicia un bloque
+  let ultimaFechaIdx = -1;
+  for (let i = lineas.length - 1; i >= 0; i--) {
+    if (esSoloFecha(lineas[i])) { ultimaFechaIdx = i; break; }
+  }
+  if (ultimaFechaIdx === -1) return null;
+
+  // Recoger TODAS las líneas del último bloque:
+  // - ignorar la línea de fecha inicial (que es solo una fecha)
+  // - ignorar líneas puramente de sistema app (envío email/wapp, wapp previsto)
+  // - NO filtrar "próxima acción" del texto — puede ser texto tuyo
+  // - NO cortar por fechas intermedias dentro del texto
+  const esLineaPuraApp = l =>
+    /^envío email/i.test(l) ||
+    /^envío whatsapp/i.test(l) ||
+    /^wapp previsto/i.test(l);
+
+  const textoBloque = lineas
+    .slice(ultimaFechaIdx + 1)
+    .filter(l => !esSoloFecha(l) && !esLineaPuraApp(l))
+    .join(" ")
+    .trim();
+
+  if (!textoBloque) return null;
+  // Obtener la fecha del último bloque
+  const fechaBloque = ultimaFechaIdx >= 0 ? lineas[ultimaFechaIdx].replace(':','') : null;
+  return { texto: textoBloque, fecha: fechaBloque };
+}
+
+function gSvg(s=9){ return `<svg width="${s}" height="${s}" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>`; }
+
+// ── CATEGORÍAS DE OPORTUNIDADES (detector gratuito por palabras clave) ───────
+const CATEGORIAS = {
+  oferta:     { prio:1, emoji:"🔥", label:"Oferta en curso",     cls:"badge-cat-oferta" },
+  respondio:  { prio:2, emoji:"🟠", label:"Respondió",            cls:"badge-cat-respondio" },
+  renovacion: { prio:3, emoji:"🟡", label:"Renovación prevista",  cls:"badge-cat-renovacion" },
+  info:       { prio:4, emoji:"🔵", label:"Solicitó info",        cls:"badge-cat-info" },
+  frio:       { prio:5, emoji:"",   label:"",                     cls:"" }
+};
+
+function detectarCategoria(c) {
+  const ua = ultimaAccion(c.historial);
+  if (!ua || !ua.texto) return "frio";
+  const t = ua.texto.toLowerCase();
+  // 1. Oferta en curso (máxima prioridad)
+  if (/\b(oferta|presupuesto enviad|presupuesto present|propuesta|cotizaci[oó]n|pedido pendiente|pendiente.{0,20}aprobar|esperando confirmaci[oó]n|esperando pedido|en negociaci[oó]n|negociando)\b/.test(t)) return "oferta";
+  // 2. Respondió email/WhatsApp
+  if (/\b(respondi[oó]|contest[oó]|me dice|me comenta|me confirma|me responde|me indica|nos responde|nos confirma|nos indica)\b/.test(t)) return "respondio";
+  // 3. Renovación / ampliación prevista
+  if (/\b(renovaci[oó]n|renovar|sustituir.{0,15}flota|cambiar.{0,15}equip|nueva flota|ampliaci[oó]n|ampliar.{0,15}flota|incorporar.{0,15}nuev|nuevos equipos|nueva unidad|nuevas unidades)\b/.test(t)) return "renovacion";
+  // 4. Solicitó información
+  if (/\b(pidi[oó].{0,20}informaci[oó]n|solicit[oó].{0,20}informaci[oó]n|solicita|interesad[oa] en|quiere saber|env[ií][oó].{0,15}consulta|pidi[oó].{0,15}presupuesto|pidi[oó].{0,15}datos|pregunt[oó] por|consult[oó] sobre)\b/.test(t)) return "info";
+  return "frio";
+}
+
+function calcularCategorias() {
+  // Calculamos categorías sobre la base COMPLETA (_todosLosContactos)
+  // porque _sortPrioridad las consulta para seleccionar el top 100, y ese
+  // sort opera sobre la base completa, no solo sobre `clientes`.
+  // Si _todosLosContactos no está poblado aún (antes de conectar Google),
+  // caemos a `clientes` (los demos).
+  const base = (_todosLosContactos && _todosLosContactos.length > 0) ? _todosLosContactos : clientes;
+  base.forEach(c => { c._categoria = detectarCategoria(c); });
+}
+
+// Aviso de desfase: cliente caliente con próxima acción a más de 7 días vista
+function desfaseProximaAccion(c) {
+  const cat = c._categoria;
+  if (!cat || cat === "frio" || cat === "renovacion") return null; // renovación no es urgente per se
+  if (!c.proximaAccion) return { tipo:"sin_fecha" };
+  const ms = new Date(c.proximaAccion) - Date.now();
+  const dias = Math.ceil(ms / 86400000);
+  if (dias > 7) return { tipo:"lejana", dias };
+  return null;
+}
+
+// ── CHIPS — filtro por etiqueta de Google Contacts ───────────────────────────
+let chipsActivos = new Set();
+let provinciasActivas = new Set();
+let desfasesIgnorados = new Set();
+// Contactos "ignorados por hoy": ocultos durante esta sesión, sin escribir nada
+// en Google Contacts. Se borra automáticamente al recargar la página.
+let ignoradosEnSesion = new Set();
+
+// Etiquetas de sistema que nunca se muestran ni se usan en el filtro
+const ETIQUETAS_EXCLUIR = new Set(["MIS CONTACTOS", "MYCONTACTS", "STARRED", "ESPAÑA", "SPAIN", "CONTACTOS", "CONTACTS"]);
+const esEtiquetaSistema = et => !et || ETIQUETAS_EXCLUIR.has(et.toUpperCase().trim());
+
+function _contarEtiquetas() {
+  const counts = {};
+  // Contar sobre la base completa, no sobre los clientes mostrados
+  // así los chips muestran totales reales por etiqueta en toda la base
+  _todosLosContactos.forEach(c => {
+    if (estaPostpuesto(c.id)) return;
+    if (ignoradosEnSesion.has(c.id)) return;
+    (c.etiquetas || []).forEach(et => {
+      if (esEtiquetaSistema(et)) return;
+      counts[et] = (counts[et] || 0) + 1;
+    });
+  });
+  return counts;
+}
+
+function _contarProvincias() {
+  const counts = {};
+  _todosLosContactos.forEach(c => {
+    if (estaPostpuesto(c.id)) return;
+    if (ignoradosEnSesion.has(c.id)) return;
+    const prov = (c.provincia && c.provincia.trim()) || "Sin provincia";
+    counts[prov] = (counts[prov] || 0) + 1;
+  });
+  return counts;
+}
+
+// Sort de prioridad para selección inicial (mismo criterio que el sort de carga)
+function _sortPrioridad(a, b) {
+  const hoy0 = new Date(); hoy0.setHours(0,0,0,0);
+  // 1. Próxima acción vencida o hoy → primero, fecha más antigua
+  const aPA = a.proximaAccion && new Date(a.proximaAccion) <= hoy0 ? 1 : 0;
+  const bPA = b.proximaAccion && new Date(b.proximaAccion) <= hoy0 ? 1 : 0;
+  if (bPA !== aPA) return bPA - aPA;
+  if (aPA && bPA) return new Date(a.proximaAccion) - new Date(b.proximaAccion);
+  // 2. WhatsApp pendiente
+  const aW = necesitaWapp(a.id) ? 1 : 0;
+  const bW = necesitaWapp(b.id) ? 1 : 0;
+  if (bW !== aW) return bW - aW;
+  // 3. LinkedIn pendiente
+  const aL = necesitaLinkedIn(a.id) ? 1 : 0;
+  const bL = necesitaLinkedIn(b.id) ? 1 : 0;
+  if (bL !== aL) return bL - aL;
+  // 4. Con historial activo → más días sin contacto primero (sin categorías calientes)
+  const tieneHistorialActivo = c => c.historial && /\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}/.test(c.historial);
+  const aActivo = tieneHistorialActivo(a) ? 1 : 0;
+  const bActivo = tieneHistorialActivo(b) ? 1 : 0;
+  if (bActivo !== aActivo) return bActivo - aActivo;
+  if (aActivo && bActivo) return dias(b.ultimoContacto) - dias(a.ultimoContacto);
+  // 5. Email recién enviado al final
+  const aEspera = estado[a.id]?.emailEnviadoEn && !necesitaWapp(a.id) && !estado[a.id]?.wappEnviado ? 1 : 0;
+  const bEspera = estado[b.id]?.emailEnviadoEn && !necesitaWapp(b.id) && !estado[b.id]?.wappEnviado ? 1 : 0;
+  if (aEspera !== bEspera) return aEspera - bEspera;
+  // 6. Por días sin contacto
+  return dias(b.ultimoContacto) - dias(a.ultimoContacto);
+}
+
+// Recalcula `clientes` desde `_todosLosContactos` según los chips activos:
+// - sin chips o todas activas en ambas dimensiones → top 100 global por prioridad
+// - con cualquier filtro parcial (etiqueta y/o provincia) → top 200 del subset (AND)
+function recalcularClientes() {
+  if (!_todosLosContactos || _todosLosContactos.length === 0) return;
+  const countsE = _contarEtiquetas();
+  const countsP = _contarProvincias();
+  const totalE = Object.keys(countsE).length;
+  const totalP = Object.keys(countsP).length;
+  const sinFiltroE = chipsActivos.size === 0 || chipsActivos.size === totalE;
+  const sinFiltroP = provinciasActivas.size === 0 || provinciasActivas.size === totalP;
+  const sinFiltro = sinFiltroE && sinFiltroP;
+
+  let base = _todosLosContactos;
+  if (!sinFiltroE) {
+    base = base.filter(c => {
+      const etiquetasValidas = (c.etiquetas || []).filter(e => !esEtiquetaSistema(e));
+      return etiquetasValidas.some(e => chipsActivos.has(e));
+    });
+  }
+  if (!sinFiltroP) {
+    base = base.filter(c => {
+      const prov = (c.provincia && c.provincia.trim()) || "Sin provincia";
+      return provinciasActivas.has(prov);
+    });
+  }
+  const limite = sinFiltro ? LIMITE_GLOBAL : LIMITE_FILTRADO;
+
+  clientes = base
+    .filter(c => !estaPostpuesto(c.id))
+    .filter(c => !ignoradosEnSesion.has(c.id))
+    .sort(_sortPrioridad)
+    .slice(0, limite);
+
+  actualizarInfoText();
+}
+
+// Actualiza el texto informativo bajo el header según el estado de filtros
+function actualizarInfoText() {
+  const info = document.getElementById("info-text");
+  if (!info || !_todosLosContactos || _todosLosContactos.length === 0) return;
+  // Si seguimos mostrando solo demo, no tocamos
+  if (_todosLosContactos === DEMO || (_todosLosContactos[0] && !_todosLosContactos[0].fuenteG)) return;
+  const countsE = _contarEtiquetas();
+  const countsP = _contarProvincias();
+  const totalE = Object.keys(countsE).length;
+  const totalP = Object.keys(countsP).length;
+  const sinFiltroE = chipsActivos.size === 0 || chipsActivos.size === totalE;
+  const sinFiltroP = provinciasActivas.size === 0 || provinciasActivas.size === totalP;
+  const sinFiltro = sinFiltroE && sinFiltroP;
+  const totalBase = _todosLosContactos.length;
+  const userEmail = window._currentUser?.email || "";
+  if (sinFiltro) {
+    info.innerHTML = `<strong style="color:#e8eaf0">${clientes.length} contactos</strong> (top ${LIMITE_GLOBAL} de ${totalBase}) · <span style="color:#4b5563;">${userEmail}</span>`;
+  } else {
+    // Subset real filtrado (sin slice) — para mostrar tamaño de la selección
+    let baseFiltrada = _todosLosContactos;
+    if (!sinFiltroE) {
+      baseFiltrada = baseFiltrada.filter(c => {
+        const ev = (c.etiquetas || []).filter(e => !esEtiquetaSistema(e));
+        return ev.some(e => chipsActivos.has(e));
+      });
+    }
+    if (!sinFiltroP) {
+      baseFiltrada = baseFiltrada.filter(c => {
+        const prov = (c.provincia && c.provincia.trim()) || "Sin provincia";
+        return provinciasActivas.has(prov);
+      });
+    }
+    const totalFiltrado = baseFiltrada.length;
+    // Descripción de filtros activos
+    const partes = [];
+    if (!sinFiltroE) {
+      const arr = [...chipsActivos];
+      partes.push(arr.length === 1 ? `etiqueta «${arr[0]}»` : `${arr.length} etiquetas`);
+    }
+    if (!sinFiltroP) {
+      const arr = [...provinciasActivas];
+      partes.push(arr.length === 1 ? `provincia «${arr[0]}»` : `${arr.length} provincias`);
+    }
+    const filtroTxt = partes.join(" + ");
+    info.innerHTML = `<strong style="color:#e8eaf0">${clientes.length} contactos</strong> con ${filtroTxt} (de ${totalFiltrado} en esa selección, ${totalBase} totales) · <span style="color:#4b5563;">${userEmail}</span>`;
+  }
+}
+
+function renderChips() {
+  const cont = document.getElementById("chips-container");
+  if (!cont) return;
+  const countsE = _contarEtiquetas();
+  const countsP = _contarProvincias();
+  const ordenadasE = Object.entries(countsE).sort((a,b) => a[0].localeCompare(b[0], 'es'));
+  const ordenadasP = Object.entries(countsP).sort((a,b) => a[0].localeCompare(b[0], 'es'));
+  if (ordenadasE.length === 0 && ordenadasP.length === 0) { cont.innerHTML = ""; return; }
+
+  let html = "";
+
+  // Fila 1 — Etiquetas
+  if (ordenadasE.length > 0) {
+    const totalE = ordenadasE.length;
+    const todasActivasE = chipsActivos.size === totalE;
+    const totalVisible = _todosLosContactos.filter(c => !estaPostpuesto(c.id) && !ignoradosEnSesion.has(c.id)).length;
+    html += `<div class="chips-row">`;
+    html += `<span class="chips-label">Etiqueta</span>`;
+    html += `<button class="chip chip-todos ${todasActivasE ? "active" : ""}" onclick="toggleTodas()">${todasActivasE ? "✓ " : ""}Todas · ${totalVisible}</button>`;
+    ordenadasE.forEach(([etq, n]) => {
+      const active = chipsActivos.has(etq);
+      const safe = etq.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+      html += `<button class="chip ${active ? "active" : ""}" onclick="toggleChip('${safe}')">${etq} · ${n}</button>`;
+    });
+    html += `</div>`;
+  }
+
+  // Fila 2 — Provincias
+  if (ordenadasP.length > 0) {
+    const totalP = ordenadasP.length;
+    const todasActivasP = provinciasActivas.size === totalP;
+    const totalVisibleP = _todosLosContactos.filter(c => !estaPostpuesto(c.id) && !ignoradosEnSesion.has(c.id)).length;
+    html += `<div class="chips-row">`;
+    html += `<span class="chips-label">Provincia</span>`;
+    html += `<button class="chip chip-prov-todas ${todasActivasP ? "active" : ""}" onclick="toggleTodasProvincias()">${todasActivasP ? "✓ " : ""}Todas · ${totalVisibleP}</button>`;
+    ordenadasP.forEach(([prov, n]) => {
+      const active = provinciasActivas.has(prov);
+      const safe = prov.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+      html += `<button class="chip chip-prov ${active ? "active" : ""}" onclick="toggleProvincia('${safe}')">${prov} · ${n}</button>`;
+    });
+    html += `</div>`;
+  }
+
+  cont.innerHTML = html;
+}
+
+function toggleTodas() {
+  const counts = _contarEtiquetas();
+  const total = Object.keys(counts).length;
+  if (chipsActivos.size === total) {
+    chipsActivos.clear(); // todas activas → limpiar
+  } else {
+    Object.keys(counts).forEach(et => chipsActivos.add(et)); // activar todas
+  }
+  recalcularClientes();
+  renderChips();
+  renderLista();
+}
+
+function toggleChip(etq) {
+  const counts = _contarEtiquetas();
+  const total = Object.keys(counts).length;
+  const todasActivas = chipsActivos.size === total;
+  if (todasActivas) {
+    // Si todas activas → deseleccionar solo la pulsada, resto quedan activas
+    chipsActivos.delete(etq);
+  } else if (chipsActivos.has(etq)) {
+    chipsActivos.delete(etq);
+    // Si queda vacío ya actúa como "sin filtro" por el filtro en renderLista
+  } else {
+    chipsActivos.add(etq);
+  }
+  recalcularClientes();
+  renderChips();
+  renderLista();
+}
+
+function toggleTodasProvincias() {
+  const counts = _contarProvincias();
+  const total = Object.keys(counts).length;
+  if (provinciasActivas.size === total) {
+    provinciasActivas.clear(); // todas activas → limpiar
+  } else {
+    Object.keys(counts).forEach(p => provinciasActivas.add(p)); // activar todas
+  }
+  recalcularClientes();
+  renderChips();
+  renderLista();
+}
+
+function toggleProvincia(prov) {
+  const counts = _contarProvincias();
+  const total = Object.keys(counts).length;
+  const todasActivas = provinciasActivas.size === total;
+  if (todasActivas) {
+    provinciasActivas.delete(prov);
+  } else if (provinciasActivas.has(prov)) {
+    provinciasActivas.delete(prov);
+  } else {
+    provinciasActivas.add(prov);
+  }
+  recalcularClientes();
+  renderChips();
+  renderLista();
+}
+
+function ignorarDesfase(id, event) {
+  event.stopPropagation();
+  desfasesIgnorados.add(id);
+  renderLista();
+}
+
+function renderLista() {
+  const busq = document.getElementById("search").value.toLowerCase();
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const sorted = [...clientes]
+    .filter(c => !busq || c.empresa.toLowerCase().includes(busq) || c.contacto.toLowerCase().includes(busq))
+    .filter(c => !estaPostpuesto(c.id)) // ocultar postpuestos
+    .filter(c => !estaGestionado(c.id)) // ocultar gestionados
+    .filter(c => !ignoradosEnSesion.has(c.id)) // ocultar ignorados en esta sesión
+    // Nota: el filtro por chips se aplica en recalcularClientes() al cambiar
+    // los chips, no aquí. Así `clientes` ya viene pre-filtrado por etiqueta.
+    .sort((a,b) => {
+      // 1. Próxima acción vencida o de hoy → primero, por fecha más antigua
+      const aPA = proximaAccionPendiente(a) ? 1 : 0;
+      const bPA = proximaAccionPendiente(b) ? 1 : 0;
+      if (bPA !== aPA) return bPA - aPA;
+      if (aPA && bPA) return new Date(a.proximaAccion) - new Date(b.proximaAccion);
+      // 2. WhatsApp pendiente
+      const aw = necesitaWapp(a.id) ? 1 : 0;
+      const bw = necesitaWapp(b.id) ? 1 : 0;
+      if (bw !== aw) return bw - aw;
+      // 3. LinkedIn pendiente
+      const aL = necesitaLinkedIn(a.id) ? 1 : 0;
+      const bL = necesitaLinkedIn(b.id) ? 1 : 0;
+      if (bL !== aL) return bL - aL;
+      // 4. Con historial activo → más días sin contacto primero (sin categorías calientes)
+      const tieneHistorial = c => c.historial && /\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}/.test(c.historial);
+      const aActivo = tieneHistorial(a) ? 1 : 0;
+      const bActivo = tieneHistorial(b) ? 1 : 0;
+      if (bActivo !== aActivo) return bActivo - aActivo;
+      if (aActivo && bActivo) return dias(b.ultimoContacto) - dias(a.ultimoContacto);
+      // 5. Email recién enviado (menos de 2 días) → al final
+      const aEspera = estado[a.id]?.emailEnviadoEn && !necesitaWapp(a.id) && !estado[a.id]?.wappEnviado ? 1 : 0;
+      const bEspera = estado[b.id]?.emailEnviadoEn && !necesitaWapp(b.id) && !estado[b.id]?.wappEnviado ? 1 : 0;
+      if (aEspera !== bEspera) return aEspera - bEspera;
+      // 6. Por días sin contacto (sin historial activo)
+      return dias(b.ultimoContacto) - dias(a.ultimoContacto);
+    });
+
+  const urgentes = clientes.filter(c => dias(c.ultimoContacto) >= 120 || necesitaWapp(c.id)).length;
+  const bu = document.getElementById("badge-urgent");
+  if (urgentes > 0) { bu.style.display="block"; bu.textContent=`⚡ ${urgentes} requieren acción`; }
+  else bu.style.display="none";
+
+  const wappPendientes = clientes.filter(c => necesitaWapp(c.id)).length;
+
+  document.getElementById("lista").innerHTML = sorted.length === 0
+    ? `<div style="text-align:center;padding:40px 0;color:#4b5563;font-size:13px;">Sin resultados</div>`
+    : sorted.map(c => {
+        const d   = dias(c.ultimoContacto);
+        const p   = prio(d);
+        const sel = selCliente?.id === c.id;
+        const e   = estado[c.id] || {};
+        const dsR = diasSinRespuesta(c.id);
+        const nW  = necesitaWapp(c.id);
+        const tw  = tipoWappPara(c);            // tipo de WApp si aplica (incluye nW)
+        const usaWapp = !!tw;                   // ¿se propondrá WApp como acción primaria?
+        const cat = c._categoria || "frio";
+        const cD  = CATEGORIAS[cat];
+        const desf = desfaseProximaAccion(c);
+        return `
+        <div class="cliente-card ${sel?"selected":""}" onclick="clickCliente('${c.id}')" style="border-left:3px solid ${nW ? '#25d366' : p.color};">
+          <div>
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap;">
+              <span style="font-size:14px;font-weight:700;">${c.empresa}</span>
+              ${cat !== "frio" ? `<span class="badge-cat ${cD.cls}">${cD.emoji} ${cD.label}</span>` : ""}
+              <span class="badge badge-${p.label}">${p.label}</span>
+              ${c.fuenteG ? `<span class="badge-google">${gSvg(9)} Google</span>` : ""}
+              ${(c.etiquetas||[]).some(et => et.toUpperCase().includes("NO EMAILS COMERCIALES")) ? `<span style="font-size:10px;color:#ff6b6b;background:#2a0a0a;border:1px solid #ff6b6b66;padding:1px 6px;border-radius:7px;font-weight:600;" title="Contacto con etiqueta NO EMAILS COMERCIALES — no enviar emails comerciales automáticos, usar otros canales (llamada, WhatsApp, LinkedIn)">🚫 No emails</span>` : ""}
+              ${c.linkedin ? `<span style="font-size:10px;color:#0a66c2;background:#0a1929;border:1px solid #0a66c244;padding:1px 6px;border-radius:7px;">💼 LinkedIn</span>` : ""}
+              ${proximaAccionPendiente(c) ? `<span class="badge-proxima">📅 Acción hoy</span>` : c.proximaAccion && new Date(c.proximaAccion) > hoy ? `<span style="font-size:10px;color:#a78bfa;font-weight:600;">📅 ${fmt(c.proximaAccion)}</span>` : ""}
+              ${nW ? `<span class="badge-wapp">💬 WhatsApp pendiente</span>` : ""}
+              ${necesitaLinkedIn(c.id) ? `<span style="font-size:10px;color:#0a66c2;background:#0a1929;border:1px solid #0a66c2;padding:1px 6px;border-radius:7px;font-weight:600;">💼 LinkedIn pendiente</span>` : ""}
+              ${e.emailEnviadoEn && !nW && !e.wappEnviado && dsR !== null ? `<span style="font-size:10px;color:#ffaa00;">⏳ Email enviado hace ${dsR}d</span>` : ""}
+              ${e.wappEnviado ? `<span style="font-size:10px;color:#25d366;font-weight:600;">✓ WApp enviado</span>` : ""}
+              ${e.ultimoContacto && !e.emailEnviadoEn ? `<span style="font-size:10px;color:#00cc88;font-weight:600;">✓ Contactado</span>` : ""}
+            </div>
+            <div style="font-size:12px;color:#9ca3af;margin-bottom:4px;">${c.contacto}${c.cargo ? ` · ${c.cargo}` : ""}</div>
+            <div style="font-size:11px;color:#6b7280;display:flex;gap:12px;flex-wrap:wrap;">
+              ${c.sector!=="Ver notas" ? `<span>🏭 ${c.sector}</span>` : ""}
+              ${c.email ? `<span>✉ ${c.email}</span>` : ""}
+              ${c.telefono ? `<span>📞 ${c.telefono}</span>` : ""}
+            </div>
+            ${(() => { const ua = ultimaAccion(c.historial); return ua ? `<div style="font-size:12px;color:#9ca3af;margin-top:6px;border-left:2px solid #374151;padding-left:8px;line-height:1.6;"><span style="color:#6b7280;font-size:11px;font-weight:600;">${ua.fecha} · </span>${ua.texto}</div>` : ""; })()}
+            ${desf && !desfasesIgnorados.has(c.id) ? `<div class="aviso-desfase">⚠️ ${cD.label.toLowerCase()} ${desf.tipo === "sin_fecha" ? "sin próxima acción programada" : `con próxima acción a ${desf.dias} días`} <button onclick="ignorarDesfase('${c.id}',event)" style="margin-left:8px;background:none;border:1px solid #ffaa0066;border-radius:5px;color:#ffaa00;font-size:10px;padding:1px 7px;cursor:pointer;">✕ No adelantar</button></div>` : ""}
+            <div style="display:flex;gap:6px;margin-top:6px;">
+              <button onclick="event.stopPropagation();posponerDesdeCard('${c.id}')" style="background:#111827;color:#6b7280;border:1px solid #1e2535;border-radius:5px;padding:3px 8px;font-size:10px;cursor:pointer;">⏭ Posponer</button>
+              <button onclick="ignorarDesdeCard('${c.id}',event)" style="background:#111827;color:#6b7280;border:1px solid #1e2535;border-radius:5px;padding:3px 8px;font-size:10px;cursor:pointer;" title="Ocultar de la lista durante esta sesión. Reaparece al recargar.">🚫 Ignorar</button>
+            </div>
+          </div>
+          <div style="text-align:right;min-width:80px;">
+            <div style="font-size:26px;font-weight:800;line-height:1;color:${nW ? '#25d366' : p.color};">${d}</div>
+            <div style="font-size:10px;color:#6b7280;margin-top:1px;">días</div>
+            <div style="font-size:10px;color:#4b5563;margin-top:4px;">${fmt(c.ultimoContacto)}</div>
+            ${(() => {
+              const a = accionPara(c);
+              const tipo = a?.tipo;
+              let label, color, bg, border;
+              if (tipo === "wapp_seguimiento" || tipo === "wapp_primer_contacto") {
+                label = "💬 Enviar WApp";   color = "#25d366"; bg = "#001a0d"; border = "#25d36633";
+              } else if (tipo === "linkedin") {
+                label = "💼 Enviar LinkedIn"; color = "#0a66c2"; bg = "#0a1929"; border = "#0a66c244";
+              } else if (tipo === "email") {
+                label = "✉ Enviar email";   color = "#e63946"; bg = "#1a0608"; border = "#3d0d12";
+              } else {
+                label = "✉ Email IA";       color = "#e63946"; bg = "#1a0608"; border = "#3d0d12";
+              }
+              return `<div style="margin-top:7px;font-size:11px;color:${color};font-weight:600;background:${bg};border-radius:5px;padding:2px 8px;border:1px solid ${border};">${label}</div>`;
+            })()}
+          </div>
+        </div>`;
+      }).join("");
+}
+
+// Días desde un timestamp (null si no hay)
+function diasDesde(ts) {
+  if (!ts) return null;
+  return Math.floor((Date.now() - ts) / 86400000);
+}
+
+// Decide la PRÓXIMA acción a proponer según la secuencia obligatoria:
+// Email → (2d sin respuesta) → WhatsApp → (2d sin respuesta) → LinkedIn → cierre
+//
+// Devuelve { tipo, motivo } o null si no hay acción posible.
+// tipo: "email" | "wapp_seguimiento" | "wapp_primer_contacto" | "linkedin"
+function accionPara(c) {
+  if (!c) return null;
+  const e = estado[c.id] || {};
+  const dE = diasDesde(e.emailEnviadoEn);
+  const dW = diasDesde(e.wappEnviadoEn);
+  const dL = diasDesde(e.linkedinEnviadoEn);
+
+  // ESCALÓN 3: ¿LinkedIn enviado? → ciclo cerrado, no se propone nada hasta que pase el posponer
+  if (dL !== null) return null;
+
+  // ESCALÓN 2: ¿WApp enviado?
+  if (dW !== null) {
+    // Si NO había email previo, fue WApp como PRIMER CONTACTO → ciclo cerrado.
+    // No insistimos con LinkedIn ni más WApps. La próxima acción la pone la
+    // IA (típicamente 3 meses) al marcar el WApp como enviado.
+    if (dE === null) return null;
+    // Si había email + WApp, después de 2+ días sin respuesta → LinkedIn (si tiene)
+    if (dW >= 2 && c.linkedin) return { tipo: "linkedin", motivo: `WApp enviado hace ${dW} días sin respuesta` };
+    // Si no tiene LinkedIn o aún no han pasado 2 días → esperar (no proponer nada)
+    return null;
+  }
+
+  // ESCALÓN 1: ¿Email enviado?
+  if (dE !== null) {
+    // Si pasaron 2+ días sin respuesta → toca WApp (si tiene móvil) o LinkedIn (si no)
+    if (dE >= 2) {
+      if (c.telefonoMovil) return { tipo: "wapp_seguimiento", motivo: `Email enviado hace ${dE} días sin respuesta` };
+      if (c.linkedin)      return { tipo: "linkedin",         motivo: `Email enviado hace ${dE} días sin respuesta y sin móvil` };
+      return null; // sin canales alternativos
+    }
+    return null; // email reciente, esperar
+  }
+
+  // INICIO DE CICLO: ningún envío previo, decidir por canales disponibles
+  // Prioridad: email > wapp (sin email pero con móvil) > linkedin
+  if (c.email) return { tipo: "email", motivo: "Inicio de ciclo" };
+  if (c.telefonoMovil) return { tipo: "wapp_primer_contacto", motivo: "Sin email, contacto inicial por WApp" };
+  if (c.linkedin) return { tipo: "linkedin", motivo: "Sin email ni móvil, contacto inicial por LinkedIn" };
+  return null; // sin canales
+}
+
+// Helper legacy para compatibilidad con código que aún consulta tipoWappPara
+function tipoWappPara(c) {
+  const a = accionPara(c);
+  if (!a) return null;
+  if (a.tipo === "wapp_seguimiento")    return "seguimiento";
+  if (a.tipo === "wapp_primer_contacto") return "primer_contacto";
+  return null;
+}
+
+function clickCliente(id) {
+  selCliente = clientes.find(c => c.id === id);
+  renderLista();
+  const c = selCliente;
+  const a = accionPara(c);
+  // Sin acción concreta → abrir tab email genérico (usuario podrá generar manualmente)
+  if (!a) {
+    abrirPanel(c, "email");
+    if (c.email) generarEmail(c);
+    else if (c.linkedin) generarMensajeLinkedIn(c);
+    else generarEmail(c); // caso degenerado
+    return;
+  }
+  if (a.tipo === "email") {
+    abrirPanel(c, "email");
+    generarEmail(c);
+  } else if (a.tipo === "wapp_seguimiento" || a.tipo === "wapp_primer_contacto") {
+    abrirPanel(c, "wapp");
+    generarWapp(c, a.tipo === "wapp_seguimiento" ? "seguimiento" : "primer_contacto");
+  } else if (a.tipo === "linkedin") {
+    abrirPanel(c, "email"); // tab email pero contenido LinkedIn
+    generarMensajeLinkedIn(c);
+  }
+}
+
+function abrirPanel(c, tab="email") {
+  document.getElementById("panel").classList.add("visible");
+  document.getElementById("main").classList.add("with-panel");
+  document.getElementById("panel-empresa").textContent = c.empresa;
+  document.getElementById("dest-grid").innerHTML = `
+    <span class="dest-label">Para:</span>  <span class="dest-name">${c.contacto}</span>
+    ${c.cargo ? `<span class="dest-label">Cargo:</span><span style="color:#9ca3af">${c.cargo}</span>` : ""}
+    <span class="dest-label">Email:</span> <span style="color:#60a5fa;">${c.email||"No disponible"}</span>
+    ${c.telefono ? `<span class="dest-label">Tel:</span><span style="color:#9ca3af;">${c.telefono}</span>` : ""}
+    ${c.linkedin ? `<span class="dest-label">LinkedIn:</span><a href="${c.linkedin}" target="_blank" style="color:#0a66c2;font-size:12px;">💼 Ver perfil</a>` : ""}
+  `;
+  if (c.telefono) document.getElementById("wapp-tel").value = c.telefono;
+
+  // Alerta próxima acción
+  const pa = document.getElementById("proxima-alert");
+  if (c.proximaAccion) {
+    const hoyPA = new Date(); hoyPA.setHours(0,0,0,0);
+    const diffDias = Math.ceil((new Date(c.proximaAccion) - hoyPA) / 86400000);
+    pa.innerHTML = diffDias <= 0
+      ? `📅 <strong>Acción prevista para hoy</strong> (${fmt(c.proximaAccion)}) — según tus notas`
+      : `📅 Próxima acción programada: <strong>${fmt(c.proximaAccion)}</strong> — en ${diffDias} día${diffDias!==1?"s":""}`;
+    pa.style.display = "block";
+  } else { pa.style.display = "none"; }
+
+  switchTab(tab);
+}
+
+function cerrarPanel() {
+  document.getElementById("panel").classList.remove("visible");
+  document.getElementById("main").classList.remove("with-panel");
+  selCliente = null; renderLista();
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById("content-email").style.display = tab==="email" ? "block" : "none";
+  document.getElementById("content-wapp").style.display  = tab==="wapp"  ? "block" : "none";
+  document.getElementById("tab-email").classList.toggle("active", tab==="email");
+  document.getElementById("tab-wapp").classList.toggle("active",  tab==="wapp");
+
+  const tag = document.getElementById("panel-tag");
+  tag.textContent = tab==="email" ? "✉ BORRADOR · EMAIL" : "💬 BORRADOR · WHATSAPP";
+
+  // Actualizar estado del panel WhatsApp
+  if (tab==="wapp" && selCliente) actualizarWappPanel();
+}
+
+function actualizarWappPanel() {
+  const id = selCliente?.id;
+  const c  = selCliente;
+  const activo = document.getElementById("wapp-activo");
+  const info   = document.getElementById("wapp-estado-info");
+  const tw     = tipoWappPara(c);
+  if (tw) {
+    info.style.display  = "none";
+    activo.style.display = "block";
+    if (!wappMensaje) generarWapp(c, tw);
+  } else {
+    const dsR = diasSinRespuesta(id);
+    if (dsR !== null) {
+      info.innerHTML = `⏳ Email enviado hace <strong style="color:#ffaa00;">${dsR} día${dsR!==1?"s":""}</strong>.<br>El WhatsApp se activará cuando pasen <strong>2 días</strong> sin respuesta.`;
+    } else if (c && !c.telefonoMovil && !c.email) {
+      info.innerHTML = `💬 Este contacto no tiene email ni móvil registrado.<br>Añade un teléfono móvil en Google Contacts para usar WhatsApp.`;
+    } else if (c && !c.telefonoMovil) {
+      info.innerHTML = `💬 Genera primero el email y márcalo como enviado.<br>El WhatsApp se activa si en <strong>2 días</strong> no hay respuesta, o si añades un móvil al contacto.`;
+    } else {
+      info.innerHTML = `💬 Genera primero el email y márcalo como enviado.<br>El WhatsApp se activa si en <strong>2 días</strong> no hay respuesta.`;
+    }
+    info.style.display   = "block";
+    activo.style.display = "none";
+  }
+}
+
+// ── EMAIL ────────────────────────────────────────────────────────────────────
+async function generarEmail(c) {
+  console.log("[generarEmail] Iniciando para:", c.empresa, c.contacto);
+  // Limpiar flag de LinkedIn por si venimos de un mensaje LinkedIn previo
+  if (c) c._linkedinUsado = false;
+  document.getElementById("spin-email").style.display  = "block";
+  document.getElementById("email-result").style.display = "none";
+  const d = dias(c.ultimoContacto);
+  const miNombre      = window._currentUser?.nombre      || "el director comercial";
+  const miNombreCorto = window._currentUser?.nombreCorto || "el director";
+  
+  try {
+    // Prompts diferentes por motor:
+    // - Claude: instrucciones narrativas, libertad creativa, longitud equilibrada
+    // - Llama (versión narrativa): explota historial completo, prioriza personas y equipos
+    const promptClaude =
+`Tu rol: ${miNombre}, director comercial de Mitsubishi Equipos Frigoríficos en España.
+Hoy: ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
+
+CLIENTE:
+Empresa: ${c.empresa}
+Contacto: ${c.contacto}${c.cargo?` (${c.cargo})`:""}
+Sector: ${c.sector}
+Equipos: ${c.equipos}
+Último contacto: hace ${d} días
+Tipo: ${c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario ? "Intermediario (carrocero/renting/servicio oficial)" : "General"}
+
+HISTORIAL DE NOTAS:
+${c.historial}
+
+INSTRUCCIONES:
+
+1. ABRE DIRECTO. Nada de "Espero que esté bien" ni "Le escribo para hacer seguimiento".
+
+2. CONECTA CON EL HISTORIAL. Busca uno o dos detalles concretos (proyecto, equipo, persona, conversación previa, decisión pendiente) y úsalos para que el email se sienta personal. Si el historial solo tiene fechas, escribe naturalmente: "Hace tiempo que no hablamos".
+
+3. PROHIBIDO INVENTAR DATOS TÉCNICOS O COMERCIALES. Esta regla es crítica:
+   - NUNCA inventes nombres de modelos, códigos de producto ni nomenclatura comercial.
+   - NUNCA inventes cifras: porcentajes de consumo, plazos de entrega, precios, eficiencias, comparativas con años anteriores, capacidades.
+   - NUNCA inventes "novedades", "nuevas versiones", "stocks ampliados" ni anuncios de producto.
+   - SOLO puedes mencionar modelos, cifras o productos que aparezcan TEXTUALMENTE en el historial del cliente.
+   - Si el historial no contiene datos técnicos concretos, no los introduzcas — construye el email solo sobre lo que sí sabes (el contacto, el sector, la conversación previa).
+
+4. CONSTRUYE EL EMAIL SOBRE LO QUE TIENES. No "aportes valor" inventando — el valor viene de demostrar que recuerdas la conversación previa, de hacer la pregunta correcta, de mostrar continuidad. Si el historial es escueto, el email también lo será, y eso está bien: mejor un email corto y honesto que uno largo con datos falsos.
+
+5. UNA SOLA PETICIÓN al final. Llamada O visita O enviar info. Una pregunta clara y fácil de responder.
+
+6. LONGITUD: 100-160 palabras. Adapta a lo que tengas: con historial rico puedes acercarte a 160; con historial escueto, mantente cerca de 100.
+
+7. NO firmes el email. Sin "Saludos" ni nombre al final.
+
+EJEMPLO DEL ESTILO QUE BUSCO (caso ficticio — los códigos de modelo aquí son placeholders ilustrativos, NO los uses si no aparecen en el historial real):
+"Hola Pedro, repasando notas vi que en agosto comentaste con María que estabais valorando 3-4 unidades nuevas para Q2. ¿Sigue en pie esa decisión?
+
+Te llamo a propósito de eso porque me gustaría entender cómo vais y si os puedo echar una mano con la comparativa entre opciones que comentamos. Si seguís en ello, os puedo pasar datos reales de consumo de clientes parecidos a vosotros en distribución frigorífica.
+
+¿Te viene bien una llamada el martes o miércoles?"
+
+EJEMPLO CON HISTORIAL ESCUETO (solo fechas, sin contenido):
+"Hola Pedro, hace tiempo que no hablamos. ¿Cómo va la flota? ¿Tenéis algún proyecto de renovación o ampliación previsto? Si te encaja, te llamo cuando me digas y nos ponemos al día."
+
+FORMATO:
+ASUNTO: [breve, específico al cliente y al tema concreto, sin las palabras "seguimiento" ni "contacto"]
+
+[cuerpo natural y construido]`;
+
+    const promptLlama =
+`Eres ${miNombre}, director comercial de Mitsubishi Equipos Frigoríficos en España. Hoy es ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
+
+Vas a escribir un email a ${c.contacto}${c.cargo?` (${c.cargo})`:""} de ${c.empresa}. Tipo de cliente: ${c.esClienteFinal ? "cliente final con flota propia" : c.esIntermediario ? "intermediario (carrocero/renting/servicio oficial)" : "general"}. Sector: ${c.sector}. Equipos actuales: ${c.equipos}. Llevamos ${d} días sin hablar.
+
+Estas son TODAS las notas que tenemos del contacto — léelas con atención porque es lo que te diferencia de un email genérico:
+
+"""
+${c.historial}
+"""
+
+ANTES DE ESCRIBIR, ANALIZA EL HISTORIAL Y EXTRAE:
+- ¿Qué personas se mencionan? (nombres propios distintos al contacto principal — pueden ser jefes, compañeros, técnicos, otros interlocutores)
+- ¿Qué equipos o modelos concretos aparecen? (modelos Mitsubishi mencionados en las notas, marcas competencia, configuraciones, números de unidades — usa exactamente la nomenclatura que veas en el historial, no inventes códigos)
+- ¿Qué proyectos o decisiones pendientes hay? (renovaciones, ofertas, plazos, dudas técnicas, rutas, ampliaciones)
+- ¿Cuál fue el último tema concreto tratado? (no la fecha — el TEMA)
+
+Usa al menos UN dato concreto de los que has extraído. Cuanto más específico, mejor — eso es lo que hace que el email funcione.
+
+Si el historial está vacío o solo tiene fechas sin contenido, escribe sin inventar: empieza con "Hace tiempo que no hablamos" y haz una pregunta abierta sobre su flota.
+
+ESTRUCTURA DEL EMAIL:
+1. Apertura directa con UNA referencia concreta del historial (persona, equipo, proyecto). Sin "Espero que estés bien".
+2. Cuerpo construido SOLO sobre los datos del historial: continuación de la conversación previa, recordatorio de un acuerdo, retomar una decisión pendiente. NO inventes datos técnicos para "rellenar".
+3. UNA pregunta concreta al final (llamada, visita o envío de info — elige según contexto). Fácil de responder.
+
+REGLA CRÍTICA — PROHIBIDO INVENTAR DATOS TÉCNICOS O COMERCIALES:
+- NUNCA inventes nombres de modelos, códigos de producto ni nomenclatura comercial.
+- NUNCA inventes cifras: porcentajes de consumo, plazos de entrega, precios, eficiencias, comparativas con años anteriores, capacidades.
+- NUNCA inventes "novedades", "nuevas versiones", "stocks ampliados" ni anuncios de producto.
+- SOLO puedes mencionar modelos, cifras o productos que aparezcan TEXTUALMENTE en el historial.
+- Si el historial no tiene datos técnicos, no los introduzcas — construye el email solo sobre el contacto, el sector y la conversación previa que sí ves.
+- Mejor un email corto y honesto que uno largo con datos falsos.
+
+REGLAS DE FORMA:
+- Español comercial natural, tono cercano y profesional como un comercial veterano que conoce al cliente.
+- Longitud: 100-160 palabras. Adapta a lo que tengas: con historial rico puedes acercarte a 160; con historial escueto, mantente cerca de 100.
+- Prohibido: "Espero que estés bien", "Me pongo en contacto", "Aprovecho para", despedidas formales, firma con tu nombre.
+
+FORMATO DE SALIDA (respeta exactamente):
+ASUNTO: [una línea, específica al cliente y al tema concreto que extrajiste — sin "seguimiento" ni "contacto"]
+CUERPO:
+[el email aquí]
+
+EJEMPLO DEL TONO Y LONGITUD DESEADOS (caso ficticio — los códigos de modelo aquí son placeholders ilustrativos, NO los uses si no aparecen en el historial real):
+ASUNTO: Las 3 unidades para Andalucía — Pedro me comentó que estabais valorando opciones
+CUERPO:
+Hola Javier, hablé el mes pasado con Pedro sobre las 3 unidades que estáis estudiando para la ruta de Andalucía. Comentaba que dudabais entre dos modelos según la carga útil de cada ruta.
+
+¿Cómo vais con esa decisión? Si os sigue interesando, os puedo pasar datos reales de consumo de clientes parecidos a vosotros que os pueden ayudar a cerrar la elección.
+
+¿Te viene bien una llamada el martes o miércoles para repasarlo juntos?
+
+EJEMPLO CON HISTORIAL ESCUETO (solo fechas, sin contenido):
+ASUNTO: Cómo va la flota — me gustaría ponerme al día
+CUERPO:
+Hola Javier, hace tiempo que no hablamos. ¿Cómo va la flota? ¿Tenéis algún proyecto de renovación o ampliación previsto?
+
+Si te encaja, te llamo cuando me digas y nos ponemos al día.`;
+
+    const payload = {
+      model:"claude-sonnet-4-20250514",
+      max_tokens:1200,
+      messages:[{role:"user", content: _motorActivo === "workersai" ? promptLlama : promptClaude}]
+    };
+    
+    console.log("[generarEmail] Enviando request a proxy...");
+    const res = await fetch(PROXY_URL,{
+      method:"POST", 
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    
+    console.log("[generarEmail] Response status:", res.status);
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("[generarEmail] Error HTTP:", res.status, errorText);
+      throw new Error(`HTTP ${res.status}: ${errorText}`);
+    }
+    
+    const data = await res.json();
+    
+    // Error estructurado de Anthropic (proxy reenvía tal cual)
+    if (data.type === "error" && data.error) {
+      const msg = data.error.message || "Error desconocido";
+      if (/credit balance/i.test(msg)) {
+        throw new Error("⚠️ Sin créditos en la cuenta de Anthropic. Recarga en console.anthropic.com → Plans & Billing.");
+      }
+      throw new Error(`API Anthropic: ${msg}`);
+    }
+    
+    if (!data.content || !Array.isArray(data.content)) {
+      throw new Error(`Respuesta inesperada del API: ${JSON.stringify(data).slice(0, 200)}`);
+    }
+    
+    const txt  = data.content?.map(b=>b.text||"").join("\n") || "";
+    if (!txt || txt.length === 0) {
+      throw new Error("La respuesta del API está vacía");
+    }
+    
+    console.log("[generarEmail] Texto recibido (" + txt.length + " caracteres)");
+    
+    const ls   = txt.split("\n");
+    const al   = ls.find(l=>l.trim().startsWith("ASUNTO:"));
+    emailAsunto = al ? al.replace(/^ASUNTO:\s*/i,"").trim() : "Sin asunto";
+    // Soportar ambos formatos: con "CUERPO:" (Llama narrativo) o sin él (Claude)
+    const idxCuerpo = ls.findIndex(l=>l.trim().startsWith("CUERPO:"));
+    if (idxCuerpo !== -1) {
+      emailCuerpo = ls.slice(idxCuerpo + 1).join("\n").trim();
+    } else {
+      emailCuerpo = ls.filter(l => !l.trim().startsWith("ASUNTO:")).join("\n").trim();
+    }
+    
+    if (!emailAsunto || !emailCuerpo) {
+      console.warn("[generarEmail] ⚠️ Email incompleto - Asunto:", emailAsunto.substring(0,50), "Cuerpo:", emailCuerpo.substring(0,50));
+      throw new Error("El email generado está incompleto (asunto o cuerpo vacíos)");
+    }
+    
+    console.log("[generarEmail] ✅ Email generado correctamente");
+    console.log("[generarEmail] Asunto:", emailAsunto.substring(0, 60) + "...");
+    
+    document.getElementById("asunto-text").value = emailAsunto;
+    document.getElementById("cuerpo-text").value = emailCuerpo;
+    
+    const btnEmail = document.getElementById("btn-abrir-email");
+    btnEmail.textContent = "✉ Abrir email";
+    btnEmail.target = "";
+    btnEmail.href = `mailto:${c.email}?subject=${encodeURIComponent(emailAsunto)}&body=${encodeURIComponent(emailCuerpo)}`;
+    btnEmail.onclick = (ev) => {
+      // Leer texto EDITADO actual del DOM (puede haber sido modificado por el usuario)
+      const asuntoFinal = document.getElementById("asunto-text").value || emailAsunto;
+      const cuerpoFinal = document.getElementById("cuerpo-text").value || emailCuerpo;
+      // Sincronizar variables globales para que el resumen IA use el texto final
+      emailAsunto = asuntoFinal;
+      emailCuerpo = cuerpoFinal;
+      // Reconstruir el mailto con el texto editado justo antes de abrir
+      btnEmail.href = `mailto:${c.email}?subject=${encodeURIComponent(asuntoFinal)}&body=${encodeURIComponent(cuerpoFinal)}`;
+      // Registrar como enviado — el mailto se abre via href
+      marcarEmailEnviado();
+    };
+    const btnMarcar = document.getElementById("btn-marcar-enviado");
+    if (btnMarcar) btnMarcar.textContent = "✓ Marcar email enviado — esperar respuesta 2 días";
+    
+  } catch(err) { 
+    console.error("[generarEmail] ❌ Error:", err.message, err);
+    emailAsunto = "⚠️ Error al generar email";
+    emailCuerpo = `No se pudo generar el email automáticamente:\n\n${err.message}\n\nIntenta nuevamente o copia manualmente el contexto del cliente.`;
+    document.getElementById("asunto-text").value = emailAsunto;
+    document.getElementById("cuerpo-text").value = emailCuerpo;
+    mostrarError(`Error generando email: ${err.message}`);
+  }
+  
+  document.getElementById("spin-email").style.display   = "none";
+  document.getElementById("email-result").style.display = "block";
+}
+
+function regenEmail() { if(selCliente) generarEmail(selCliente); }
+function copiarEmail() {
+  const a = document.getElementById("asunto-text")?.value || emailAsunto;
+  const b = document.getElementById("cuerpo-text")?.value || emailCuerpo;
+  navigator.clipboard.writeText(`Asunto: ${a}\n\n${b}`);
+}
+
+async function marcarEmailEnviado() {
+  if(!selCliente) return;
+  const c = selCliente;
+
+  // Sincronizar variables con el texto EDITADO actual del DOM (puede haber cambios del usuario)
+  const inpAsunto = document.getElementById("asunto-text");
+  const inpCuerpo = document.getElementById("cuerpo-text");
+  if (inpAsunto && inpAsunto.value) emailAsunto = inpAsunto.value;
+  if (inpCuerpo && inpCuerpo.value) emailCuerpo = inpCuerpo.value;
+
+  // Validar que el email se generó correctamente
+  if (!emailAsunto || !emailCuerpo || emailAsunto.includes("⚠️") || emailAsunto.includes("Error")) {
+    mostrarError("⚠️ El email no se generó correctamente. Intenta de nuevo.");
+    return;
+  }
+
+  const esLinkedin = !!c._linkedinUsado;
+  console.log("[marcarEmailEnviado] Marcando", esLinkedin ? "LinkedIn" : "email", "enviado para:", c.empresa);
+
+  // Escribir en Google Contacts y Google Sheets SIEMPRE al marcar enviado
+  await registrarContactoEnGoogle(c);
+  // Actualizar estado en memoria.
+  // ocultoEnSesion: cubre email Y mensajes LinkedIn (comparten este flujo).
+  // Cada uno se anota en su slot dedicado para que la cadena Email→WApp→LinkedIn funcione bien.
+  const estadoPrev = estado[c.id] || {};
+  if (esLinkedin) {
+    estado[c.id] = {
+      ...estadoPrev,
+      linkedinEnviadoEn: Date.now(),
+      ocultoEnSesion: true,
+      posponerHasta: null
+    };
+  } else {
+    // Email enviado: reinicia el ciclo (reset wapp/linkedin si los hubiera)
+    estado[c.id] = {
+      emailEnviadoEn: Date.now(),
+      wappEnviadoEn: null,
+      linkedinEnviadoEn: null,
+      wappEnviado: false,
+      ocultoEnSesion: true,
+      posponerHasta: null
+    };
+  }
+  cerrarPanel();
+  recalcularClientes();
+  renderChips();
+  renderLista();
+}
+
+function posponerDesdeCard(id) {
+  selCliente = clientes.find(c => c.id === id);
+  // Abrir panel manualmente sin generar email
+  document.getElementById("panel").classList.add("visible");
+  document.getElementById("main").classList.add("with-panel");
+  document.getElementById("panel-empresa").textContent = selCliente.empresa;
+  document.getElementById("dest-grid").innerHTML = `
+    <span class="dest-label">Para:</span><span class="dest-name">${selCliente.contacto}</span>
+    ${selCliente.cargo ? `<span class="dest-label">Cargo:</span><span style="color:#9ca3af">${selCliente.cargo}</span>` : ""}
+  `;
+  document.getElementById("proxima-alert").style.display = "none";
+  // Resetear contenido del panel
+  document.getElementById("spin-email").style.display = "none";
+  document.getElementById("email-result").style.display = "none";
+  document.getElementById("spin-wapp").style.display = "none";
+  document.getElementById("wapp-result").style.display = "none";
+  document.getElementById("wapp-activo").style.display = "none";
+  // Mostrar panel en modo posponer — sin tabs, sin email
+  document.getElementById("panel-tag").textContent = "⏭ POSPONER CONTACTO";
+  document.getElementById("content-email").style.display = "block";
+  document.getElementById("content-wapp").style.display = "none";
+  document.getElementById("tab-email").classList.add("active");
+  document.getElementById("tab-wapp").classList.remove("active");
+  document.getElementById("posponer-row").style.display = "flex";
+}
+
+function togglePosponer() {
+  const row = document.getElementById("posponer-row");
+  row.style.display = row.style.display === "none" ? "flex" : "none";
+}
+
+// Ignorar contacto: oculta de la lista durante esta sesión, sin escribir nada
+// en Google Contacts ni en Sheets. Reaparece al recargar contactos desde Google.
+function ignorarContacto(id) {
+  if (!id) return;
+  ignoradosEnSesion.add(id);
+  cerrarPanel();
+  recalcularClientes();
+  renderChips();
+  renderLista();
+}
+
+function ignorarDesdeCard(id, event) {
+  if (event) event.stopPropagation();
+  ignoradosEnSesion.add(id);
+  recalcularClientes();
+  renderChips();
+  renderLista();
+}
+
+async function posponer(numDias) {
+  if(!selCliente) return;
+  const hasta = new Date();
+  hasta.setDate(hasta.getDate() + numDias);
+  const dd = String(hasta.getDate()).padStart(2,"0");
+  const mm = String(hasta.getMonth()+1).padStart(2,"0");
+  const yyyy = hasta.getFullYear();
+  await posponerAFecha(hasta.toISOString().split("T")[0], `${dd}-${mm}-${yyyy}`);
+}
+
+async function posponerAFecha(isoFecha, fechaDisplay) {
+  if(!selCliente) return;
+  // Actualizar estado en memoria (Google Contacts actualizado por actualizarNotasGoogle).
+  // Posponer reinicia el ciclo: ya no proponemos email/wapp/linkedin hasta que llegue la fecha.
+  estado[selCliente.id] = {
+    emailEnviadoEn: null,
+    wappEnviadoEn: null,
+    linkedinEnviadoEn: null,
+    wappEnviado: false,
+    posponerHasta: isoFecha
+  };
+  // Escribir en Google Contacts
+  const hoy = new Date();
+  const hdd = String(hoy.getDate()).padStart(2,"0");
+  const hmm = String(hoy.getMonth()+1).padStart(2,"0");
+  const hyyyy = hoy.getFullYear();
+  const nuevaLinea = `\n${hdd}-${hmm}-${hyyyy}\nPróxima acción llamarle en ${fechaDisplay}`;
+  await actualizarNotasGoogle(selCliente.id, nuevaLinea);
+  cerrarPanel();
+  recalcularClientes();
+  renderChips();
+  renderLista();
+}
+
+function posponerFecha() {
+  const inp = document.getElementById("fecha-posponer");
+  const btn = document.getElementById("btn-fecha-ok");
+  const show = inp.style.display === "none";
+  inp.style.display = show ? "block" : "none";
+  btn.style.display = show ? "block" : "none";
+  if(show) inp.focus();
+}
+
+async function posponerFechaElegida() {
+  const txt = document.getElementById("fecha-posponer").value.trim();
+  if(!txt || !selCliente) return;
+  // Parsear DD-MM-AAAA
+  const mF = txt.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (!mF) { alert("Formato incorrecto. Usa DD-MM-AAAA"); return; }
+  const val = `${mF[3]}-${mF[2].padStart(2,"0")}-${mF[1].padStart(2,"0")}`;
+  await posponerAFecha(val, txt);
+}
+
+function estaPostpuesto(id) {
+  const h = estado[id]?.posponerHasta;
+  if (!h) return false;
+  return new Date(h) > new Date();
+}
+
+function estaGestionado(id) {
+  const e = estado[id];
+  if (!e) return false;
+  // RED DE SEGURIDAD (PRIORIDAD MÁXIMA): si tiene una próxima acción vencida
+  // o de hoy, NUNCA lo ocultamos. Una acción vencida es prioritaria por
+  // definición — debe aparecer en la lista pase lo que pase, incluso si
+  // hemos interactuado con él en esta sesión.
+  const c = clientes.find(x => x.id === id) || _todosLosContactos.find(x => x.id === id);
+  if (c && proximaAccionPendiente(c)) return false;
+  // Si la acción se marcó en ESTA sesión (email/WApp/LinkedIn), oculto fijo:
+  // Solo reaparecerá al recargar contactos desde Google.
+  if (e.ocultoEnSesion) return true;
+  if (e.wappEnviado) return true;                        // WhatsApp enviado → ocultar
+  if (e.emailEnviadoEn && !necesitaWapp(id)) return true; // Email reciente sin respuesta aún → ocultar hasta que pasen 2 días
+  return false;
+}
+
+function proximaAccionPendiente(c) {
+  if (!c.proximaAccion) return false;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const fecha = new Date(c.proximaAccion);
+  return fecha <= hoy;
+}
+
+// ── WHATSAPP ─────────────────────────────────────────────────────────────────
+async function generarWapp(c, tipo = "seguimiento") {
+  _wappRegistrado = false; // reset al generar nuevo mensaje
+  console.log("[generarWapp] Iniciando para:", c.empresa, c.contacto, "tipo:", tipo);
+  document.getElementById("spin-wapp").style.display  = "block";
+  document.getElementById("wapp-result").style.display = "none";
+  const dsR = diasSinRespuesta(c.id);
+  const d = dias(c.ultimoContacto);
+  const tipoCliente = c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario ? "Intermediario (carrocero/renting/servicio oficial)" : "General";
+  const miNombre      = window._currentUser?.nombre      || "el director comercial";
+  const miNombreCorto = window._currentUser?.nombreCorto || "el director";
+
+  // Construir el prompt según el tipo de mensaje
+  let promptContent;
+  if (tipo === "primer_contacto") {
+    // WApp como primer canal de contacto: no hay email previo
+    promptContent =
+`Tu rol: ${miNombre}, director de Mitsubishi Equipos Frigoríficos en España.
+Vas a escribir un WhatsApp a ${c.contacto} de ${c.empresa}. Nunca habéis hablado por email.
+
+DATOS:
+Cargo: ${c.cargo || "—"}
+Sector: ${c.sector}
+Equipos: ${c.equipos}
+Tipo: ${tipoCliente}
+
+HISTORIAL DE NOTAS:
+${c.historial}
+
+INSTRUCCIONES:
+
+1. Saludo corto: "Hola ${c.contacto.split(" ")[0]},".
+
+2. Preséntate en una frase: "Soy ${miNombreCorto}, de Mitsubishi Equipos Frigoríficos."
+
+3. Si hay un detalle concreto en el historial (un proyecto, un equipo, alguien), menciónalo. Si no, di "te escribo por si os puede interesar lo que hacemos en frigoríficos para transporte".
+
+4. Pregunta concreta: ${c.esClienteFinal ? '"¿Tenéis previsto renovar flota frigorífica próximamente?"' : c.esIntermediario ? '"¿Estás trabajando en algún proyecto donde podamos colaborar?"' : '"¿Tenéis algún proyecto de flota frigorífica en marcha?"'}
+
+5. Máximo 4 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
+
+EJEMPLO DEL ESTILO:
+"Hola Pedro,
+Soy ${miNombreCorto}, de Mitsubishi Equipos Frigoríficos. Vi que llevas la flota de MercaFrío.
+¿Tenéis previsto renovar equipos en los próximos meses?
+Si te encaja, te llamo cuando me digas."
+
+Devuelve solo el mensaje.`;
+  } else {
+    // Seguimiento tras email enviado sin respuesta
+    promptContent =
+`Tu rol: ${miNombre}, director de Mitsubishi Equipos Frigoríficos.
+Hace ${dsR||2} días mandaste un email a ${c.contacto} de ${c.empresa} y no responde.
+
+INSTRUCCIONES:
+
+1. Saludo corto: "Hola ${c.contacto.split(" ")[0]},".
+
+2. Una sola frase: "Te mandé un email hace unos días sobre [tema] y no sé si te llegó."
+
+3. Pregunta directa: "¿Tienes 5 minutos esta semana para hablar?"
+
+4. Máximo 3 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
+
+EJEMPLO:
+"Hola Pedro,
+Te escribí el otro día sobre las unidades nuevas, no sé si te llegó.
+¿Tienes 5 min esta semana para hablarlo?"
+
+Devuelve solo el mensaje.`;
+  }
+
+  try {
+    const payload = {
+      model:"claude-sonnet-4-20250514",
+      max_tokens:600,
+      messages:[{role:"user", content: promptContent}]
+    };
+    
+    console.log("[generarWapp] Enviando request a proxy...");
+    const res = await fetch(PROXY_URL,{
+      method:"POST", 
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    
+    console.log("[generarWapp] Response status:", res.status);
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("[generarWapp] Error HTTP:", res.status, errorText);
+      throw new Error(`HTTP ${res.status}: ${errorText}`);
+    }
+    
+    const data = await res.json();
+    console.log("[generarWapp] Response data recibida");
+    
+    if (data.type === "error" && data.error) {
+      const msg = data.error.message || "Error desconocido";
+      if (/credit balance/i.test(msg)) {
+        throw new Error("⚠️ Sin créditos en la cuenta de Anthropic. Recarga en console.anthropic.com → Plans & Billing.");
+      }
+      throw new Error(`API Anthropic: ${msg}`);
+    }
+    
+    if (!data.content || !Array.isArray(data.content)) {
+      throw new Error("Respuesta inesperada del API: sin campo 'content'");
+    }
+    
+    const txt = data.content?.map(b=>b.text||"").join("\n").trim() || "";
+    if (!txt || txt.length === 0) {
+      throw new Error("La respuesta del API está vacía");
+    }
+    
+    console.log("[generarWapp] ✅ Mensaje generado correctamente (" + txt.length + " caracteres)");
+    
+    wappMensaje = txt;
+    document.getElementById("wapp-text").value = wappMensaje;
+    const tel = (document.getElementById("wapp-tel").value || c.telefono || "").replace(/\D/g,"");
+    document.getElementById("btn-wapp-web").href = `https://wa.me/${tel}?text=${encodeURIComponent(wappMensaje)}`;
+    
+  } catch(err) { 
+    console.error("[generarWapp] ❌ Error:", err.message, err);
+    wappMensaje = `⚠️ Error al generar mensaje:\n\n${err.message}\n\nIntenta nuevamente.`;
+    document.getElementById("wapp-text").value = wappMensaje;
+    mostrarError(`Error generando WhatsApp: ${err.message}`);
+  }
+  
+  document.getElementById("spin-wapp").style.display   = "none";
+  document.getElementById("wapp-result").style.display = "block";
+}
+
+function regenWapp() { if(selCliente) generarWapp(selCliente); }
+
+async function generarMensajeLinkedIn(c) {
+  console.log("[generarMensajeLinkedIn] Iniciando para:", c.empresa, c.contacto);
+  document.getElementById("spin-email").style.display   = "block";
+  document.getElementById("email-result").style.display = "none";
+  const d = Math.floor((Date.now() - new Date(c.ultimoContacto)) / 86400000);
+  const miNombre      = window._currentUser?.nombre      || "el director comercial";
+  const miNombreCorto = window._currentUser?.nombreCorto || "el director";
+  
+  try {
+    const payload = {
+      model:"claude-sonnet-4-20250514", 
+      max_tokens:400,
+      messages:[{role:"user", content:
+`Tu rol: ${miNombre}, director de Mitsubishi Equipos Frigoríficos en España.
+Vas a escribir un mensaje LinkedIn a ${c.contacto} (${c.cargo || "—"}) de ${c.empresa}.
+
+DATOS:
+Sector: ${c.sector}
+Último contacto: hace ${d} días
+Tipo: ${c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario ? "Intermediario" : "General"}
+
+HISTORIAL:
+${c.historial}
+
+INSTRUCCIONES:
+
+1. Saludo corto: "Hola ${c.contacto.split(" ")[0]},".
+
+2. Una frase con UN detalle del historial (proyecto, equipo, conversación). Si no hay nada concreto, di: "Hace tiempo que no hablamos".
+
+3. Pregunta abierta: ${c.esIntermediario ? '"¿Estás llevando algún proyecto donde podamos colaborar?"' : '"¿Tenéis planes de renovación o ampliación de flota?"'}
+
+4. Máximo 4 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
+
+EJEMPLO:
+"Hola Pedro,
+Hace tiempo que no hablamos. Vi que MercaFrío sigue creciendo.
+¿Tenéis planes de renovar la flota frigorífica?
+Si te encaja, charlamos."
+
+Devuelve solo el mensaje.`}]
+    };
+    
+    console.log("[generarMensajeLinkedIn] Enviando request a proxy...");
+    const res = await fetch(PROXY_URL, {
+      method:"POST", 
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    
+    console.log("[generarMensajeLinkedIn] Response status:", res.status);
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("[generarMensajeLinkedIn] Error HTTP:", res.status, errorText);
+      throw new Error(`HTTP ${res.status}: ${errorText}`);
+    }
+    
+    const data = await res.json();
+    console.log("[generarMensajeLinkedIn] Response data recibida");
+    
+    if (data.type === "error" && data.error) {
+      const msg = data.error.message || "Error desconocido";
+      if (/credit balance/i.test(msg)) {
+        throw new Error("⚠️ Sin créditos en la cuenta de Anthropic. Recarga en console.anthropic.com → Plans & Billing.");
+      }
+      throw new Error(`API Anthropic: ${msg}`);
+    }
+    
+    if (!data.content || !Array.isArray(data.content)) {
+      throw new Error("Respuesta inesperada del API");
+    }
+    
+    const txt = data.content?.map(b=>b.text||"").join("\n").trim() || "";
+    if (!txt || txt.length === 0) {
+      throw new Error("La respuesta del API está vacía");
+    }
+    
+    console.log("[generarMensajeLinkedIn] ✅ Mensaje generado correctamente");
+    
+    emailCuerpo = txt;
+    emailAsunto = "💼 Mensaje para LinkedIn";
+    c._linkedinUsado = true; // marca para que el resumen sea de tipo LinkedIn
+    document.getElementById("asunto-text").value = "💼 Mensaje para LinkedIn";
+    document.getElementById("cuerpo-text").value = emailCuerpo;
+    
+    // Cambiar botón para abrir LinkedIn
+    const btnEmail = document.getElementById("btn-abrir-email");
+    btnEmail.textContent = "💼 Abrir LinkedIn";
+    // Validar que la URL es realmente de LinkedIn
+    const urlLinkedIn = (c.linkedin || "").toLowerCase().includes("linkedin.com") ? c.linkedin : "";
+    if (urlLinkedIn) {
+      btnEmail.href = urlLinkedIn;
+      btnEmail.target = "_blank";
+    } else {
+      btnEmail.removeAttribute("href");
+      btnEmail.target = "";
+      mostrarError("⚠️ URL de LinkedIn no encontrada o incorrecta para este contacto. Ábrelo manualmente.");
+    }
+    btnEmail.onclick = () => {
+      // Leer texto EDITADO actual (puede haber cambios del usuario)
+      const cuerpoFinal = document.getElementById("cuerpo-text").value || emailCuerpo;
+      emailCuerpo = cuerpoFinal; // sincronizar para que el resumen IA use el texto final
+      navigator.clipboard.writeText(cuerpoFinal).then(() => {
+        console.log("[generarMensajeLinkedIn] Mensaje copiado al portapapeles");
+        alert("✅ Mensaje copiado al portapapeles — pégalo en LinkedIn");
+      });
+      marcarEmailEnviado();
+    };
+    const btnMarcar = document.getElementById("btn-marcar-enviado");
+    if (btnMarcar) btnMarcar.textContent = "✓ Marcar mensaje LinkedIn enviado";
+    
+  } catch(err) { 
+    console.error("[generarMensajeLinkedIn] ❌ Error:", err.message, err);
+    emailAsunto = "⚠️ Error al generar mensaje";
+    emailCuerpo = `No se pudo generar el mensaje de LinkedIn:\n\n${err.message}\n\nIntenta de nuevo.`;
+    document.getElementById("asunto-text").value = emailAsunto;
+    document.getElementById("cuerpo-text").value = emailCuerpo;
+    mostrarError(`Error generando mensaje LinkedIn: ${err.message}`);
+  }
+  
+  document.getElementById("spin-email").style.display   = "none";
+  document.getElementById("email-result").style.display = "block";
+}
+function copiarWapp() {
+  const m = document.getElementById("wapp-text")?.value || wappMensaje;
+  navigator.clipboard.writeText(m);
+}
+
+// Genera un resumen breve (1 línea) del email/WhatsApp/LinkedIn enviado
+// para anotar en Google Contacts y Sheets en lugar de un texto genérico
+async function generarResumenAccion(tipoMensaje, asunto, cuerpo) {
+  // Fallback genérico si algo falla
+  const fallback = `Envío ${tipoMensaje} de seguimiento`;
+  if (!cuerpo || cuerpo.trim().length === 0) return fallback;
+  try {
+    const res = await fetch(PROXY_URL, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514", max_tokens: 80,
+        messages: [{ role: "user", content:
+`Resume en UNA SOLA FRASE de 10-18 palabras lo más relevante de este ${tipoMensaje} comercial enviado a un cliente. Empieza con "Envío ${tipoMensaje}" seguido de los puntos concretos tratados. No uses comillas. No hagas comentarios. Solo la frase.
+
+${asunto ? `ASUNTO: ${asunto}\n\n` : ""}MENSAJE:
+"""
+${cuerpo}
+"""
+
+Frase:`
+        }]
+      })
+    });
+    if (!res.ok) return fallback;
+    const data = await res.json();
+    const txt = data.content?.map(b => b.text || "").join("").trim();
+    if (!txt || txt.length === 0) return fallback;
+    // Limpiar comillas si las metió igualmente y quitar saltos de línea
+    return txt.replace(/^["']|["']$/g, "").replace(/\n/g, " ").trim();
+  } catch(e) {
+    console.log("Error generando resumen de acción:", e.message);
+    return fallback;
+  }
+}
+
+// Calcula fecha de próxima acción con IA basándose en las notas
+async function calcularProximaAccionIA(notas, tipoContacto, esWapp) {
+  const hoy = new Date();
+  const dd = String(hoy.getDate()).padStart(2,"0");
+  const mm = String(hoy.getMonth()+1).padStart(2,"0");
+  const yyyy = hoy.getFullYear();
+  try {
+    const res = await fetch(PROXY_URL, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514", max_tokens: 100,
+        messages: [{ role: "user", content:
+`Eres un asistente comercial. Analiza las notas de este contacto y determina la fecha de próxima acción comercial.
+
+NOTAS DEL CONTACTO:
+${notas}
+
+CONTEXTO: Hoy es ${dd}-${mm}-${yyyy}. Acabamos de enviar ${esWapp ? "un WhatsApp" : "un email"} de seguimiento.
+TIPO DE CLIENTE: ${tipoContacto}
+
+REGLAS:
+- Si hay una oferta pendiente, negociación activa o el cliente mostró interés reciente → 2 días hábiles desde hoy
+- Si hay que hacer seguimiento concreto (llamada, visita, propuesta) → estima el plazo razonable (días o semanas)
+- Si el cliente no responde o no hay nada urgente → 3 meses desde hoy
+- Evita fines de semana (sábado y domingo)
+
+Responde ÚNICAMENTE con la fecha en formato DD-MM-YYYY, sin explicación.`
+        }]
+      })
+    });
+    const data = await res.json();
+    const txt = data.content?.map(b => b.text || "").join("").trim();
+    // Validar que es una fecha en formato DD-MM-YYYY
+    if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(txt)) return txt;
+  } catch(e) { console.log("Error calculando próxima acción:", e.message); }
+  // Fallback: 3 meses
+  const fallback = new Date(); fallback.setMonth(fallback.getMonth() + 3);
+  return `${String(fallback.getDate()).padStart(2,"0")}-${String(fallback.getMonth()+1).padStart(2,"0")}-${fallback.getFullYear()}`;
+}
+
+// Renueva el token de Google silenciosamente
+async function renovarTokenGoogle() {
+  return new Promise((resolve) => {
+    if (!window.google?.accounts) { resolve(false); return; }
+    window.google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID, scope: GOOGLE_SCOPES,
+      prompt: "",  // sin pantalla de login si ya está autorizado
+      callback: (resp) => {
+        if (resp.error) { resolve(false); return; }
+        window._gToken = resp.access_token;
+        resolve(true);
+      }
+    }).requestAccessToken();
+  });
+}
+
+// Actualiza las notas de un contacto en Google con texto nuevo (con reintento si expira el token)
+async function actualizarNotasGoogle(contactoId, nuevaLinea) {
+  if (!window._gToken) return;
+  for (let intento = 0; intento < 2; intento++) {
+    try {
+      const getRes = await fetch(
+        `https://people.googleapis.com/v1/${contactoId}?personFields=biographies,metadata`,
+        { headers: { "Authorization": `Bearer ${window._gToken}` } }
+      );
+      if (getRes.status === 401) {
+        // Token expirado — renovar y reintentar
+        console.log("Token expirado, renovando...");
+        const ok = await renovarTokenGoogle();
+        if (!ok) { console.log("No se pudo renovar el token"); return; }
+        continue;
+      }
+      if (!getRes.ok) { console.log("Error obteniendo contacto:", getRes.status); return; }
+      const contactData = await getRes.json();
+      const etag = contactData.etag;
+      const notasActuales = contactData.biographies?.[0]?.value || "";
+      const notasNuevas = notasActuales + nuevaLinea;
+      const updateRes = await fetch(
+        `https://people.googleapis.com/v1/${contactoId}:updateContact?updatePersonFields=biographies`,
+        {
+          method: "PATCH",
+          headers: { "Authorization": `Bearer ${window._gToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ etag, biographies: [{ value: notasNuevas, contentType: "TEXT_PLAIN" }] })
+        }
+      );
+      if (updateRes.ok) { console.log("Notas actualizadas en Google Contacts OK"); return; }
+      else console.log("Error actualizando:", await updateRes.json());
+      return;
+    } catch(e) { console.log("No se pudo actualizar nota en Google:", e.message); return; }
+  }
+}
+
+// ── GOOGLE SHEETS ─────────────────────────────────────────────────────────────
+// Escribe una nueva fila en "Acciones Comerciales" cada vez que se marca
+// email, WhatsApp o LinkedIn como enviado. NO se llama al posponer.
+async function escribirEnSheets(c) {
+  if (!window._gToken) return;
+  const hoy = new Date();
+  const fechaHoy = `${String(hoy.getDate()).padStart(2,"0")}-${String(hoy.getMonth()+1).padStart(2,"0")}-${hoy.getFullYear()}`;
+  // Forzar teléfonos como texto en Sheets (apóstrofe inicial si empieza con +)
+  const telFijoSheet  = c.telefonoFijo  && c.telefonoFijo.trim().startsWith("+")  ? "'" + c.telefonoFijo  : (c.telefonoFijo  || "");
+  const telMovilSheet = c.telefonoMovil && c.telefonoMovil.trim().startsWith("+") ? "'" + c.telefonoMovil : (c.telefonoMovil || "");
+  const fila = [
+    fechaHoy,                          // Fecha
+    (c.etiquetas||[]).join(", "),      // Etiquetas
+    c.nombre1   || "",                 // Nombre
+    c.nombre2   || "",                 // Segundo nombre
+    c.apellidos || "",                 // Apellidos
+    c.empresa   || "",                 // Empresa
+    c.cargo     || "",                 // Puesto de trabajo
+    c.email     || "",                 // Correo electrónico
+    telFijoSheet,                      // Teléfono fijo
+    telMovilSheet,                     // Teléfono móvil
+    c.pais      || "",                 // País/territorio
+    c.direccion || "",                 // Dirección postal
+    c.codPostal || "",                 // Código postal
+    c.ciudad    || "",                 // Ciudad
+    c.provincia || "",                 // Provincia
+    c.linkedin  || "",                 // LinkedIn
+    c.historial || "",                 // Notas (contenido completo de Google Contacts)
+    window._currentUser?.nombre || "Desconocido", // Usuario
+    window._currentUser?.email  || ""             // Email usuario
+  ];
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_TAB)}!A:S:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${window._gToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ values: [fila] })
+    });
+    if (res.ok) console.log("✅ Fila escrita en Acciones Comerciales");
+    else console.log("⚠️ Error Sheets:", await res.text());
+  } catch(e) { console.log("Error escribiendo en Sheets:", e.message); }
+}
+
+async function registrarContactoEnGoogle(c) {
+  if (!window._gToken || !c.fuenteG) return;
+  const hoy = new Date();
+  const dd = String(hoy.getDate()).padStart(2,"0");
+  const mm = String(hoy.getMonth()+1).padStart(2,"0");
+  const yyyy = hoy.getFullYear();
+  const fechaStr = `${dd}-${mm}-${yyyy}`;
+  // Resumen específico del email enviado (en lugar de genérico)
+  const tipoMensaje = c._linkedinUsado ? "mensaje LinkedIn" : "email";
+  const textoAccion = await generarResumenAccion(tipoMensaje, emailAsunto, emailCuerpo);
+  const tipoCliente = c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario ? "Intermediario (carrocero/renting/servicio oficial)" : "General";
+  // Calcular próxima acción con IA
+  const fechaProxima = await calcularProximaAccionIA(c.historial, tipoCliente, false);
+  console.log("Próxima acción calculada:", fechaProxima);
+  const nuevaLinea = `\n${fechaStr}\n${textoAccion}\nPróxima acción llamarle en ${fechaProxima}`;
+  await actualizarNotasGoogle(c.id, nuevaLinea);
+  // Actualizar historial local para que Sheets reciba las notas completas (con la nueva línea)
+  c.historial = (c.historial || "") + nuevaLinea;
+  await escribirEnSheets(c); // ← nueva fila en Sheets
+}
+
+let _wappRegistrado = false; // guarda para evitar doble registro
+
+function abrirWappWeb() {
+  // Sincronizar variable con el texto EDITADO actual del textarea
+  const txtArea = document.getElementById("wapp-text");
+  if (txtArea && txtArea.value) wappMensaje = txtArea.value;
+  const tel = document.getElementById("wapp-tel").value.replace(/\D/g,"");
+  document.getElementById("btn-wapp-web").href = `https://wa.me/${tel}?text=${encodeURIComponent(wappMensaje)}`;
+  setTimeout(async () => {
+    await registrarWappEnGoogle();
+    marcarWappEnviado();
+  }, 300);
+}
+
+async function registrarWappEnGoogle() {
+  if (_wappRegistrado) return; // ya registrado, no duplicar
+  if (!window._gToken || !selCliente?.fuenteG) return;
+  _wappRegistrado = true;
+  const hoy = new Date();
+  const dd = String(hoy.getDate()).padStart(2,"0");
+  const mm = String(hoy.getMonth()+1).padStart(2,"0");
+  const yyyy = hoy.getFullYear();
+  const fechaStr = `${dd}-${mm}-${yyyy}`;
+  // Resumen específico del WhatsApp enviado (en lugar de genérico)
+  const textoWapp = await generarResumenAccion("WhatsApp", "", wappMensaje);
+  const tipoCliente = selCliente.esClienteFinal ? "Cliente final con flota propia" : selCliente.esIntermediario ? "Intermediario" : "General";
+  // Si el cliente no respondió al email → 3 meses por defecto, si hay contexto → IA decide
+  const fechaProxima = await calcularProximaAccionIA(selCliente.historial, tipoCliente, true);
+  const nuevaLinea = `\n${fechaStr}\n${textoWapp}\nPróxima acción llamarle en ${fechaProxima}`;
+  await actualizarNotasGoogle(selCliente.id, nuevaLinea);
+  // Actualizar historial local para que Sheets reciba las notas completas (con la nueva línea)
+  selCliente.historial = (selCliente.historial || "") + nuevaLinea;
+  await escribirEnSheets(selCliente); // ← nueva fila en Sheets
+}
+
+async function marcarWappEnviado() {
+  if(!selCliente) return;
+  // Sincronizar variable con el texto EDITADO actual del textarea
+  const txtArea = document.getElementById("wapp-text");
+  if (txtArea && txtArea.value) wappMensaje = txtArea.value;
+  await registrarWappEnGoogle(); // escribe en Google Contacts + Sheets igual que abrirWappWeb
+  // ocultoEnSesion: flag SOLO en memoria, unificado para email/WApp/LinkedIn.
+  // Garantiza que tras marcar la acción, el contacto desaparece de la lista
+  // durante toda la sesión actual. Solo reaparece al recargar contactos
+  // desde Google (donde reconstruirEstado decide según las notas).
+  // Mantenemos emailEnviadoEn anterior si existía — útil para dE en accionPara
+  // pero el ciclo avanza al escalón WApp.
+  const prev = estado[selCliente.id] || {};
+  estado[selCliente.id] = {
+    emailEnviadoEn: prev.emailEnviadoEn || null,
+    wappEnviadoEn: Date.now(),
+    linkedinEnviadoEn: null,
+    wappEnviado: true,
+    ocultoEnSesion: true,
+    posponerHasta: null
+  };
+  cerrarPanel();
+  recalcularClientes();
+  renderChips();
+  renderLista();
+}
+
+
+
+// ── GOOGLE AUTH ───────────────────────────────────────────────────────────────
+function conectarGoogle() {
+  const btn = document.getElementById("btn-google");
+  btn.disabled = true;
+  btn.innerHTML = `<div style="width:14px;height:14px;border:2px solid #ccc;border-top:2px solid #4285f4;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;"></div> Conectando...`;
+  if (!window.google?.accounts) { setTimeout(conectarGoogle, 500); return; }
+  window.google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID, scope: GOOGLE_SCOPES,
+    callback: async (resp) => {
+      if (resp.error) { mostrarError("Error: "+resp.error); resetBtn(); return; }
+      try {
+        window._gToken = resp.access_token;
+        // Obtener perfil del usuario conectado (nombre real y email de la cuenta)
+        try {
+          const meRes = await fetch(
+            "https://people.googleapis.com/v1/people/me?personFields=names,emailAddresses",
+            { headers: { Authorization: `Bearer ${resp.access_token}` } }
+          );
+          const meData = await meRes.json();
+          const displayName = meData.names?.[0]?.displayName || "Usuario";
+          const userEmail   = meData.emailAddresses?.[0]?.value || "";
+          const u = normalizarUsuario(displayName, userEmail);
+          window._currentUser = {
+            nombre: u.nombre,
+            nombreCorto: u.nombreCorto,
+            email: userEmail
+          };
+        } catch(e) {
+          window._currentUser = { nombre: "Usuario", nombreCorto: "Usuario", email: "" };
+        }
+        // Cargar grupos para obtener nombres de etiquetas
+        const grRes = await (await fetch("https://people.googleapis.com/v1/contactGroups?pageSize=200",{headers:{Authorization:`Bearer ${resp.access_token}`}})).json();
+        const gruposMap = {};
+        (grRes.contactGroups||[]).forEach(g => { gruposMap[g.resourceName] = g.name; });
+        window._gruposMap = gruposMap;
+
+        // Cargar todos los contactos con paginación (máx 1000 por página, sin límite de páginas)
+        let todosContactos = [];
+        let nextPageToken = null;
+        let paginas = 0;
+        do {
+          const pageUrl = "https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,phoneNumbers,organizations,biographies,metadata,memberships,urls,addresses&pageSize=1000"
+            + (nextPageToken ? `&pageToken=${nextPageToken}` : "");
+          const cr = await (await fetch(pageUrl, {headers:{Authorization:`Bearer ${resp.access_token}`}})).json();
+          todosContactos = todosContactos.concat(cr.connections || []);
+          nextPageToken = cr.nextPageToken || null;
+          paginas++;
+          // Actualizar progreso
+          document.getElementById("info-text").innerHTML = `Cargando... ${todosContactos.length} contactos`;
+        } while (nextPageToken && paginas < 20);
+
+        // Filtrar contactos:
+        // - Sin etiqueta "NO EMAILS COMERCIALES" → siempre se cargan
+        // - Con etiqueta "NO EMAILS COMERCIALES" → solo si tienen próxima acción vencida o de hoy
+        //   (así Samuel u otros contactos sin email comercial siguen apareciendo cuando hay tarea pendiente)
+        const hoyMs = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
+        const filtrados = todosContactos.map(mapContact).filter(c => {
+          const tieneNoEmails = (c.etiquetas||[]).some(et => et.toUpperCase().includes("NO EMAILS COMERCIALES"));
+          if (!tieneNoEmails) return true;
+          // Tiene "NO EMAILS COMERCIALES" → solo entra si tiene próxima acción vencida/hoy
+          if (!c.proximaAccion) return false;
+          const fechaPA = new Date(c.proximaAccion).getTime();
+          if (isNaN(fechaPA)) return false;
+          return fechaPA <= hoyMs;
+        });
+
+        // Reconstruir estado desde notas de Google Contacts (sin localStorage)
+        estado = {};
+        filtrados.forEach(c => reconstruirEstado(c));
+
+        // Guardar TODA la base de contactos válidos.
+        // recalcularClientes() decidirá cuáles mostrar según los chips.
+        _todosLosContactos = filtrados;
+        if (filtrados.length === 0) {
+          _todosLosContactos = [...DEMO];
+          clientes = [...DEMO];
+          mostrarError("No se encontraron contactos. Mostrando demo.");
+        } else {
+          // Calcular categorías ANTES de recalcular (el sort las consulta)
+          calcularCategorias();
+          // Auto-activar todos los chips de etiqueta: así el estado por defecto
+          // es "todas activas" y deseleccionar una excluye esa etiqueta realmente.
+          // Sin esto, chipsActivos arranca vacío → sinFiltroE = true → no filtra.
+          const etiquetasIniciales = _contarEtiquetas();
+          Object.keys(etiquetasIniciales).forEach(et => chipsActivos.add(et));
+          recalcularClientes(); // genera `clientes` con top 100 global por defecto
+        }
+        document.getElementById("btn-google").style.display="none";
+        document.getElementById("user-badge").style.display="flex";
+        document.getElementById("user-name").textContent = window._currentUser?.nombre || "Google Contacts";
+        document.getElementById("dot-status").style.background="#34a853";
+        renderChips();
+        renderLista();
+        // info-text lo escribe recalcularClientes() vía actualizarInfoText()
+      } catch(e) { mostrarError("Error: "+e.message); resetBtn(); }
+    }
+  }).requestAccessToken();
+}
+
+function parseFechaES(d, m, y) {
+  return new Date(`${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`);
+}
+
+function extraerFechas(texto) {
+  // Ignorar líneas con "próxima acción", "wapp previsto" — son fechas futuras
+  const lineas = texto.split("\n");
+  let ultima = null, ultimaTs = 0;
+  for (const linea of lineas) {
+    if (/^pr[oó]xima.+acci[oó]n.+\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}/i.test(linea)) continue;
+    if (/wapp previsto/i.test(linea)) continue;
+    if (/^envío/i.test(linea)) continue; // ignorar líneas de registro de envíos
+    const regex = /\b(\d{1,2})[\-\/\.](\d{1,2})[\-\/\.](\d{4})\b/g;
+    let match;
+    while ((match = regex.exec(linea)) !== null) {
+      const [_, d, m, y] = match;
+      const ts = parseFechaES(d, m, y).getTime();
+      // Ignorar fechas futuras — no pueden ser el último contacto
+      if (!isNaN(ts) && ts > ultimaTs && ts <= Date.now()) { ultimaTs = ts; ultima = `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`; }
+    }
+  }
+  return ultima;
+}
+
+function extraerProximaAccion(texto) {
+  // Solo es válida la fecha de próxima acción si está en el ÚLTIMO bloque de contacto.
+  // Un bloque empieza con una línea que solo contiene una fecha (DD-MM-YYYY o D-M-YYYY).
+  // Si hay un bloque posterior sin fecha de próxima acción, la anterior queda anulada.
+  const lineas = texto.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+  const esFecha = l => /^(\d{1,2})[\-\/\.](\d{1,2})[\-\/\.](\d{4}):?$/.test(l);
+
+  // Dividir en bloques por líneas que son solo una fecha
+  const bloques = [];
+  let bloqueActual = [];
+  for (const linea of lineas) {
+    if (esFecha(linea) && bloqueActual.length > 0) {
+      bloques.push(bloqueActual);
+      bloqueActual = [linea];
+    } else {
+      bloqueActual.push(linea);
+    }
+  }
+  if (bloqueActual.length > 0) bloques.push(bloqueActual);
+
+  // Buscar en el ÚLTIMO bloque una línea de próxima acción.
+  // Si hay varias en el mismo bloque, devolvemos la ÚLTIMA escrita (la más reciente cronológicamente).
+  const ultimoBloque = bloques[bloques.length - 1] || [];
+  let ultimaProxima = null;
+  for (const linea of ultimoBloque) {
+    if (/pr[oó]xima/i.test(linea) && /acci[oó]n/i.test(linea)) {
+      const mF = linea.match(/(\d{1,2})[\-\/\.](\d{1,2})[\-\/\.](\d{4})/);
+      if (mF) {
+        const fecha = `${mF[3]}-${mF[2].padStart(2,"0")}-${mF[1].padStart(2,"0")}`;
+        if (!isNaN(new Date(fecha).getTime())) ultimaProxima = fecha;
+      }
+    }
+  }
+  return ultimaProxima;
+}
+
+function mapContact(p) {
+  const notas=p.biographies?.[0]?.value||"";
+  const sM=notas.match(/sector[:\s]+([^\n,]+)/i);
+  const eM=notas.match(/equipos?[:\s]+([^\n]+)/i);
+  const fechaNotas    = extraerFechas(notas);
+  const proximaAccion = extraerProximaAccion(notas);
+  const ultimoContacto = fechaNotas || "2020-01-01";
+  // Etiquetas del contacto
+  const etiquetas = (p.memberships||[]).map(m => (window._gruposMap||{})[m.contactGroupMembership?.contactGroupResourceName]||"").filter(Boolean);
+  const esClienteFinal = etiquetas.some(e => e.toUpperCase().includes("CLIENTE FINAL"));
+  const esIntermediario = etiquetas.some(e =>
+    e.toUpperCase().includes("CARROCERO") ||
+    e.toUpperCase().includes("RENTING") ||
+    e.toUpperCase().includes("SERVICIO OFICIAL") ||
+    e.toUpperCase().includes("SERVICIO TECNICO") ||
+    e.toUpperCase().includes("SERVICIO TÉCNICO") ||
+    e.toUpperCase().includes("INTERMEDIARIO")
+  );
+  // Teléfonos: separar móvil y fijo
+  const telefonos = p.phoneNumbers || [];
+  const movil = telefonos.find(t => { const n = t.value.replace(/\D/g,""); return n.startsWith("6") || n.startsWith("7") || n.startsWith("346") || n.startsWith("347"); });
+  const fijo  = telefonos.find(t => { const n = t.value.replace(/\D/g,""); return n.startsWith("9") || n.startsWith("349") || t.type === "work" || t.type === "home"; });
+  const telefono = (movil || telefonos[0])?.value || "";
+  const telefonoFijo  = fijo?.value  || "";
+  const telefonoMovil = movil?.value || "";
+  // LinkedIn
+  const linkedin = (p.urls||[]).find(u => u.value && u.value.toLowerCase().includes("linkedin.com"))?.value || "";
+  // Nombre desglosado
+  const nombre1    = p.names?.[0]?.givenName    || "";
+  const nombre2    = p.names?.[0]?.middleName   || "";
+  const apellidos  = p.names?.[0]?.familyName   || "";
+  // Dirección
+  const addr       = p.addresses?.[0] || {};
+  const pais       = addr.country        || addr.countryCode || "";
+  const direccion  = addr.streetAddress  || "";
+  const codPostal  = addr.postalCode     || "";
+  const ciudad     = addr.city           || "";
+  const provincia  = addr.region         || "";
+
+  return {
+    id: p.resourceName||Math.random().toString(36).slice(2),
+    empresa: p.organizations?.[0]?.name||"Empresa desconocida",
+    contacto: p.names?.[0]?.displayName||"Sin nombre",
+    nombre1, nombre2, apellidos,
+    cargo: p.organizations?.[0]?.title||"",
+    email: p.emailAddresses?.[0]?.value||"",
+    telefono, telefonoFijo, telefonoMovil,
+    linkedin,
+    etiquetas,
+    pais, direccion, codPostal, ciudad, provincia,
+    sector: sM?sM[1].trim():"Ver notas",
+    equipos: eM?eM[1].trim():"Ver notas",
+    ultimoContacto, proximaAccion: proximaAccion||null,
+    historial: notas||"Sin historial.",
+    esClienteFinal, esIntermediario, fuenteG:true
+  };
+}
+
+function mostrarError(msg) {
+  document.getElementById("error-inner").textContent=msg;
+  document.getElementById("error-box").style.display="block";
+  setTimeout(()=>document.getElementById("error-box").style.display="none",8000);
+}
+function resetBtn() {
+  const btn=document.getElementById("btn-google");
+  btn.disabled=false;
+  btn.innerHTML=`${gSvg(16)} Conectar Google Contacts`;
+}
+
+// ── SELECTOR DE MOTOR DE IA ───────────────────────────────────────────────────
+function setMotorIA(motor) {
+  const btnClaude   = document.getElementById("btn-motor-claude");
+  const btnWorkers  = document.getElementById("btn-motor-workers");
+  const isWorkers   = motor === "workersai";
+
+  // Validar que Workers AI tiene URL configurada
+  if (isWorkers && !PROXY_WORKERS_AI) {
+    mostrarError("☁️ Workers AI no configurado aún. Crea el Worker y añade su URL en PROXY_WORKERS_AI.");
+    return;
+  }
+
+  _motorActivo = motor;
+  PROXY_URL    = isWorkers ? PROXY_WORKERS_AI : PROXY_ANTHROPIC;
+
+  // Actualizar botones
+  btnClaude.classList.toggle("active-claude",   !isWorkers);
+  btnWorkers.classList.toggle("active-workers",  isWorkers);
+
+  // Guardar en sessionStorage (persiste mientras la pestaña esté abierta)
+  try { sessionStorage.setItem("motorIA", motor); } catch(e) {}
+
+  console.log("[IA] Motor activo:", motor, "→", PROXY_URL);
+}
+
+// Restaurar motor de la sesión anterior (si se recargan los contactos en otra pestaña ya activa)
+try {
+  const saved = sessionStorage.getItem("motorIA");
+  if (saved === "workersai" && PROXY_WORKERS_AI) setMotorIA("workersai");
+} catch(e) {}
+
+// Render inicial: muestra los contactos demo en la lista al cargar la página.
+// Sin esto, la lista queda vacía hasta que el usuario conecta Google o
+// interactúa con algún control que dispare un re-render.
+calcularCategorias();
+renderLista();
+
+</script>
+</body>
+</html>
