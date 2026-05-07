@@ -1082,10 +1082,10 @@ async function generarEmail(c) {
   const miNombreCorto = window._currentUser?.nombreCorto || "el director";
   
   try {
-    const payload = { 
-      model:"claude-sonnet-4-20250514", 
-      max_tokens:1000,
-      messages:[{role:"user", content:
+    // Prompts diferentes por motor:
+    // - Claude: instrucciones narrativas, libertad creativa, longitud equilibrada
+    // - Llama (versión narrativa): explota historial completo, prioriza personas y equipos
+    const promptClaude =
 `Tu rol: ${miNombre}, director comercial de Mitsubishi Equipos Frigoríficos en España.
 Hoy: ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
 
@@ -1100,25 +1100,81 @@ Tipo: ${c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario 
 HISTORIAL DE NOTAS:
 ${c.historial}
 
-INSTRUCCIONES (sigue las 5 reglas):
+INSTRUCCIONES:
 
 1. ABRE DIRECTO. Nada de "Espero que esté bien" ni "Le escribo para hacer seguimiento".
 
-2. UNA REFERENCIA AL HISTORIAL. Busca un detalle concreto (proyecto, equipo, conversación previa, persona) y menciónalo en la primera frase. Si el historial solo tiene fechas, di simplemente: "Hace tiempo que no hablamos".
+2. CONECTA CON EL HISTORIAL. Busca uno o dos detalles concretos (proyecto, equipo, persona, conversación previa, decisión pendiente) y úsalos para que el email se sienta personal. Si el historial solo tiene fechas, escribe naturalmente: "Hace tiempo que no hablamos".
 
-3. UNA SOLA PETICIÓN. Llamada O visita O enviar info. No tres cosas a la vez.
+3. APORTA ALGO. No te limites a "saludar" — añade una razón concreta para que merezca la pena responderte: una novedad relevante, un dato útil, una observación sobre su sector, una propuesta concreta. El email debe darle al receptor un motivo real para contestar.
 
-4. MÁXIMO 100 PALABRAS. Corto y útil. Sin floritura.
+4. UNA SOLA PETICIÓN al final. Llamada O visita O enviar info. Una pregunta clara y fácil de responder.
 
-5. NO firmes el email. Sin "Saludos" ni nombre al final.
+5. LONGITUD: 140-180 palabras. Suficiente para construir el mensaje con calado, sin volverse pesado. Si con menos palabras dices lo mismo igual de bien, mejor.
+
+6. NO firmes el email. Sin "Saludos" ni nombre al final.
 
 EJEMPLO DEL ESTILO QUE BUSCO:
-"Hola Pedro, vi en mi nota que en agosto comentaste estudiar 3-4 unidades nuevas para Q2. ¿Sigue en pie? Tenemos disponibilidad inmediata en FRC-420 y precio mejor que el año pasado. ¿Te llamo el martes?"
+"Hola Pedro, repasando notas vi que en agosto comentaste con María que estabais valorando 3-4 unidades nuevas para Q2 — entre el FRC-420 y el FRC-520, según la carga útil de las rutas. ¿Sigue en pie esa decisión?
+
+Te escribo porque tenemos los dos modelos en stock con entrega en 4 semanas, y para vuestro tipo de operación (rutas largas + paradas frecuentes) hay un dato que merece la pena ver: el FRC-420 con el nuevo compresor consume entre un 12-15% menos que la generación anterior. Os puedo pasar comparativa real con datos de clientes parecidos a vosotros en distribución frigorífica.
+
+¿Te viene bien una llamada el martes o miércoles?"
 
 FORMATO:
-ASUNTO: [breve, específico al cliente, sin "seguimiento" ni "contacto"]
+ASUNTO: [breve, específico al cliente y al tema concreto, sin las palabras "seguimiento" ni "contacto"]
 
-[cuerpo en 4-5 líneas naturales]`}]
+[cuerpo natural y construido]`;
+
+    const promptLlama =
+`Eres ${miNombre}, director comercial de Mitsubishi Equipos Frigoríficos en España. Hoy es ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
+
+Vas a escribir un email a ${c.contacto}${c.cargo?` (${c.cargo})`:""} de ${c.empresa}. Tipo de cliente: ${c.esClienteFinal ? "cliente final con flota propia" : c.esIntermediario ? "intermediario (carrocero/renting/servicio oficial)" : "general"}. Sector: ${c.sector}. Equipos actuales: ${c.equipos}. Llevamos ${d} días sin hablar.
+
+Estas son TODAS las notas que tenemos del contacto — léelas con atención porque es lo que te diferencia de un email genérico:
+
+"""
+${c.historial}
+"""
+
+ANTES DE ESCRIBIR, ANALIZA EL HISTORIAL Y EXTRAE:
+- ¿Qué personas se mencionan? (nombres propios distintos al contacto principal — pueden ser jefes, compañeros, técnicos, otros interlocutores)
+- ¿Qué equipos o modelos concretos aparecen? (modelos Mitsubishi como FRC-220/320/420/520/680, marcas competencia, configuraciones, números de unidades)
+- ¿Qué proyectos o decisiones pendientes hay? (renovaciones, ofertas, plazos, dudas técnicas, rutas, ampliaciones)
+- ¿Cuál fue el último tema concreto tratado? (no la fecha — el TEMA)
+
+Usa al menos UN dato concreto de los que has extraído. Cuanto más específico, mejor — eso es lo que hace que el email funcione.
+
+Si el historial está vacío o solo tiene fechas sin contenido, escribe sin inventar: empieza con "Hace tiempo que no hablamos" y haz una pregunta abierta sobre su flota.
+
+ESTRUCTURA DEL EMAIL:
+1. Apertura directa con UNA referencia concreta del historial (persona, equipo, proyecto). Sin "Espero que estés bien".
+2. Cuerpo donde aportas algo de valor: novedad técnica, comparativa relevante, dato útil, propuesta concreta — un motivo real para que te respondan, no solo "saludar".
+3. UNA pregunta concreta al final (llamada, visita o envío de info — elige según contexto). Fácil de responder.
+
+REGLAS DE FORMA:
+- Español comercial natural, tono cercano y profesional como un comercial veterano que conoce al cliente.
+- Longitud: 140-180 palabras. Suficiente para construir el mensaje con calado, sin volverse pesado.
+- Prohibido: "Espero que estés bien", "Me pongo en contacto", "Aprovecho para", despedidas formales, firma con tu nombre.
+
+FORMATO DE SALIDA (respeta exactamente):
+ASUNTO: [una línea, específica al cliente y al tema concreto que extrajiste — sin "seguimiento" ni "contacto"]
+CUERPO:
+[el email aquí]
+
+EJEMPLO DEL TONO Y LONGITUD DESEADOS (caso ficticio):
+ASUNTO: FRC-420 vs FRC-520 para la flota nueva — Pedro me comentó que estabais valorando opciones
+CUERPO:
+Hola Javier, hablé el mes pasado con Pedro sobre las 3 unidades que estáis estudiando para la ruta de Andalucía. Comentaba que dudabais entre el FRC-420 y el FRC-520 según la carga útil de cada ruta.
+
+Te escribo porque tenemos los dos modelos en stock con entrega en 4 semanas. Para vuestro perfil de operación (distancias largas + paradas frecuentes), el FRC-420 con el nuevo compresor está dando consumos un 12-15% por debajo de la generación anterior — tengo comparativa real con datos de clientes parecidos al vuestro que os puede ayudar a cerrar la decisión.
+
+¿Te viene bien una llamada el martes o miércoles para repasarlo juntos?`;
+
+    const payload = {
+      model:"claude-sonnet-4-20250514",
+      max_tokens:1200,
+      messages:[{role:"user", content: _motorActivo === "workersai" ? promptLlama : promptClaude}]
     };
     
     console.log("[generarEmail] Enviando request a proxy...");
@@ -1159,9 +1215,15 @@ ASUNTO: [breve, específico al cliente, sin "seguimiento" ni "contacto"]
     console.log("[generarEmail] Texto recibido (" + txt.length + " caracteres)");
     
     const ls   = txt.split("\n");
-    const al   = ls.find(l=>l.startsWith("ASUNTO:"));
-    emailAsunto = al ? al.replace("ASUNTO:","").trim() : "Sin asunto";
-    emailCuerpo = ls.filter(l=>!l.startsWith("ASUNTO:")).join("\n").trim();
+    const al   = ls.find(l=>l.trim().startsWith("ASUNTO:"));
+    emailAsunto = al ? al.replace(/^ASUNTO:\s*/i,"").trim() : "Sin asunto";
+    // Soportar ambos formatos: con "CUERPO:" (Llama narrativo) o sin él (Claude)
+    const idxCuerpo = ls.findIndex(l=>l.trim().startsWith("CUERPO:"));
+    if (idxCuerpo !== -1) {
+      emailCuerpo = ls.slice(idxCuerpo + 1).join("\n").trim();
+    } else {
+      emailCuerpo = ls.filter(l => !l.trim().startsWith("ASUNTO:")).join("\n").trim();
+    }
     
     if (!emailAsunto || !emailCuerpo) {
       console.warn("[generarEmail] ⚠️ Email incompleto - Asunto:", emailAsunto.substring(0,50), "Cuerpo:", emailCuerpo.substring(0,50));
@@ -1618,34 +1680,25 @@ Devuelve solo el mensaje.`}]
     // Cambiar botón para abrir LinkedIn
     const btnEmail = document.getElementById("btn-abrir-email");
     btnEmail.textContent = "💼 Abrir LinkedIn";
-    // Normalizar URL: añadir https:// si falta (evita que se trate como ruta relativa en GitHub Pages)
-    let urlLinkedIn = (c.linkedin || "").trim();
-    if (urlLinkedIn && urlLinkedIn.toLowerCase().includes("linkedin.com")) {
-      if (!/^https?:\/\//i.test(urlLinkedIn)) urlLinkedIn = "https://" + urlLinkedIn;
+    // Validar que la URL es realmente de LinkedIn
+    const urlLinkedIn = (c.linkedin || "").toLowerCase().includes("linkedin.com") ? c.linkedin : "";
+    if (urlLinkedIn) {
+      btnEmail.href = urlLinkedIn;
+      btnEmail.target = "_blank";
     } else {
-      urlLinkedIn = "";
-    }
-    // El botón NO usa href para navegar — el onclick controla todo el flujo:
-    // 1. Previene la navegación por href (que causaba ruta relativa en GitHub Pages)
-    // 2. Copia el mensaje al portapapeles
-    // 3. Registra el envío en Google Contacts (marcarEmailEnviado)
-    // 4. Abre LinkedIn en nueva pestaña con window.open (URL absoluta garantizada)
-    btnEmail.removeAttribute("href");
-    btnEmail.target = "";
-    if (!urlLinkedIn) {
+      btnEmail.removeAttribute("href");
+      btnEmail.target = "";
       mostrarError("⚠️ URL de LinkedIn no encontrada o incorrecta para este contacto. Ábrelo manualmente.");
     }
-    btnEmail.onclick = async (ev) => {
-      ev.preventDefault();
+    btnEmail.onclick = () => {
+      // Leer texto EDITADO actual (puede haber cambios del usuario)
       const cuerpoFinal = document.getElementById("cuerpo-text").value || emailCuerpo;
-      emailCuerpo = cuerpoFinal;
-      // Copiar al portapapeles
-      try { await navigator.clipboard.writeText(cuerpoFinal); } catch(e) {}
-      // Registrar en Google Contacts + Sheets y cerrar panel
-      await marcarEmailEnviado();
-      // Abrir LinkedIn con URL absoluta tras registrar
-      if (urlLinkedIn) window.open(urlLinkedIn, "_blank");
-      else alert("⚠️ No hay URL de LinkedIn para este contacto. El envío quedó registrado.");
+      emailCuerpo = cuerpoFinal; // sincronizar para que el resumen IA use el texto final
+      navigator.clipboard.writeText(cuerpoFinal).then(() => {
+        console.log("[generarMensajeLinkedIn] Mensaje copiado al portapapeles");
+        alert("✅ Mensaje copiado al portapapeles — pégalo en LinkedIn");
+      });
+      marcarEmailEnviado();
     };
     const btnMarcar = document.getElementById("btn-marcar-enviado");
     if (btnMarcar) btnMarcar.textContent = "✓ Marcar mensaje LinkedIn enviado";
@@ -1742,76 +1795,56 @@ Responde ÚNICAMENTE con la fecha en formato DD-MM-YYYY, sin explicación.`
   return `${String(fallback.getDate()).padStart(2,"0")}-${String(fallback.getMonth()+1).padStart(2,"0")}-${fallback.getFullYear()}`;
 }
 
-// Muestra un banner de token expirado con botón de reconexión.
-// La renovación silenciosa falla siempre en navegadores modernos porque bloquean
-// popups no iniciados por interacción directa del usuario.
-function mostrarBannerTokenExpirado() {
-  if (document.getElementById("banner-token")) return;
-  const banner = document.createElement("div");
-  banner.id = "banner-token";
-  banner.style.cssText = `
-    position:fixed; bottom:20px; right:20px; z-index:9999;
-    background:#1a0608; border:1px solid #e63946; border-radius:10px;
-    padding:14px 18px; max-width:320px; box-shadow:0 4px 24px #00000066;
-    animation:fadeIn 0.2s ease;
-  `;
-  banner.innerHTML = `
-    <div style="font-size:13px;font-weight:700;color:#e63946;margin-bottom:6px;">⚠️ Sesión de Google expirada</div>
-    <div style="font-size:12px;color:#9ca3af;margin-bottom:12px;line-height:1.6;">
-      El token de Google Contacts ha caducado (~1h).<br>
-      <strong style="color:#e8eaf0;">La acción se marcó en la app</strong>, pero no se guardó en Google Contacts ni Sheets.
-    </div>
-    <button onclick="reconectarGoogle()" style="width:100%;background:linear-gradient(135deg,#c1121f,#e63946);color:#fff;border:none;border-radius:7px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;">🔄 Reconectar Google</button>
-    <button onclick="document.getElementById('banner-token').remove()" style="width:100%;margin-top:6px;background:none;color:#6b7280;border:1px solid #374151;border-radius:7px;padding:7px;font-size:12px;cursor:pointer;">Cerrar (no guardar)</button>
-  `;
-  document.body.appendChild(banner);
+// Renueva el token de Google silenciosamente
+async function renovarTokenGoogle() {
+  return new Promise((resolve) => {
+    if (!window.google?.accounts) { resolve(false); return; }
+    window.google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID, scope: GOOGLE_SCOPES,
+      prompt: "",  // sin pantalla de login si ya está autorizado
+      callback: (resp) => {
+        if (resp.error) { resolve(false); return; }
+        window._gToken = resp.access_token;
+        resolve(true);
+      }
+    }).requestAccessToken();
+  });
 }
 
-function reconectarGoogle() {
-  const banner = document.getElementById("banner-token");
-  if (banner) banner.remove();
-  if (!window.google?.accounts) return;
-  window.google.accounts.oauth2.initTokenClient({
-    client_id: GOOGLE_CLIENT_ID, scope: GOOGLE_SCOPES, prompt: "",
-    callback: (resp) => {
-      if (resp.error) { mostrarError("Error al reconectar: " + resp.error); return; }
-      window._gToken = resp.access_token;
-      console.log("✅ Token renovado");
-      mostrarError("✅ Google reconectado. Las próximas acciones se guardarán con normalidad.");
-    }
-  }).requestAccessToken();
-}
-
-// Actualiza las notas de un contacto en Google Contacts.
-// Si el token está expirado (401), muestra banner de reconexión manual.
+// Actualiza las notas de un contacto en Google con texto nuevo (con reintento si expira el token)
 async function actualizarNotasGoogle(contactoId, nuevaLinea) {
   if (!window._gToken) return;
-  try {
-    const getRes = await fetch(
-      `https://people.googleapis.com/v1/${contactoId}?personFields=biographies,metadata`,
-      { headers: { "Authorization": `Bearer ${window._gToken}` } }
-    );
-    if (getRes.status === 401) {
-      console.log("Token expirado — mostrando banner de reconexión");
-      mostrarBannerTokenExpirado();
-      return;
-    }
-    if (!getRes.ok) { console.log("Error obteniendo contacto:", getRes.status); return; }
-    const contactData = await getRes.json();
-    const etag = contactData.etag;
-    const notasActuales = contactData.biographies?.[0]?.value || "";
-    const notasNuevas = notasActuales + nuevaLinea;
-    const updateRes = await fetch(
-      `https://people.googleapis.com/v1/${contactoId}:updateContact?updatePersonFields=biographies`,
-      {
-        method: "PATCH",
-        headers: { "Authorization": `Bearer ${window._gToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ etag, biographies: [{ value: notasNuevas, contentType: "TEXT_PLAIN" }] })
+  for (let intento = 0; intento < 2; intento++) {
+    try {
+      const getRes = await fetch(
+        `https://people.googleapis.com/v1/${contactoId}?personFields=biographies,metadata`,
+        { headers: { "Authorization": `Bearer ${window._gToken}` } }
+      );
+      if (getRes.status === 401) {
+        // Token expirado — renovar y reintentar
+        console.log("Token expirado, renovando...");
+        const ok = await renovarTokenGoogle();
+        if (!ok) { console.log("No se pudo renovar el token"); return; }
+        continue;
       }
-    );
-    if (updateRes.ok) { console.log("Notas actualizadas en Google Contacts OK"); }
-    else console.log("Error actualizando:", await updateRes.json());
-  } catch(e) { console.log("No se pudo actualizar nota en Google:", e.message); }
+      if (!getRes.ok) { console.log("Error obteniendo contacto:", getRes.status); return; }
+      const contactData = await getRes.json();
+      const etag = contactData.etag;
+      const notasActuales = contactData.biographies?.[0]?.value || "";
+      const notasNuevas = notasActuales + nuevaLinea;
+      const updateRes = await fetch(
+        `https://people.googleapis.com/v1/${contactoId}:updateContact?updatePersonFields=biographies`,
+        {
+          method: "PATCH",
+          headers: { "Authorization": `Bearer ${window._gToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ etag, biographies: [{ value: notasNuevas, contentType: "TEXT_PLAIN" }] })
+        }
+      );
+      if (updateRes.ok) { console.log("Notas actualizadas en Google Contacts OK"); return; }
+      else console.log("Error actualizando:", await updateRes.json());
+      return;
+    } catch(e) { console.log("No se pudo actualizar nota en Google:", e.message); return; }
+  }
 }
 
 // ── GOOGLE SHEETS ─────────────────────────────────────────────────────────────
