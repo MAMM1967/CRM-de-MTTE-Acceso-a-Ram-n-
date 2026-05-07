@@ -1618,26 +1618,34 @@ Devuelve solo el mensaje.`}]
     // Cambiar botón para abrir LinkedIn
     const btnEmail = document.getElementById("btn-abrir-email");
     btnEmail.textContent = "💼 Abrir LinkedIn";
-    // Validar que la URL es realmente de LinkedIn
-    const urlLinkedIn = (c.linkedin || "").toLowerCase().includes("linkedin.com") ? c.linkedin : "";
-    if (urlLinkedIn) {
-      btnEmail.href = urlLinkedIn;
-      btnEmail.target = "_blank";
+    // Normalizar URL: añadir https:// si falta (evita que se trate como ruta relativa en GitHub Pages)
+    let urlLinkedIn = (c.linkedin || "").trim();
+    if (urlLinkedIn && urlLinkedIn.toLowerCase().includes("linkedin.com")) {
+      if (!/^https?:\/\//i.test(urlLinkedIn)) urlLinkedIn = "https://" + urlLinkedIn;
     } else {
-      btnEmail.removeAttribute("href");
-      btnEmail.target = "";
+      urlLinkedIn = "";
+    }
+    // El botón NO usa href para navegar — el onclick controla todo el flujo:
+    // 1. Previene la navegación por href (que causaba ruta relativa en GitHub Pages)
+    // 2. Copia el mensaje al portapapeles
+    // 3. Registra el envío en Google Contacts (marcarEmailEnviado)
+    // 4. Abre LinkedIn en nueva pestaña con window.open (URL absoluta garantizada)
+    btnEmail.removeAttribute("href");
+    btnEmail.target = "";
+    if (!urlLinkedIn) {
       mostrarError("⚠️ URL de LinkedIn no encontrada o incorrecta para este contacto. Ábrelo manualmente.");
     }
-    // El botón "Abrir LinkedIn" solo copia el mensaje y abre el perfil.
-    // El registro en Google Contacts se hace EXCLUSIVAMENTE desde "Marcar enviado"
-    // para evitar el doble disparo que ocurría cuando onclick + href se procesaban juntos.
-    btnEmail.onclick = (ev) => {
+    btnEmail.onclick = async (ev) => {
+      ev.preventDefault();
       const cuerpoFinal = document.getElementById("cuerpo-text").value || emailCuerpo;
-      emailCuerpo = cuerpoFinal; // sincronizar para resumen IA posterior
-      navigator.clipboard.writeText(cuerpoFinal).then(() => {
-        console.log("[generarMensajeLinkedIn] Mensaje copiado al portapapeles");
-      }).catch(() => {});
-      // No llamamos a marcarEmailEnviado() aquí — solo abrimos LinkedIn
+      emailCuerpo = cuerpoFinal;
+      // Copiar al portapapeles
+      try { await navigator.clipboard.writeText(cuerpoFinal); } catch(e) {}
+      // Registrar en Google Contacts + Sheets y cerrar panel
+      await marcarEmailEnviado();
+      // Abrir LinkedIn con URL absoluta tras registrar
+      if (urlLinkedIn) window.open(urlLinkedIn, "_blank");
+      else alert("⚠️ No hay URL de LinkedIn para este contacto. El envío quedó registrado.");
     };
     const btnMarcar = document.getElementById("btn-marcar-enviado");
     if (btnMarcar) btnMarcar.textContent = "✓ Marcar mensaje LinkedIn enviado";
@@ -1735,11 +1743,9 @@ Responde ÚNICAMENTE con la fecha en formato DD-MM-YYYY, sin explicación.`
 }
 
 // Muestra un banner de token expirado con botón de reconexión.
-// La renovación silenciosa (sin gesto del usuario) falla siempre en navegadores modernos
-// porque bloquean popups no iniciados por interacción directa. La única solución fiable
-// es pedirle al usuario que haga clic él mismo en el botón de reconexión.
+// La renovación silenciosa falla siempre en navegadores modernos porque bloquean
+// popups no iniciados por interacción directa del usuario.
 function mostrarBannerTokenExpirado() {
-  // Solo mostrar una vez si ya está visible
   if (document.getElementById("banner-token")) return;
   const banner = document.createElement("div");
   banner.id = "banner-token";
@@ -1752,46 +1758,32 @@ function mostrarBannerTokenExpirado() {
   banner.innerHTML = `
     <div style="font-size:13px;font-weight:700;color:#e63946;margin-bottom:6px;">⚠️ Sesión de Google expirada</div>
     <div style="font-size:12px;color:#9ca3af;margin-bottom:12px;line-height:1.6;">
-      El token de Google Contacts ha caducado (dura ~1h).<br>
-      <strong style="color:#e8eaf0;">La acción se marcó correctamente</strong> en la app,<br>
-      pero no se pudo guardar en Google Contacts ni en Sheets.
+      El token de Google Contacts ha caducado (~1h).<br>
+      <strong style="color:#e8eaf0;">La acción se marcó en la app</strong>, pero no se guardó en Google Contacts ni Sheets.
     </div>
-    <button onclick="reconectarGoogle()" style="
-      width:100%; background:linear-gradient(135deg,#c1121f,#e63946);
-      color:#fff; border:none; border-radius:7px; padding:9px;
-      font-size:13px; font-weight:700; cursor:pointer;
-    ">🔄 Reconectar Google</button>
-    <button onclick="document.getElementById('banner-token').remove()" style="
-      width:100%; margin-top:6px; background:none; color:#6b7280;
-      border:1px solid #374151; border-radius:7px; padding:7px;
-      font-size:12px; cursor:pointer;
-    ">Cerrar (no guardar)</button>
+    <button onclick="reconectarGoogle()" style="width:100%;background:linear-gradient(135deg,#c1121f,#e63946);color:#fff;border:none;border-radius:7px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;">🔄 Reconectar Google</button>
+    <button onclick="document.getElementById('banner-token').remove()" style="width:100%;margin-top:6px;background:none;color:#6b7280;border:1px solid #374151;border-radius:7px;padding:7px;font-size:12px;cursor:pointer;">Cerrar (no guardar)</button>
   `;
   document.body.appendChild(banner);
 }
 
-// Reconexión manual iniciada por el usuario: el popup SÍ se abre porque viene de un gesto directo.
-// Tras reconectar, el token se renueva pero los datos pendientes ya no se reenvían
-// (el usuario habrá ya marcado la acción como enviada en la app).
 function reconectarGoogle() {
   const banner = document.getElementById("banner-token");
   if (banner) banner.remove();
   if (!window.google?.accounts) return;
   window.google.accounts.oauth2.initTokenClient({
-    client_id: GOOGLE_CLIENT_ID, scope: GOOGLE_SCOPES,
-    prompt: "",
+    client_id: GOOGLE_CLIENT_ID, scope: GOOGLE_SCOPES, prompt: "",
     callback: (resp) => {
       if (resp.error) { mostrarError("Error al reconectar: " + resp.error); return; }
       window._gToken = resp.access_token;
-      console.log("✅ Token renovado correctamente");
+      console.log("✅ Token renovado");
       mostrarError("✅ Google reconectado. Las próximas acciones se guardarán con normalidad.");
     }
   }).requestAccessToken();
 }
 
 // Actualiza las notas de un contacto en Google Contacts.
-// Si el token está expirado (401), muestra el banner de reconexión en lugar de
-// intentar renovar silenciosamente (lo cual falla siempre por bloqueo de popup).
+// Si el token está expirado (401), muestra banner de reconexión manual.
 async function actualizarNotasGoogle(contactoId, nuevaLinea) {
   if (!window._gToken) return;
   try {
