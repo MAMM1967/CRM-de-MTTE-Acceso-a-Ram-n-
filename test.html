@@ -136,8 +136,8 @@
       </div>
       <div style="display:flex;align-items:center;gap:10px;">
         <div class="motor-switcher" id="motor-switcher" title="Motor de IA activo">
-          <button class="motor-btn active-claude" id="btn-motor-claude" onclick="setMotorIA('anthropic')">⚡ Claude</button>
-          <button class="motor-btn" id="btn-motor-workers" onclick="setMotorIA('workersai')">☁️ Workers AI</button>
+          <button class="motor-btn" id="btn-motor-claude" onclick="setMotorIA('anthropic')">⚡ Claude</button>
+          <button class="motor-btn active-workers" id="btn-motor-workers" onclick="setMotorIA('workersai')">☁️ Workers AI</button>
         </div>
         <div id="badge-urgent"></div>
         <div id="user-badge">
@@ -254,8 +254,8 @@ const SHEET_TAB        = "Acciones Comerciales";
 const PROXY_ANTHROPIC  = "https://damp-limit-0374.mezquiriz.workers.dev";
 const PROXY_WORKERS_AI = "https://proxy-workers-ai.mezquiriz.workers.dev"; // Worker de Llama 4 Scout en Workers AI
 
-let PROXY_URL    = PROXY_ANTHROPIC; // motor activo (cambia con setMotorIA)
-let _motorActivo = "anthropic";
+let PROXY_URL    = PROXY_WORKERS_AI; // motor activo por defecto: Llama (sin coste, menos alucinaciones técnicas)
+let _motorActivo = "workersai";
 
 // Mapeo de usuarios → nombre completo y nombre corto.
 // Detecta por displayName de Google (puede venir como "MAMM") o por email.
@@ -1158,21 +1158,21 @@ Usa al menos UN dato concreto de los que has extraído. Cuanto más específico,
 Si el historial está vacío o solo tiene fechas sin contenido, escribe sin inventar: empieza con "Hace tiempo que no hablamos" y haz una pregunta abierta sobre su flota.
 
 ESTRUCTURA DEL EMAIL:
-1. Apertura directa con UNA referencia concreta del historial (persona, equipo, proyecto). Sin "Espero que estés bien".
-2. Cuerpo construido SOLO sobre los datos del historial: continuación de la conversación previa, recordatorio de un acuerdo, retomar una decisión pendiente. NO inventes datos técnicos para "rellenar".
-3. UNA pregunta concreta al final (llamada, visita o envío de info — elige según contexto). Fácil de responder.
+1. Apertura cercana con UNA referencia concreta del historial. Si hay un detalle personal (afición, hobby, situación familiar mencionada en notas), inclúyelo con naturalidad — eso crea conexión real. Sin "Espero que estés bien".
+2. Si en el historial hay constancia de un envío previo sin respuesta (oferta, guía, propuesta, llamada no devuelta), MENCIÓNALO con honestidad y sin reproche, dándole una salida fácil al receptor. Ejemplo: "Vi que no llegaste a responder cuando te mandé X. No sé si es que no había nada en marcha por vuestra parte o simplemente no era el momento."
+3. UNA pregunta abierta y desactivada al final, fácil de responder y que no presione: "¿Tenéis algún proyecto donde os podamos echar una mano?", "¿Cómo va la flota?", "¿Hay algo en marcha donde pueda ayudaros?".
 
 REGLA CRÍTICA — PROHIBIDO INVENTAR DATOS TÉCNICOS O COMERCIALES:
 - NUNCA inventes nombres de modelos, códigos de producto ni nomenclatura comercial.
 - NUNCA inventes cifras: porcentajes de consumo, plazos de entrega, precios, eficiencias, comparativas con años anteriores, capacidades.
 - NUNCA inventes "novedades", "nuevas versiones", "stocks ampliados" ni anuncios de producto.
 - SOLO puedes mencionar modelos, cifras o productos que aparezcan TEXTUALMENTE en el historial.
-- Si el historial no tiene datos técnicos, no los introduzcas — construye el email solo sobre el contacto, el sector y la conversación previa que sí ves.
+- Si el historial no tiene datos técnicos, no los introduzcas — construye el email solo sobre la relación humana, el contacto, el sector y la conversación previa que sí ves.
 - Mejor un email corto y honesto que uno largo con datos falsos.
 
 REGLAS DE FORMA:
-- Español comercial natural, tono cercano y profesional como un comercial veterano que conoce al cliente.
-- Longitud: 100-160 palabras. Adapta a lo que tengas: con historial rico puedes acercarte a 160; con historial escueto, mantente cerca de 100.
+- Español comercial natural, tono cercano y humano como un comercial veterano que conoce al cliente.
+- Longitud: 140-180 palabras. Suficiente para construir el mensaje con calado humano, sin volverse pesado.
 - Prohibido: "Espero que estés bien", "Me pongo en contacto", "Aprovecho para", despedidas formales, firma con tu nombre.
 
 FORMATO DE SALIDA (respeta exactamente):
@@ -1180,14 +1180,15 @@ ASUNTO: [una línea, específica al cliente y al tema concreto que extrajiste �
 CUERPO:
 [el email aquí]
 
-EJEMPLO DEL TONO Y LONGITUD DESEADOS (caso ficticio — los códigos de modelo aquí son placeholders ilustrativos, NO los uses si no aparecen en el historial real):
-ASUNTO: Las 3 unidades para Andalucía — Pedro me comentó que estabais valorando opciones
+EJEMPLO DE REFERENCIA — esto es exactamente el tono, longitud y estructura que buscamos:
+ASUNTO: Cómo va Carrosseries Tolosa — y lo del barco
 CUERPO:
-Hola Javier, hablé el mes pasado con Pedro sobre las 3 unidades que estáis estudiando para la ruta de Andalucía. Comentaba que dudabais entre dos modelos según la carga útil de cada ruta.
+Hola Jaume,
+Hace tiempo que no hablamos. Espero que el barco esté listo para la época de navegación que ya empieza. A ver si este año me animo con esa invitación al barco que llevas haciéndome tiempo.
+Vi que no llegaste a responder cuando te mandé la guía de selección en enero. No sé si es que no había nada en marcha por vuestra parte o simplemente no era el momento.
+¿Cómo van las cosas en Carrosseries Tolosa? ¿Tenéis algún proyecto donde os podamos echar una mano con equipos frigoríficos?
 
-¿Cómo vais con esa decisión? Si os sigue interesando, os puedo pasar datos reales de consumo de clientes parecidos a vosotros que os pueden ayudar a cerrar la elección.
-
-¿Te viene bien una llamada el martes o miércoles para repasarlo juntos?
+Fíjate en lo que hace bien este ejemplo: arranca con un detalle personal (el barco) que crea conexión real, reconoce con honestidad y sin reproche que un envío previo quedó sin respuesta, y termina con una pregunta abierta y fácil de responder. NO inventa datos técnicos ni cifras — todo lo que dice se apoya en lo que ya conoce del cliente.
 
 EJEMPLO CON HISTORIAL ESCUETO (solo fechas, sin contenido):
 ASUNTO: Cómo va la flota — me gustaría ponerme al día
@@ -2253,10 +2254,10 @@ function setMotorIA(motor) {
   console.log("[IA] Motor activo:", motor, "→", PROXY_URL);
 }
 
-// Restaurar motor de la sesión anterior (si se recargan los contactos en otra pestaña ya activa)
+// Restaurar motor de la sesión anterior (default: Llama; si el usuario eligió Claude antes, lo restauramos)
 try {
   const saved = sessionStorage.getItem("motorIA");
-  if (saved === "workersai" && PROXY_WORKERS_AI) setMotorIA("workersai");
+  if (saved === "anthropic") setMotorIA("anthropic");
 } catch(e) {}
 
 // Render inicial: muestra los contactos demo en la lista al cargar la página.
