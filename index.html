@@ -136,8 +136,8 @@
       </div>
       <div style="display:flex;align-items:center;gap:10px;">
         <div class="motor-switcher" id="motor-switcher" title="Motor de IA activo">
-          <button class="motor-btn active-claude" id="btn-motor-claude" onclick="setMotorIA('anthropic')">⚡ Claude</button>
-          <button class="motor-btn" id="btn-motor-workers" onclick="setMotorIA('workersai')">☁️ Workers AI</button>
+          <button class="motor-btn" id="btn-motor-claude" onclick="setMotorIA('anthropic')">⚡ Claude</button>
+          <button class="motor-btn active-workers" id="btn-motor-workers" onclick="setMotorIA('workersai')">☁️ Workers AI</button>
         </div>
         <div id="badge-urgent"></div>
         <div id="user-badge">
@@ -254,8 +254,8 @@ const SHEET_TAB        = "Acciones Comerciales";
 const PROXY_ANTHROPIC  = "https://damp-limit-0374.mezquiriz.workers.dev";
 const PROXY_WORKERS_AI = "https://proxy-workers-ai.mezquiriz.workers.dev"; // Worker de Llama 4 Scout en Workers AI
 
-let PROXY_URL    = PROXY_ANTHROPIC; // motor activo (cambia con setMotorIA)
-let _motorActivo = "anthropic";
+let PROXY_URL    = PROXY_WORKERS_AI; // motor activo por defecto: Llama (sin coste, menos alucinaciones técnicas)
+let _motorActivo = "workersai";
 
 // Mapeo de usuarios → nombre completo y nombre corto.
 // Detecta por displayName de Google (puede venir como "MAMM") o por email.
@@ -1082,10 +1082,10 @@ async function generarEmail(c) {
   const miNombreCorto = window._currentUser?.nombreCorto || "el director";
   
   try {
-    const payload = { 
-      model:"claude-sonnet-4-20250514", 
-      max_tokens:1000,
-      messages:[{role:"user", content:
+    // Prompts diferentes por motor:
+    // - Claude: instrucciones narrativas, libertad creativa, longitud equilibrada
+    // - Llama (versión narrativa): explota historial completo, prioriza personas y equipos
+    const promptClaude =
 `Tu rol: ${miNombre}, director comercial de Mitsubishi Equipos Frigoríficos en España.
 Hoy: ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
 
@@ -1100,25 +1100,107 @@ Tipo: ${c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario 
 HISTORIAL DE NOTAS:
 ${c.historial}
 
-INSTRUCCIONES (sigue las 5 reglas):
+INSTRUCCIONES:
 
 1. ABRE DIRECTO. Nada de "Espero que esté bien" ni "Le escribo para hacer seguimiento".
 
-2. UNA REFERENCIA AL HISTORIAL. Busca un detalle concreto (proyecto, equipo, conversación previa, persona) y menciónalo en la primera frase. Si el historial solo tiene fechas, di simplemente: "Hace tiempo que no hablamos".
+2. CONECTA CON EL HISTORIAL. Busca uno o dos detalles concretos (proyecto, equipo, persona, conversación previa, decisión pendiente) y úsalos para que el email se sienta personal. Si el historial solo tiene fechas, escribe naturalmente: "Hace tiempo que no hablamos".
 
-3. UNA SOLA PETICIÓN. Llamada O visita O enviar info. No tres cosas a la vez.
+3. PROHIBIDO INVENTAR DATOS TÉCNICOS O COMERCIALES. Esta regla es crítica:
+   - NUNCA inventes nombres de modelos, códigos de producto ni nomenclatura comercial.
+   - NUNCA inventes cifras: porcentajes de consumo, plazos de entrega, precios, eficiencias, comparativas con años anteriores, capacidades.
+   - NUNCA inventes "novedades", "nuevas versiones", "stocks ampliados" ni anuncios de producto.
+   - SOLO puedes mencionar modelos, cifras o productos que aparezcan TEXTUALMENTE en el historial del cliente.
+   - Si el historial no contiene datos técnicos concretos, no los introduzcas — construye el email solo sobre lo que sí sabes (el contacto, el sector, la conversación previa).
 
-4. MÁXIMO 100 PALABRAS. Corto y útil. Sin floritura.
+4. CONSTRUYE EL EMAIL SOBRE LO QUE TIENES. No "aportes valor" inventando — el valor viene de demostrar que recuerdas la conversación previa, de hacer la pregunta correcta, de mostrar continuidad. Si el historial es escueto, el email también lo será, y eso está bien: mejor un email corto y honesto que uno largo con datos falsos.
 
-5. NO firmes el email. Sin "Saludos" ni nombre al final.
+5. UNA SOLA PETICIÓN al final. Llamada O visita O enviar info. Una pregunta clara y fácil de responder.
 
-EJEMPLO DEL ESTILO QUE BUSCO:
-"Hola Pedro, vi en mi nota que en agosto comentaste estudiar 3-4 unidades nuevas para Q2. ¿Sigue en pie? Tenemos disponibilidad inmediata en FRC-420 y precio mejor que el año pasado. ¿Te llamo el martes?"
+6. LONGITUD: 100-160 palabras. Adapta a lo que tengas: con historial rico puedes acercarte a 160; con historial escueto, mantente cerca de 100.
+
+7. NO firmes el email. Sin "Saludos" ni nombre al final.
+
+EJEMPLO DEL ESTILO QUE BUSCO (caso ficticio — los códigos de modelo aquí son placeholders ilustrativos, NO los uses si no aparecen en el historial real):
+"Hola Pedro, repasando notas vi que en agosto comentaste con María que estabais valorando 3-4 unidades nuevas para Q2. ¿Sigue en pie esa decisión?
+
+Te llamo a propósito de eso porque me gustaría entender cómo vais y si os puedo echar una mano con la comparativa entre opciones que comentamos. Si seguís en ello, os puedo pasar datos reales de consumo de clientes parecidos a vosotros en distribución frigorífica.
+
+¿Te viene bien una llamada el martes o miércoles?"
+
+EJEMPLO CON HISTORIAL ESCUETO (solo fechas, sin contenido):
+"Hola Pedro, hace tiempo que no hablamos. ¿Cómo va la flota? ¿Tenéis algún proyecto de renovación o ampliación previsto? Si te encaja, te llamo cuando me digas y nos ponemos al día."
 
 FORMATO:
-ASUNTO: [breve, específico al cliente, sin "seguimiento" ni "contacto"]
+ASUNTO: [breve, específico al cliente y al tema concreto, sin las palabras "seguimiento" ni "contacto"]
 
-[cuerpo en 4-5 líneas naturales]`}]
+[cuerpo natural y construido]`;
+
+    const promptLlama =
+`Eres ${miNombre}, director comercial de Mitsubishi Equipos Frigoríficos en España. Hoy es ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
+
+Vas a escribir un email a ${c.contacto}${c.cargo?` (${c.cargo})`:""} de ${c.empresa}. Tipo de cliente: ${c.esClienteFinal ? "cliente final con flota propia" : c.esIntermediario ? "intermediario (carrocero/renting/servicio oficial)" : "general"}. Sector: ${c.sector}. Equipos actuales: ${c.equipos}. Llevamos ${d} días sin hablar.
+
+Estas son TODAS las notas que tenemos del contacto — léelas con atención porque es lo que te diferencia de un email genérico:
+
+"""
+${c.historial}
+"""
+
+ANTES DE ESCRIBIR, ANALIZA EL HISTORIAL Y EXTRAE:
+- ¿Qué personas se mencionan? (nombres propios distintos al contacto principal — pueden ser jefes, compañeros, técnicos, otros interlocutores)
+- ¿Qué equipos o modelos concretos aparecen? (modelos Mitsubishi mencionados en las notas, marcas competencia, configuraciones, números de unidades — usa exactamente la nomenclatura que veas en el historial, no inventes códigos)
+- ¿Qué proyectos o decisiones pendientes hay? (renovaciones, ofertas, plazos, dudas técnicas, rutas, ampliaciones)
+- ¿Cuál fue el último tema concreto tratado? (no la fecha — el TEMA)
+
+Usa al menos UN dato concreto de los que has extraído. Cuanto más específico, mejor — eso es lo que hace que el email funcione.
+
+Si el historial está vacío o solo tiene fechas sin contenido, escribe sin inventar: empieza con "Hace tiempo que no hablamos" y haz una pregunta abierta sobre su flota.
+
+ESTRUCTURA DEL EMAIL:
+1. Apertura cercana con UNA referencia concreta del historial. Si hay un detalle personal (afición, hobby, situación familiar mencionada en notas), inclúyelo con naturalidad — eso crea conexión real. Sin "Espero que estés bien".
+2. Si en el historial hay constancia de un envío previo sin respuesta (oferta, guía, propuesta, llamada no devuelta), MENCIÓNALO con honestidad y sin reproche, dándole una salida fácil al receptor. Ejemplo: "Vi que no llegaste a responder cuando te mandé X. No sé si es que no había nada en marcha por vuestra parte o simplemente no era el momento."
+3. UNA pregunta abierta y desactivada al final, fácil de responder y que no presione: "¿Tenéis algún proyecto donde os podamos echar una mano?", "¿Cómo va la flota?", "¿Hay algo en marcha donde pueda ayudaros?".
+
+REGLA CRÍTICA — PROHIBIDO INVENTAR DATOS TÉCNICOS O COMERCIALES:
+- NUNCA inventes nombres de modelos, códigos de producto ni nomenclatura comercial.
+- NUNCA inventes cifras: porcentajes de consumo, plazos de entrega, precios, eficiencias, comparativas con años anteriores, capacidades.
+- NUNCA inventes "novedades", "nuevas versiones", "stocks ampliados" ni anuncios de producto.
+- SOLO puedes mencionar modelos, cifras o productos que aparezcan TEXTUALMENTE en el historial.
+- Si el historial no tiene datos técnicos, no los introduzcas — construye el email solo sobre la relación humana, el contacto, el sector y la conversación previa que sí ves.
+- Mejor un email corto y honesto que uno largo con datos falsos.
+
+REGLAS DE FORMA:
+- Español comercial natural, tono cercano y humano como un comercial veterano que conoce al cliente.
+- Longitud: 140-180 palabras. Suficiente para construir el mensaje con calado humano, sin volverse pesado.
+- Prohibido: "Espero que estés bien", "Me pongo en contacto", "Aprovecho para", despedidas formales, firma con tu nombre.
+
+FORMATO DE SALIDA (respeta exactamente):
+ASUNTO: [una línea, específica al cliente y al tema concreto que extrajiste — sin "seguimiento" ni "contacto"]
+CUERPO:
+[el email aquí]
+
+EJEMPLO DE REFERENCIA — esto es exactamente el tono, longitud y estructura que buscamos:
+ASUNTO: Cómo va Carrosseries Tolosa — y lo del barco
+CUERPO:
+Hola Jaume,
+Hace tiempo que no hablamos. Espero que el barco esté listo para la época de navegación que ya empieza. A ver si este año me animo con esa invitación al barco que llevas haciéndome tiempo.
+Vi que no llegaste a responder cuando te mandé la guía de selección en enero. No sé si es que no había nada en marcha por vuestra parte o simplemente no era el momento.
+¿Cómo van las cosas en Carrosseries Tolosa? ¿Tenéis algún proyecto donde os podamos echar una mano con equipos frigoríficos?
+
+Fíjate en lo que hace bien este ejemplo: arranca con un detalle personal (el barco) que crea conexión real, reconoce con honestidad y sin reproche que un envío previo quedó sin respuesta, y termina con una pregunta abierta y fácil de responder. NO inventa datos técnicos ni cifras — todo lo que dice se apoya en lo que ya conoce del cliente.
+
+EJEMPLO CON HISTORIAL ESCUETO (solo fechas, sin contenido):
+ASUNTO: Cómo va la flota — me gustaría ponerme al día
+CUERPO:
+Hola Javier, hace tiempo que no hablamos. ¿Cómo va la flota? ¿Tenéis algún proyecto de renovación o ampliación previsto?
+
+Si te encaja, te llamo cuando me digas y nos ponemos al día.`;
+
+    const payload = {
+      model:"claude-sonnet-4-20250514",
+      max_tokens:1200,
+      messages:[{role:"user", content: _motorActivo === "workersai" ? promptLlama : promptClaude}]
     };
     
     console.log("[generarEmail] Enviando request a proxy...");
@@ -1159,9 +1241,15 @@ ASUNTO: [breve, específico al cliente, sin "seguimiento" ni "contacto"]
     console.log("[generarEmail] Texto recibido (" + txt.length + " caracteres)");
     
     const ls   = txt.split("\n");
-    const al   = ls.find(l=>l.startsWith("ASUNTO:"));
-    emailAsunto = al ? al.replace("ASUNTO:","").trim() : "Sin asunto";
-    emailCuerpo = ls.filter(l=>!l.startsWith("ASUNTO:")).join("\n").trim();
+    const al   = ls.find(l=>l.trim().startsWith("ASUNTO:"));
+    emailAsunto = al ? al.replace(/^ASUNTO:\s*/i,"").trim() : "Sin asunto";
+    // Soportar ambos formatos: con "CUERPO:" (Llama narrativo) o sin él (Claude)
+    const idxCuerpo = ls.findIndex(l=>l.trim().startsWith("CUERPO:"));
+    if (idxCuerpo !== -1) {
+      emailCuerpo = ls.slice(idxCuerpo + 1).join("\n").trim();
+    } else {
+      emailCuerpo = ls.filter(l => !l.trim().startsWith("ASUNTO:")).join("\n").trim();
+    }
     
     if (!emailAsunto || !emailCuerpo) {
       console.warn("[generarEmail] ⚠️ Email incompleto - Asunto:", emailAsunto.substring(0,50), "Cuerpo:", emailCuerpo.substring(0,50));
@@ -2166,10 +2254,17 @@ function setMotorIA(motor) {
   console.log("[IA] Motor activo:", motor, "→", PROXY_URL);
 }
 
-// Restaurar motor de la sesión anterior (si se recargan los contactos en otra pestaña ya activa)
+// Restaurar motor de la sesión anterior (default: Llama; si el usuario eligió Claude antes, lo restauramos).
+// Migración v2 (2026-05-07): cambio de default de Claude → Llama. Limpiamos sessionStorage previo
+// para que el cambio surta efecto incluso en pestañas que ya tenían "anthropic" guardado.
+// Esto solo se ejecuta una vez por pestaña gracias al flag motorIA_v2.
 try {
+  if (!sessionStorage.getItem("motorIA_v2")) {
+    sessionStorage.removeItem("motorIA"); // borrar elección antigua
+    sessionStorage.setItem("motorIA_v2", "1"); // marcar migración aplicada
+  }
   const saved = sessionStorage.getItem("motorIA");
-  if (saved === "workersai" && PROXY_WORKERS_AI) setMotorIA("workersai");
+  if (saved === "anthropic") setMotorIA("anthropic");
 } catch(e) {}
 
 // Render inicial: muestra los contactos demo en la lista al cargar la página.
