@@ -1111,6 +1111,21 @@ function obtenerUSPsCliente(c) {
   return bloques.length > 0 ? bloques.join("\n\n") : null;
 }
 
+// Devuelve descripción del tipo de cliente con instrucciones precisas para la IA
+// sobre cómo orientar el mensaje: preguntar por flota propia, por renting o por proyectos de clientes.
+function tipoDescripcionCliente(c) {
+  if (c.esClienteFinal) {
+    return "Cliente final con flota propia — puedes preguntar directamente por su flota, planes de renovación o ampliación";
+  }
+  if (c.esRenting) {
+    return "Empresa de renting — tiene flota frigorífica propia para alquilar a terceros — PUEDES preguntar por su flota, si tienen operaciones de ampliación o nuevas necesidades previstas";
+  }
+  if (c.esIntermediario) {
+    return "Intermediario SIN flota propia (carrocero / concesionario de vehículo industrial / taller / servicio oficial) — CRÍTICO: NO preguntes por 'su flota' porque no la tienen. Sus clientes son quienes usan los equipos. Pregunta por proyectos de sus clientes, colaboraciones en marcha u operaciones donde puedas ayudar";
+  }
+  return "Sin clasificar — trata como cliente general";
+}
+
 // ── EMAIL ────────────────────────────────────────────────────────────────────
 async function generarEmail(c) {
   console.log("[generarEmail] Iniciando para:", c.empresa, c.contacto);
@@ -1137,7 +1152,7 @@ Contacto: ${c.contacto}${c.cargo?` (${c.cargo})`:""}
 Sector: ${c.sector}
 Equipos: ${c.equipos}
 Último contacto: hace ${d} días
-Tipo: ${c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario ? "Intermediario (carrocero/renting/servicio oficial)" : "General"}
+Tipo: ${tipoDescripcionCliente(c)}
 
 HISTORIAL DE NOTAS:
 ${c.historial}
@@ -1186,7 +1201,7 @@ ASUNTO: [breve, específico al cliente y al tema concreto, sin las palabras "seg
     const promptLlama =
 `Eres ${miNombre}, director comercial de Mitsubishi Equipos Frigoríficos en España. Hoy es ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
 
-Vas a escribir un email a ${c.contacto}${c.cargo?` (${c.cargo})`:""} de ${c.empresa}. Tipo de cliente: ${c.esClienteFinal ? "cliente final con flota propia" : c.esIntermediario ? "intermediario (carrocero/renting/servicio oficial)" : "general"}. Sector: ${c.sector}. Equipos actuales: ${c.equipos}. Llevamos ${d} días sin hablar.
+Vas a escribir un email a ${c.contacto}${c.cargo?` (${c.cargo})`:""} de ${c.empresa}. Tipo de cliente: ${tipoDescripcionCliente(c)}. Sector: ${c.sector}. Equipos actuales: ${c.equipos}. Llevamos ${d} días sin hablar.
 
 Estas son TODAS las notas que tenemos del contacto — léelas con atención porque es lo que te diferencia de un email genérico:
 
@@ -1572,7 +1587,7 @@ INSTRUCCIONES:
 
 3. Si hay un detalle concreto en el historial (un proyecto, un equipo, alguien), menciónalo. Si no, di "te escribo por si os puede interesar lo que hacemos en frigoríficos para transporte".
 
-4. Pregunta concreta: ${c.esClienteFinal ? '"¿Tenéis previsto renovar flota frigorífica próximamente?"' : c.esIntermediario ? '"¿Estás trabajando en algún proyecto donde podamos colaborar?"' : '"¿Tenéis algún proyecto de flota frigorífica en marcha?"'}
+4. Pregunta concreta: ${c.esClienteFinal ? '"¿Tenéis previsto renovar flota frigorífica próximamente?"' : c.esRenting ? '"¿Tenéis prevista alguna ampliación de vuestra flota de renting frigorífico?"' : c.esIntermediario ? '"¿Estás trabajando en algún proyecto de cliente donde podamos colaborar?"' : '"¿Tenéis algún proyecto de flota frigorífica en marcha?"'}
 
 5. Máximo 4 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
 
@@ -1688,7 +1703,7 @@ Vas a escribir un mensaje LinkedIn a ${c.contacto} (${c.cargo || "—"}) de ${c.
 DATOS:
 Sector: ${c.sector}
 Último contacto: hace ${d} días
-Tipo: ${c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario ? "Intermediario" : "General"}
+Tipo: ${tipoDescripcionCliente(c)}
 
 HISTORIAL:
 ${c.historial}
@@ -1699,7 +1714,7 @@ INSTRUCCIONES:
 
 2. Una frase con UN detalle del historial (proyecto, equipo, conversación). Si no hay nada concreto, di: "Hace tiempo que no hablamos".
 
-3. Pregunta abierta: ${c.esIntermediario ? '"¿Estás llevando algún proyecto donde podamos colaborar?"' : '"¿Tenéis planes de renovación o ampliación de flota?"'}
+3. Pregunta abierta: ${c.esClienteFinal ? '"¿Tenéis planes de renovación o ampliación de flota?"' : c.esRenting ? '"¿Tenéis prevista alguna ampliación de vuestra flota de renting?"' : c.esIntermediario ? '"¿Estás llevando algún proyecto de cliente donde podamos colaborar?"' : '"¿Tenéis algún proyecto de flota frigorífica en marcha?"'}
 
 4. Máximo 4 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
 
@@ -1978,7 +1993,7 @@ async function registrarContactoEnGoogle(c) {
   // Resumen específico del email enviado (en lugar de genérico)
   const tipoMensaje = c._linkedinUsado ? "mensaje LinkedIn" : "email";
   const textoAccion = await generarResumenAccion(tipoMensaje, emailAsunto, emailCuerpo);
-  const tipoCliente = c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario ? "Intermediario (carrocero/renting/servicio oficial)" : "General";
+  const tipoCliente = tipoDescripcionCliente(c);
   // Calcular próxima acción con IA
   const fechaProxima = await calcularProximaAccionIA(c.historial, tipoCliente, false);
   console.log("Próxima acción calculada:", fechaProxima);
@@ -2222,6 +2237,8 @@ function mapContact(p) {
   // Etiquetas del contacto
   const etiquetas = (p.memberships||[]).map(m => (window._gruposMap||{})[m.contactGroupMembership?.contactGroupResourceName]||"").filter(Boolean);
   const esClienteFinal = etiquetas.some(e => e.toUpperCase().includes("CLIENTE FINAL"));
+  // esRenting: tiene flota propia pero para alquilarla a terceros — caso especial de intermediario
+  const esRenting = etiquetas.some(e => e.toUpperCase().includes("RENTING"));
   const esIntermediario = etiquetas.some(e =>
     e.toUpperCase().includes("CARROCERO") ||
     e.toUpperCase().includes("RENTING") ||
@@ -2266,7 +2283,7 @@ function mapContact(p) {
     equipos: eM?eM[1].trim():"Ver notas",
     ultimoContacto, proximaAccion: proximaAccion||null,
     historial: notas||"Sin historial.",
-    esClienteFinal, esIntermediario, fuenteG:true
+    esClienteFinal, esRenting, esIntermediario, fuenteG:true
   };
 }
 
