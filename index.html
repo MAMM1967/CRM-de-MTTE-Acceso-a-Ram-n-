@@ -330,7 +330,11 @@ function reconstruirEstado(c) {
   // Detectores de envíos automáticos de la app (cada tipo en su slot).
   // Capturan tanto el formato fallback como variantes generadas por la IA.
   const esLineaEnvioEmail    = l => /^env[ií]o\s+email\b/i.test(l.trim());
-  const esLineaEnvioLinkedin = l => /^env[ií]o\s+mensaje\s+linkedin\b/i.test(l.trim());
+  // LinkedIn: detector permisivo — captura cualquier línea que empiece con "Envío"
+  // y contenga la palabra "linkedin". No colisiona con email/wapp porque esos
+  // detectores se evalúan ANTES en el else-if más abajo (si una línea matchea
+  // email, no llega a evaluarse contra linkedin).
+  const esLineaEnvioLinkedin = l => /^env[ií]o\b/i.test(l.trim()) && /\blinkedin\b/i.test(l);
   const esLineaEnvioWapp     = l => /^env[ií]o\s+whatsapp\b/i.test(l.trim());
 
   // Slots separados para cada canal: timestamp del último envío
@@ -1082,7 +1086,7 @@ function obtenerUSPsCliente(c) {
     bloques.push(
 `SEGMENTO LCV (furgoneta/van) — ventajas REALES de nuestros equipos para este cliente:
 • Evaporador externo: no ocupa espacio en la caja de carga — gran diferencial frente al split tradicional, muy valorado por clientes a quienes incomoda el evaporador tipo split dentro de la caja
-• Reducen un 15% el consumo diesel del vehículo
+• Reducen un 15% el consumo diésel del vehículo
 • Garantía de fábrica de 5 años
 • Funcionan independientes del motor: mantienen la temperatura con el motor al ralentí o apagado`
     );
@@ -1092,7 +1096,7 @@ function obtenerUSPsCliente(c) {
     bloques.push(
 `SEGMENTO TRUCK (camión) — ventajas REALES de nuestros equipos para este cliente:
 • Reducen un 25% el riesgo de vuelco → menos mortalidad de conductores (argumento de seguridad muy potente con flotas y responsables de flota)
-• Los de menor consumo diesel del mercado en su segmento
+• Los de menor consumo diésel del mercado en su segmento
 • Alta fiabilidad demostrada
 • Larga experiencia y certificaciones con fabricantes para instalar equipos 100% eléctricos en camiones eléctricos`
     );
@@ -1196,6 +1200,9 @@ EJEMPLO CON HISTORIAL ESCUETO (solo fechas, sin contenido):
 FORMATO:
 ASUNTO: [breve, específico al cliente y al tema concreto, sin las palabras "seguimiento" ni "contacto"]
 
+REGLA DE NOMBRE DE EMPRESA — APLICA AL ASUNTO Y AL CUERPO:
+Si mencionas el nombre de la empresa, debes usarlo EXACTAMENTE como te lo paso arriba ("${c.empresa}") — letra por letra, mayúsculas/minúsculas incluidas, sin traducir, sin acentuar lo que no llevaba acento, sin quitar tildes que sí tenía, sin reformular, sin abreviar "SL"/"S.L."/"SOCIEDAD LIMITADA" según te apetezca. Si en mi dato pone "TECNICAS DE CARROZADOS FURCAR SL", escribes literalmente "TECNICAS DE CARROZADOS FURCAR SL", no "Técnicas de Carrozados Furcar S.L." ni "Tecnica de Carrocados Furcar SL". Si la empresa tiene un nombre largo y resulta incómodo, puedes omitirla del asunto en lugar de modificarla.
+
 [cuerpo natural y construido]`;
 
     const promptLlama =
@@ -1246,6 +1253,9 @@ FORMATO DE SALIDA (respeta exactamente):
 ASUNTO: [una línea, específica al cliente y al tema concreto que extrajiste — sin "seguimiento" ni "contacto"]
 CUERPO:
 [el email aquí]
+
+REGLA DE NOMBRE DE EMPRESA — APLICA AL ASUNTO Y AL CUERPO:
+Si mencionas el nombre de la empresa, debes usarlo EXACTAMENTE como aparece arriba ("${c.empresa}") — letra por letra, mayúsculas/minúsculas tal cual están, sin traducir, sin poner tildes donde no las hay, sin quitar tildes donde sí, sin reformular, sin abreviar "SL"/"S.L."/"SOCIEDAD LIMITADA" según te parezca. Si en mi dato pone "TECNICAS DE CARROZADOS FURCAR SL", escribes literalmente "TECNICAS DE CARROZADOS FURCAR SL", no "Técnicas de Carrozados Furcar S.L." ni "Tecnica de Carrocados Furcar SL". Si el nombre completo te resulta largo o incómodo en el asunto, prefiere omitirlo a modificarlo.
 
 EJEMPLO DE REFERENCIA — esto es exactamente el tono, longitud y estructura que buscamos:
 ASUNTO: Cómo va Carrosseries Tolosa — y lo del barco
@@ -1787,10 +1797,15 @@ Devuelve solo el mensaje.`}]
       // Leer texto EDITADO actual (puede haber cambios del usuario)
       const cuerpoFinal = document.getElementById("cuerpo-text").value || emailCuerpo;
       emailCuerpo = cuerpoFinal; // sincronizar para que el resumen IA use el texto final
-      navigator.clipboard.writeText(cuerpoFinal).then(() => {
-        console.log("[generarMensajeLinkedIn] Mensaje copiado al portapapeles");
-        alert("✅ Mensaje copiado al portapapeles — pégalo en LinkedIn");
-      });
+      // Copiar al portapapeles silenciosamente. ANTES había un alert() dentro
+      // del .then() que bloqueaba el event loop antes de que marcarEmailEnviado
+      // pudiera completar su await registrarContactoEnGoogle. Si el usuario
+      // saltaba a la pestaña nueva de LinkedIn y cerraba la pestaña original
+      // con el alert aún pendiente, la escritura en GC se perdía.
+      navigator.clipboard.writeText(cuerpoFinal).catch(e => console.log("[generarMensajeLinkedIn] clipboard:", e?.message));
+      console.log("[generarMensajeLinkedIn] Mensaje copiado al portapapeles");
+      // marcarEmailEnviado escribe en Google Contacts + Sheets y refresca la lista.
+      // El usuario verá feedback porque el contacto desaparece de la lista.
       marcarEmailEnviado();
     };
     const btnMarcar = document.getElementById("btn-marcar-enviado");
@@ -2255,7 +2270,12 @@ function mapContact(p) {
   const telefonoFijo  = fijo?.value  || "";
   const telefonoMovil = movil?.value || "";
   // LinkedIn
-  const linkedin = (p.urls||[]).find(u => u.value && u.value.toLowerCase().includes("linkedin.com"))?.value || "";
+  // LinkedIn — normalizamos el protocolo. Si en Google Contacts está como
+  // "linkedin.com/in/xxx" sin "https://", el <a href> lo interpreta como ruta
+  // relativa (acaba en https://github.com/.../linkedin.com/in/xxx). Anteponer
+  // https:// resuelve el problema en TODOS los puntos donde se use c.linkedin.
+  const linkedinRaw = (p.urls||[]).find(u => u.value && u.value.toLowerCase().includes("linkedin.com"))?.value || "";
+  const linkedin = linkedinRaw && !/^https?:\/\//i.test(linkedinRaw) ? `https://${linkedinRaw.replace(/^\/+/, "")}` : linkedinRaw;
   // Nombre desglosado
   const nombre1    = p.names?.[0]?.givenName    || "";
   const nombre2    = p.names?.[0]?.middleName   || "";
@@ -2323,14 +2343,17 @@ function setMotorIA(motor) {
   console.log("[IA] Motor activo:", motor, "→", PROXY_URL);
 }
 
-// Restaurar motor de la sesión anterior (default: Llama; si el usuario eligió Claude antes, lo restauramos).
-// Migración v2 (2026-05-07): cambio de default de Claude → Llama. Limpiamos sessionStorage previo
-// para que el cambio surta efecto incluso en pestañas que ya tenían "anthropic" guardado.
-// Esto solo se ejecuta una vez por pestaña gracias al flag motorIA_v2.
+// Restaurar motor de la sesión anterior (default: Llama; si el usuario eligió Claude en ESTA sesión, lo restauramos).
+// Migración v3 (2026-05-11): re-forzamos default Workers AI. Bumpeamos a v3 porque
+// usuarios que migraron a v2 pero luego pulsaron Claude quedaron con motorIA="anthropic"
+// guardado, y la migración v2 ya no se re-ejecutaba (flag motorIA_v2 ya estaba puesto).
+// Al bumpear a v3 limpiamos ese residuo una vez más. Después de esto, el auto-restore
+// sí respeta la elección del usuario dentro de la sesión actual.
 try {
-  if (!sessionStorage.getItem("motorIA_v2")) {
-    sessionStorage.removeItem("motorIA"); // borrar elección antigua
-    sessionStorage.setItem("motorIA_v2", "1"); // marcar migración aplicada
+  if (!sessionStorage.getItem("motorIA_v3")) {
+    sessionStorage.removeItem("motorIA");      // borrar elección residual de v2
+    sessionStorage.removeItem("motorIA_v2");   // limpiar flag obsoleto
+    sessionStorage.setItem("motorIA_v3", "1"); // marcar migración v3 aplicada
   }
   const saved = sessionStorage.getItem("motorIA");
   if (saved === "anthropic") setMotorIA("anthropic");
