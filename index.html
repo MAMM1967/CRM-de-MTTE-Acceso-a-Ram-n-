@@ -114,10 +114,10 @@
     .btn-wapp-api { width:100%; background:#1a2a1a; color:#25d366; border:1px solid #25d36644; border-radius:7px; padding:8px; font-size:12px; cursor:pointer; font-weight:600; }
 
     .motor-switcher { display:flex; background:#111827; border:1px solid #1e2535; border-radius:8px; padding:2px; gap:2px; }
-    .motor-btn { background:none; border:none; border-radius:6px; padding:4px 11px; font-size:11px; font-weight:700; cursor:pointer; color:#6b7280; transition:all 0.15s; white-space:nowrap; }
-    .motor-btn:hover { color:#9ca3af; }
-    .motor-btn.active-claude  { background:#1a0608; color:#e63946; }
-    .motor-btn.active-workers { background:#0a1220; color:#60a5fa; }
+    .motor-btn { background:none; border:none; border-radius:6px; padding:4px 11px; font-size:11px; font-weight:700; cursor:pointer; color:#6b7280; transition:all 0.15s; white-space:nowrap; opacity:0.55; }
+    .motor-btn:hover { color:#9ca3af; opacity:0.85; }
+    .motor-btn.active-claude  { background:#3d0d12; color:#ff6b7a; opacity:1; box-shadow: inset 0 0 0 1px #e6394666; }
+    .motor-btn.active-workers { background:#0d2a4f; color:#7dd3fc; opacity:1; box-shadow: inset 0 0 0 1px #60a5fa66; }
     .motor-btn:disabled { opacity:0.4; cursor:not-allowed; }
     .pendiente-wapp { background:#001a0d; border:1px solid #25d36633; border-radius:6px; padding:3px 8px; font-size:10px; color:#25d366; font-weight:600; }
   </style>
@@ -357,6 +357,9 @@ function reconstruirEstado(c) {
   let wappEnviadoEn     = null;
   let linkedinEnviadoEn = null;
   let posponerHasta     = null;
+  // Contador de WApps consecutivos sin email/LinkedIn intermedios ni reset manual.
+  // Permite detectar "dos WApps sin respuesta" → próxima acción 3 meses determinista.
+  let wappCount         = 0;
 
   // Helper para extraer fecha de la línea anterior (header del bloque)
   const fechaDeBloqueEn = (i) => {
@@ -375,6 +378,7 @@ function reconstruirEstado(c) {
         // Reset del ciclo: nuevo email reinicia toda la cadena
         wappEnviadoEn = null;
         linkedinEnviadoEn = null;
+        wappCount = 0; // nuevo email → reinicia contador de WApps consecutivos
       }
     }
     else if (esLineaEnvioWapp(l)) {
@@ -383,6 +387,7 @@ function reconstruirEstado(c) {
         wappEnviadoEn = ts;
         // WApp es paso 2: NO resetea emailEnviadoEn (info útil), pero sí limpia linkedin
         linkedinEnviadoEn = null;
+        wappCount++; // contar este WApp en la racha actual
       }
     }
     else if (esLineaEnvioLinkedin(l)) {
@@ -403,20 +408,22 @@ function reconstruirEstado(c) {
             if (fechaTs > hoyMs) {
               posponerHasta = fechaISO;
             } else {
+              // Sistema vencida: SOLO limpiamos posponerHasta para que el contacto
+              // reaparezca en la lista. Preservamos wappEnviadoEn / linkedinEnviadoEn /
+              // wappCount — el sistema necesita recordar qué se envió para decidir
+              // el siguiente paso (p.ej. WApp #2 si el primero quedó sin respuesta).
               posponerHasta = null;
-              // Fecha sistema vencida → des-bloqueamos el ciclo (toca actuar)
-              wappEnviadoEn = null;
-              linkedinEnviadoEn = null;
             }
           } else {
             // Línea MANUAL del usuario: indica seguimiento activo programado
-            // Reinicia el CICLO COMPLETO (email + wapp + linkedin) — la nota
+            // Reinicia el CICLO COMPLETO (email + wapp + linkedin + contador) — la nota
             // del usuario indica "empezar de cero esta fecha".
             if (fechaTs > hoyMs) posponerHasta = fechaISO;
             else posponerHasta = null;
             emailEnviadoEn    = null;
             wappEnviadoEn     = null;
             linkedinEnviadoEn = null;
+            wappCount         = 0;
           }
         }
       }
@@ -429,6 +436,7 @@ function reconstruirEstado(c) {
       emailEnviadoEn,
       wappEnviadoEn,
       linkedinEnviadoEn,
+      wappCount,
       // Compatibilidad con código existente
       wappEnviado: !!wappEnviadoEn,
       posponerHasta
@@ -950,19 +958,24 @@ function accionPara(c) {
   const dE = diasDesde(e.emailEnviadoEn);
   const dW = diasDesde(e.wappEnviadoEn);
   const dL = diasDesde(e.linkedinEnviadoEn);
+  const wappCount = e.wappCount || 0;
 
   // ESCALÓN 3: ¿LinkedIn enviado? → ciclo cerrado, no se propone nada hasta que pase el posponer
   if (dL !== null) return null;
 
   // ESCALÓN 2: ¿WApp enviado?
   if (dW !== null) {
-    // Si NO había email previo, fue WApp como PRIMER CONTACTO → ciclo cerrado.
-    // No insistimos con LinkedIn ni más WApps. La próxima acción la pone la
-    // IA (típicamente 3 meses) al marcar el WApp como enviado.
-    if (dE === null) return null;
-    // Si había email + WApp, después de 2+ días sin respuesta → LinkedIn (si tiene)
+    // PRIMER CONTACTO por WApp (sin email previo).
+    // Regla: si el cliente no contesta a DOS WApps consecutivos, dejamos de insistir.
+    //   - wappCount === 1 y dW ≥ 2 días → proponer SEGUNDO WApp (último intento)
+    //   - wappCount ≥ 2 → ciclo cerrado, no proponer nada (registrarWappEnGoogle puso 3 meses)
+    if (dE === null) {
+      if (wappCount >= 2) return null; // 2+ WApps sin respuesta → cerrado
+      if (dW >= 2) return { tipo: "wapp_primer_contacto", motivo: `Sin respuesta al primer WApp (hace ${dW} días) → segundo intento` };
+      return null; // esperar
+    }
+    // SEGUIMIENTO tras email: después de 2+ días sin respuesta → LinkedIn si tiene
     if (dW >= 2 && c.linkedin) return { tipo: "linkedin", motivo: `WApp enviado hace ${dW} días sin respuesta` };
-    // Si no tiene LinkedIn o aún no han pasado 2 días → esperar (no proponer nada)
     return null;
   }
 
@@ -1423,11 +1436,12 @@ async function marcarEmailEnviado() {
       posponerHasta: null
     };
   } else {
-    // Email enviado: reinicia el ciclo (reset wapp/linkedin si los hubiera)
+    // Email enviado: reinicia el ciclo (reset wapp/linkedin/contador si los hubiera)
     estado[c.id] = {
       emailEnviadoEn: Date.now(),
       wappEnviadoEn: null,
       linkedinEnviadoEn: null,
+      wappCount: 0, // nuevo email → racha de WApps reinicia
       wappEnviado: false,
       ocultoEnSesion: true,
       posponerHasta: null
@@ -1507,6 +1521,7 @@ async function posponerAFecha(isoFecha, fechaDisplay) {
     emailEnviadoEn: null,
     wappEnviadoEn: null,
     linkedinEnviadoEn: null,
+    wappCount: 0,
     wappEnviado: false,
     posponerHasta: isoFecha
   };
@@ -2062,8 +2077,23 @@ async function registrarWappEnGoogle() {
   // la línea al recargar contactos.
   const lineaWapp   = esLineaEnvioWapp(textoWapp) ? textoWapp : `Envío WhatsApp — ${textoWapp}`;
   const tipoCliente = tipoDescripcionCliente(selCliente);
-  // Si el cliente no respondió al email → 3 meses por defecto, si hay contexto → IA decide
-  const fechaProxima = await calcularProximaAccionIA(selCliente.historial, tipoCliente, true);
+  // ── REGLA DETERMINISTA: dos WApps sin respuesta → próxima acción 3 meses ──
+  // Si ya había al menos UN WApp previo en la racha actual (sin email/manual
+  // intermedio que resetee el contador), este es el 2º (o posterior) intento.
+  // No tiene sentido perseguir más por WApp: postponer 3 meses.
+  // Si es el primer WApp, dejamos que la IA decida en función del contexto.
+  const ePrev = estado[selCliente.id] || {};
+  const wappCountPrev = ePrev.wappCount || 0;
+  let fechaProxima;
+  if (wappCountPrev >= 1) {
+    const f = new Date();
+    f.setMonth(f.getMonth() + 3);
+    while (f.getDay() === 0 || f.getDay() === 6) f.setDate(f.getDate() + 1); // evitar fin de semana
+    fechaProxima = `${String(f.getDate()).padStart(2,"0")}-${String(f.getMonth()+1).padStart(2,"0")}-${f.getFullYear()}`;
+    console.log("[registrarWappEnGoogle] 2º WApp consecutivo (wappCount=" + wappCountPrev + ") → 3 meses determinista:", fechaProxima);
+  } else {
+    fechaProxima = await calcularProximaAccionIA(selCliente.historial, tipoCliente, true);
+  }
   const nuevaLinea = `\n${fechaStr}\n${lineaWapp}\nPróxima acción llamarle en ${fechaProxima}`;
   await actualizarNotasGoogle(selCliente.id, nuevaLinea);
   // Actualizar historial local para que Sheets reciba las notas completas (con la nueva línea)
@@ -2088,6 +2118,7 @@ async function marcarWappEnviado() {
     emailEnviadoEn: prev.emailEnviadoEn || null,
     wappEnviadoEn: Date.now(),
     linkedinEnviadoEn: null,
+    wappCount: (prev.wappCount || 0) + 1, // contar este WApp en la racha
     wappEnviado: true,
     ocultoEnSesion: true,
     posponerHasta: null
