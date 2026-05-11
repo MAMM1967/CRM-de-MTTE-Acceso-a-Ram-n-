@@ -314,6 +314,27 @@ let estado = {};
 
 function guardarEstado() { /* Estado en Google Contacts, no localStorage */ }
 
+// ── DETECTORES DE LÍNEAS DE ENVÍO (top-level, permisivos) ────────────────────
+// Reconocen líneas que indican envío al cliente. Aceptan tanto el formato
+// canónico ("Envío email...") como las variantes que la IA suele generar
+// ("Le mando email...", "Le mandé email...") o que el usuario escribe manualmente
+// ("Email enviado a Pedro..."). Tolera acentos en distintas posiciones.
+function esLineaEnvioEmail(l) {
+  const t = (l||"").trim();
+  return /^(env[íi][oóeé]|le\s+(mando|mand[eé]|env[íi][oóeé])|mando|mand[eé])\s+(un\s+)?email\b/i.test(t)
+      || /^email\s+(enviad|mandad)[oa]\b/i.test(t);
+}
+function esLineaEnvioWapp(l) {
+  const t = (l||"").trim();
+  return /^(env[íi][oóeé]|le\s+(mando|mand[eé]|env[íi][oóeé])|mando|mand[eé])\s+(un\s+)?(whats?app|wapp)\b/i.test(t)
+      || /^(whats?app|wapp)\s+(enviad|mandad)[oa]\b/i.test(t);
+}
+function esLineaEnvioLinkedin(l) {
+  const t = (l||"").trim();
+  return /^(env[íi][oóeé]|le\s+(mando|mand[eé]|env[íi][oóeé])|mando|mand[eé])\s+(un\s+)?(mensaje\s+(de\s+|por\s+)?)?linkedin\b/i.test(t)
+      || /^(mensaje\s+)?linkedin\s+(enviad|mandad)[oa]\b/i.test(t);
+}
+
 // Reconstruir estado desde las notas de un contacto
 function reconstruirEstado(c) {
   if (!c.fuenteG || !c.historial) return;
@@ -327,11 +348,9 @@ function reconstruirEstado(c) {
   const esLineaSistemaProxima = l =>
     /^pr[oó]xima\s+acci[oó]n\s+llamarle\s+en\s+\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}\.?$/i.test(l.trim());
 
-  // Detectores de envíos automáticos de la app (cada tipo en su slot).
-  // Capturan tanto el formato fallback como variantes generadas por la IA.
-  const esLineaEnvioEmail    = l => /^env[ií]o\s+email\b/i.test(l.trim());
-  const esLineaEnvioLinkedin = l => /^env[ií]o\s+mensaje\s+linkedin\b/i.test(l.trim());
-  const esLineaEnvioWapp     = l => /^env[ií]o\s+whatsapp\b/i.test(l.trim());
+  // Detectores de envíos (esLineaEnvioEmail / esLineaEnvioWapp / esLineaEnvioLinkedin)
+  // están definidos a nivel top-level con regex permisivos — aceptan tanto
+  // "Envío email..." como "Le mando email...", "Email enviado...", etc.
 
   // Slots separados para cada canal: timestamp del último envío
   let emailEnviadoEn    = null;
@@ -466,12 +485,15 @@ function ultimaAccion(historial) {
 
   // Recoger TODAS las líneas del último bloque:
   // - ignorar la línea de fecha inicial (que es solo una fecha)
-  // - ignorar líneas puramente de sistema app (envío email/wapp, wapp previsto)
+  // - ignorar líneas puramente de sistema app (envío email/wapp/linkedin, wapp previsto)
   // - NO filtrar "próxima acción" del texto — puede ser texto tuyo
   // - NO cortar por fechas intermedias dentro del texto
+  // Usamos los detectores top-level permisivos que reconocen también
+  // "Le mando email...", "Email enviado...", etc. (no solo "Envío email...").
   const esLineaPuraApp = l =>
-    /^envío email/i.test(l) ||
-    /^envío whatsapp/i.test(l) ||
+    esLineaEnvioEmail(l) ||
+    esLineaEnvioWapp(l) ||
+    esLineaEnvioLinkedin(l) ||
     /^wapp previsto/i.test(l);
 
   const textoBloque = lineas
@@ -1993,11 +2015,17 @@ async function registrarContactoEnGoogle(c) {
   // Resumen específico del email enviado (en lugar de genérico)
   const tipoMensaje = c._linkedinUsado ? "mensaje LinkedIn" : "email";
   const textoAccion = await generarResumenAccion(tipoMensaje, emailAsunto, emailCuerpo);
+  // Forzar prefijo canónico si la IA no empezó con el verbo esperado para el canal.
+  // Sin esto, una salida tipo "Le mando email..." de Llama rompe la detección en
+  // la siguiente carga porque el parser no reconocería el envío.
+  const yaDetectable = c._linkedinUsado ? esLineaEnvioLinkedin(textoAccion) : esLineaEnvioEmail(textoAccion);
+  const verboCanal   = c._linkedinUsado ? "Envío mensaje LinkedIn" : "Envío email";
+  const lineaAccion  = yaDetectable ? textoAccion : `${verboCanal} — ${textoAccion}`;
   const tipoCliente = tipoDescripcionCliente(c);
   // Calcular próxima acción con IA
   const fechaProxima = await calcularProximaAccionIA(c.historial, tipoCliente, false);
   console.log("Próxima acción calculada:", fechaProxima);
-  const nuevaLinea = `\n${fechaStr}\n${textoAccion}\nPróxima acción llamarle en ${fechaProxima}`;
+  const nuevaLinea = `\n${fechaStr}\n${lineaAccion}\nPróxima acción llamarle en ${fechaProxima}`;
   await actualizarNotasGoogle(c.id, nuevaLinea);
   // Actualizar historial local para que Sheets reciba las notas completas (con la nueva línea)
   c.historial = (c.historial || "") + nuevaLinea;
@@ -2029,10 +2057,14 @@ async function registrarWappEnGoogle() {
   const fechaStr = `${dd}-${mm}-${yyyy}`;
   // Resumen específico del WhatsApp enviado (en lugar de genérico)
   const textoWapp = await generarResumenAccion("WhatsApp", "", wappMensaje);
-  const tipoCliente = selCliente.esClienteFinal ? "Cliente final con flota propia" : selCliente.esIntermediario ? "Intermediario" : "General";
+  // Forzar prefijo canónico si la IA no empezó con "Envío WhatsApp..." (Llama suele
+  // generar variantes como "Le mando WhatsApp...") — garantiza que el parser detecte
+  // la línea al recargar contactos.
+  const lineaWapp   = esLineaEnvioWapp(textoWapp) ? textoWapp : `Envío WhatsApp — ${textoWapp}`;
+  const tipoCliente = tipoDescripcionCliente(selCliente);
   // Si el cliente no respondió al email → 3 meses por defecto, si hay contexto → IA decide
   const fechaProxima = await calcularProximaAccionIA(selCliente.historial, tipoCliente, true);
-  const nuevaLinea = `\n${fechaStr}\n${textoWapp}\nPróxima acción llamarle en ${fechaProxima}`;
+  const nuevaLinea = `\n${fechaStr}\n${lineaWapp}\nPróxima acción llamarle en ${fechaProxima}`;
   await actualizarNotasGoogle(selCliente.id, nuevaLinea);
   // Actualizar historial local para que Sheets reciba las notas completas (con la nueva línea)
   selCliente.historial = (selCliente.historial || "") + nuevaLinea;
@@ -2172,13 +2204,15 @@ function parseFechaES(d, m, y) {
 }
 
 function extraerFechas(texto) {
-  // Ignorar líneas con "próxima acción", "wapp previsto" — son fechas futuras
-  const lineas = texto.split("\n");
+  const lineas = texto.split("\n").map(l => l.trim()).filter(l => l);
   let ultima = null, ultimaTs = 0;
   for (const linea of lineas) {
-    if (/^pr[oó]xima.+acci[oó]n.+\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}/i.test(linea)) continue;
+    // Ignorar líneas con "próxima acción" o "wapp previsto" — sus fechas no son
+    // "último contacto" sino fechas planificadas. Ignorar también líneas de envío
+    // (la fecha está en la línea de cabecera previa, no en la línea del envío).
+    if (/^pr[oó]xima.+acci[oó]n/i.test(linea)) continue;
     if (/wapp previsto/i.test(linea)) continue;
-    if (/^envío/i.test(linea)) continue; // ignorar líneas de registro de envíos
+    if (esLineaEnvioEmail(linea) || esLineaEnvioWapp(linea) || esLineaEnvioLinkedin(linea)) continue;
     const regex = /\b(\d{1,2})[\-\/\.](\d{1,2})[\-\/\.](\d{4})\b/g;
     let match;
     while ((match = regex.exec(linea)) !== null) {
