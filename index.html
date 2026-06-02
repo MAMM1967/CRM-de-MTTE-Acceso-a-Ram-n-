@@ -2066,12 +2066,12 @@ function extraerProximaAccion(texto) {
 
 function mapContact(p) {
   const notas=p.biographies?.[0]?.value||"";
-  // Normalizar saltos de línea: insertar \n antes de fechas pegadas a texto
-  // (ej: "30-01-2026:Le mando..." → "30-01-2026\nLe mando...").
-  // Mismo tratamiento que hace ultimaAccion() para que extraerFechas y
-  // extraerProximaAccion funcionen correctamente con cualquier formato de notas.
+  // Normalizar saltos de línea: insertar \n SOLO cuando una fecha al inicio de
+  // línea está pegada a texto sin separación (ej: "30-01-2026:Le mando..." →
+  // "30-01-2026\nLe mando..."). NO partir fechas que aparecen en medio de
+  // oraciones (ej: "Próxima acción : 1-06-2026 seguir..." se queda igual).
   const notasNorm = notas
-    .replace(/(\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4})\s*:?\s*/g, "\n$1\n")
+    .replace(/^(\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4})\s*:\s*(\S)/gm, "$1\n$2")
     .replace(/\n{3,}/g, "\n\n");
   const sM=notas.match(/sector[:\s]+([^\n,]+)/i);
   const eM=notas.match(/equipos?[:\s]+([^\n]+)/i);
