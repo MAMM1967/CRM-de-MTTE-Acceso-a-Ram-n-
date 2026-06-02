@@ -737,6 +737,7 @@ function renderLista() {
           <div>
             <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap;">
               <span style="font-size:14px;font-weight:700;">${c.empresa}</span>
+              ${(c.etiquetas||[]).filter(et => !esEtiquetaSistema(et)).map(et => `<span style="font-size:10px;color:#9ca3af;background:#1e2535;border:1px solid #374151;padding:1px 7px;border-radius:7px;">${et}</span>`).join("")}
               ${c.fuenteG ? `<span class="badge-google">${gSvg(9)} Google</span>` : ""}
               ${(c.etiquetas||[]).some(et => et.toUpperCase().includes("NO EMAILS COMERCIALES")) ? `<span style="font-size:10px;color:#ff6b6b;background:#2a0a0a;border:1px solid #ff6b6b66;padding:1px 6px;border-radius:7px;font-weight:600;" title="No enviar emails comerciales">🚫 No emails</span>` : ""}
               ${c.linkedin ? `<span style="font-size:10px;color:#0a66c2;background:#0a1929;border:1px solid #0a66c244;padding:1px 6px;border-radius:7px;">💼 LinkedIn</span>` : ""}
