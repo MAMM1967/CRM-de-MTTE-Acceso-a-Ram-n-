@@ -512,53 +512,6 @@ function detectarCategoria(c) {
   return "frio";
 }
 
-// ── PRIORIDAD DE OPORTUNIDADES CALIENTES ──────────────────────────────────────
-// Categorías que implican que TENEMOS QUE ENVIAR/SEGUIR ALGO YA al cliente:
-//   - oferta    → hay que ofertar o seguir una oferta en curso
-//   - respondio → el cliente respondió y toca contestarle
-//   - info      → solicitó información que debemos mandarle
-//   - renovacion → SOLO cuando la fecha es próxima (próxima acción ≤ 60 días
-//                  o fecha explícita en notas dentro de 90 días)
-// Todas van por ENCIMA de acciones genéricas tipo "próxima acción: llamarle...".
-const CATEGORIAS_CALIENTES = new Set(["oferta", "respondio", "info"]);
-
-// Renovación: ¿hay que actuar YA?
-// true si la próxima acción está fijada y es cercana (≤ 60 días o ya vencida),
-// O si el último bloque de notas menciona una fecha explícita dentro de 90 días.
-// Si la renovación es lejana o indefinida → false (no sube a la cima de la lista).
-function estaRenovacionProxima(c) {
-  const hoyMs = Date.now();
-  // 1. Próxima acción fijada y cercana (incluye ya vencidas)
-  if (c.proximaAccion) {
-    const diffDias = Math.ceil((new Date(c.proximaAccion).getTime() - hoyMs) / 86400000);
-    if (diffDias <= 60) return true;
-  }
-  // 2. Fecha explícita (DD-MM-YYYY) en el último bloque de notas, futura y ≤ 90 días
-  const ua = ultimaAccion(c.historial);
-  if (ua && ua.texto) {
-    const rx = /(\d{1,2})[\-\/\.](\d{1,2})[\-\/\.](\d{4})/g;
-    let m;
-    while ((m = rx.exec(ua.texto)) !== null) {
-      const ts = new Date(`${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`).getTime();
-      if (isNaN(ts)) continue;
-      const diff = Math.ceil((ts - hoyMs) / 86400000);
-      if (diff >= 0 && diff <= 90) return true;
-    }
-  }
-  return false;
-}
-
-// Devuelve el rango de prioridad caliente de un contacto.
-// Cuanto MENOR, más arriba en la lista: 1=oferta, 2=respondió, 3=renovación próxima,
-// 4=info, 99=no caliente (incluye renovación lejana).
-function rangoCaliente(c) {
-  const cat = c && c._categoria ? c._categoria : "frio";
-  // Renovación: solo sube si la fecha es cercana
-  if (cat === "renovacion") return estaRenovacionProxima(c) ? CATEGORIAS.renovacion.prio : 99;
-  if (!CATEGORIAS_CALIENTES.has(cat)) return 99;
-  return (CATEGORIAS[cat] && CATEGORIAS[cat].prio) || 99;
-}
-
 function calcularCategorias() {
   // Calculamos categorías sobre la base COMPLETA (_todosLosContactos)
   // porque _sortPrioridad las consulta para seleccionar el top 100, y ese
@@ -621,11 +574,6 @@ function _contarProvincias() {
 // Sort de prioridad para selección inicial (mismo criterio que el sort de carga)
 function _sortPrioridad(a, b) {
   const hoy0 = new Date(); hoy0.setHours(0,0,0,0);
-  // 0. OPORTUNIDAD CALIENTE (oferta / respondió / info) → primero de todo.
-  //    Tener que ofertar, seguir una oferta o mandar algo al cliente manda
-  //    sobre cualquier acción genérica tipo "próxima acción: llamarle...".
-  const aCal = rangoCaliente(a), bCal = rangoCaliente(b);
-  if (aCal !== bCal) return aCal - bCal;
   // 1. Próxima acción vencida o hoy → primero, fecha más antigua
   const aPA = a.proximaAccion && new Date(a.proximaAccion) <= hoy0 ? 1 : 0;
   const bPA = b.proximaAccion && new Date(b.proximaAccion) <= hoy0 ? 1 : 0;
@@ -681,11 +629,15 @@ function recalcularClientes() {
   }
   const limite = sinFiltro ? LIMITE_GLOBAL : LIMITE_FILTRADO;
 
-  clientes = base
+  const baseFiltrada = base
     .filter(c => !estaPostpuesto(c.id))
     .filter(c => !ignoradosEnSesion.has(c.id))
-    .sort(_sortPrioridad)
-    .slice(0, limite);
+    .sort(_sortPrioridad);
+  // Contactos con proxima accion vencida o de hoy: entran siempre, fuera del limite
+  const conAccionPendiente = baseFiltrada.filter(c => proximaAccionPendiente(c));
+  const idsAccionPendiente = new Set(conAccionPendiente.map(c => c.id));
+  const resto = baseFiltrada.filter(c => !idsAccionPendiente.has(c.id)).slice(0, limite);
+  clientes = [...conAccionPendiente, ...resto];
 
   actualizarInfoText();
 }
@@ -861,11 +813,6 @@ function renderLista() {
     // Nota: el filtro por chips se aplica en recalcularClientes() al cambiar
     // los chips, no aquí. Así `clientes` ya viene pre-filtrado por etiqueta.
     .sort((a,b) => {
-      // 0. OPORTUNIDAD CALIENTE (oferta / respondió / info) → primero de todo.
-      //    Ofertar, seguir una oferta o mandar algo al cliente manda sobre
-      //    cualquier acción genérica tipo "próxima acción: llamarle...".
-      const aCal = rangoCaliente(a), bCal = rangoCaliente(b);
-      if (aCal !== bCal) return aCal - bCal;
       // 1. Próxima acción vencida o de hoy → primero, por fecha más antigua
       const aPA = proximaAccionPendiente(a) ? 1 : 0;
       const bPA = proximaAccionPendiente(b) ? 1 : 0;
@@ -932,11 +879,6 @@ function renderLista() {
               ${e.ultimoContacto && !e.emailEnviadoEn ? `<span style="font-size:10px;color:#00cc88;font-weight:600;">✓ Contactado</span>` : ""}
             </div>
             <div style="font-size:12px;color:#9ca3af;margin-bottom:4px;">${c.contacto}${c.cargo ? ` · ${c.cargo}` : ""}</div>
-            ${(() => {
-              const ets = (c.etiquetas||[]).filter(et => !esEtiquetaSistema(et) && !et.toUpperCase().includes("NO EMAILS COMERCIALES"));
-              if (!ets.length) return "";
-              return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px;">${ets.map(et => `<span style="font-size:10px;color:#9ca3af;background:#0d1117;border:1px solid #1e2535;padding:1px 8px;border-radius:9px;font-weight:500;">${et}</span>`).join("")}</div>`;
-            })()}
             <div style="font-size:11px;color:#6b7280;display:flex;gap:12px;flex-wrap:wrap;">
               ${c.sector!=="Ver notas" ? `<span>🏭 ${c.sector}</span>` : ""}
               ${c.email ? `<span>✉ ${c.email}</span>` : ""}
@@ -2324,10 +2266,17 @@ function extraerProximaAccion(texto) {
 
 function mapContact(p) {
   const notas=p.biographies?.[0]?.value||"";
+  // Normalizar saltos de línea: insertar \n antes de fechas pegadas a texto
+  // (ej: "30-01-2026:Le mando..." → "30-01-2026\nLe mando...").
+  // Mismo tratamiento que hace ultimaAccion() para que extraerFechas y
+  // extraerProximaAccion funcionen correctamente con cualquier formato de notas.
+  const notasNorm = notas
+    .replace(/(\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4})\s*:?\s*/g, "\n$1\n")
+    .replace(/\n{3,}/g, "\n\n");
   const sM=notas.match(/sector[:\s]+([^\n,]+)/i);
   const eM=notas.match(/equipos?[:\s]+([^\n]+)/i);
-  const fechaNotas    = extraerFechas(notas);
-  const proximaAccion = extraerProximaAccion(notas);
+  const fechaNotas    = extraerFechas(notasNorm);
+  const proximaAccion = extraerProximaAccion(notasNorm);
   const ultimoContacto = fechaNotas || "2020-01-01";
   // Etiquetas del contacto
   const etiquetas = (p.memberships||[]).map(m => (window._gruposMap||{})[m.contactGroupMembership?.contactGroupResourceName]||"").filter(Boolean);
@@ -2377,7 +2326,7 @@ function mapContact(p) {
     sector: sM?sM[1].trim():"Ver notas",
     equipos: eM?eM[1].trim():"Ver notas",
     ultimoContacto, proximaAccion: proximaAccion||null,
-    historial: notas||"Sin historial.",
+    historial: notasNorm||"Sin historial.",
     esClienteFinal, esRenting, esIntermediario, fuenteG:true
   };
 }
