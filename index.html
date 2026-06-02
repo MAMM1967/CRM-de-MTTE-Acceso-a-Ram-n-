@@ -309,11 +309,15 @@ function reconstruirEstado(c) {
   const hoyMs = Date.now();
 
   // Detector de línea AUTOMÁTICA del sistema:
-  // formato exacto que escribe la app al marcar email/WApp enviado o al posponer:
-  //   "Próxima acción llamarle en DD-MM-YYYY"
+  // formatos que escribe la app al marcar acciones o al posponer:
+  //   "Próxima acción llamarle en DD-MM-YYYY"           (tras WApp/LinkedIn enviados o al posponer)
+  //   "Próxima acción enviar Wapp de seguimiento en DD-MM-YYYY"  (tras email enviado)
   // Cualquier otra variante con "próxima" + "acción" + fecha es MANUAL del usuario.
-  const esLineaSistemaProxima = l =>
-    /^pr[oó]xima\s+acci[oó]n\s+llamarle\s+en\s+\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}\.?$/i.test(l.trim());
+  const esLineaSistemaProxima = l => {
+    const t = l.trim();
+    return /^pr[oó]xima\s+acci[oó]n\s+llamarle\s+en\s+\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}\.?$/i.test(t)
+        || /^pr[oó]xima\s+acci[oó]n\s+enviar\s+wapp\s+de\s+seguimiento\s+en\s+\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}\.?$/i.test(t);
+  };
 
   // Detectores de envíos automáticos de la app (cada tipo en su slot).
   // Capturan tanto el formato fallback como variantes generadas por la IA.
@@ -1809,11 +1813,17 @@ async function registrarContactoEnGoogle(c) {
   const yyyy = hoy.getFullYear();
   const fechaStr = `${dd}-${mm}-${yyyy}`;
   // Resumen específico del email enviado (en lugar de genérico)
-  const tipoMensaje = c._linkedinUsado ? "mensaje LinkedIn" : "email";
+  const esLinkedin = !!c._linkedinUsado;
+  const tipoMensaje = esLinkedin ? "mensaje LinkedIn" : "email";
   const textoAccion = await generarResumenAccion(tipoMensaje, emailAsunto, emailCuerpo);
   // Próxima acción fija: +2 días hábiles (determinista, sin IA — nunca falla)
   const fechaProxima = calcularFechaProximaAccion(false);
-  const nuevaLinea = `\n${fechaStr}\n${textoAccion}\nPróxima acción llamarle en ${fechaProxima}`;
+  // Tras email → siguiente paso es WApp de seguimiento.
+  // Tras LinkedIn → siguiente paso es llamarle (cierre del ciclo).
+  const textoProxima = esLinkedin
+    ? `Próxima acción llamarle en ${fechaProxima}`
+    : `Próxima acción enviar Wapp de seguimiento en ${fechaProxima}`;
+  const nuevaLinea = `\n${fechaStr}\n${textoAccion}\n${textoProxima}`;
   // BLOQUEANTE: si falla, el error sube a marcarEmailEnviado y el contacto no se oculta
   await actualizarNotasGoogle(c.id, nuevaLinea);
   c.historial = (c.historial || "") + nuevaLinea;
