@@ -218,12 +218,12 @@
                   <input class="wapp-tel-input" id="wapp-tel" type="tel" placeholder="+34 612 345 678" />
                 </div>
                 <div class="btn-row">
-                  <a class="btn-wapp-web" id="btn-wapp-web" href="#" target="_blank" onclick="abrirWappWeb()">💬 Abrir WhatsApp Web</a>
+                  <a class="btn-wapp-web" id="btn-wapp-web" href="#" target="_blank" onclick="enviarWapp()">💬 Abrir WhatsApp Web</a>
                   <button class="btn-secondary" onclick="copiarWapp()">Copiar</button>
                 </div>
                 <button class="btn-regen" onclick="regenWapp()">↻ Regenerar mensaje</button>
 
-                <button class="btn-marcar" style="background:#001a0d;color:#25d366;border-color:#25d36644;margin-top:8px;" onclick="marcarWappEnviado()">✓ Marcar WhatsApp enviado</button>
+                <button class="btn-marcar" style="background:#001a0d;color:#25d366;border-color:#25d36644;margin-top:8px;" onclick="enviarWapp()">✓ Marcar WhatsApp enviado</button>
               </div>
             </div>
           </div>
@@ -987,7 +987,6 @@ function tipoDescripcionCliente(c) {
 
 // ── EMAIL ────────────────────────────────────────────────────────────────────
 async function generarEmail(c) {
-  _emailRegistrado = false; // reset al generar (regenerar o cliente nuevo)
   console.log("[generarEmail] Iniciando para:", c.empresa, c.contacto);
   // Limpiar flag de LinkedIn por si venimos de un mensaje LinkedIn previo
   if (c) c._linkedinUsado = false;
@@ -1203,7 +1202,7 @@ Si te encaja, te llamo cuando me digas y nos ponemos al día.`;
       // Reconstruir el mailto con el texto editado justo antes de abrir
       btnEmail.href = `mailto:${c.email}?subject=${encodeURIComponent(asuntoFinal)}&body=${encodeURIComponent(cuerpoFinal)}`;
       // Registrar como enviado — el mailto se abre via href
-      marcarEmailEnviado();
+      registrarEnvio(c, "email");
     };
     const btnMarcar = document.getElementById("btn-marcar-enviado");
     if (btnMarcar) {
@@ -1235,56 +1234,18 @@ function copiarEmail() {
 }
 
 async function marcarEmailEnviado() {
-  if(!selCliente) return;
-  // Anti-doble-disparo: si ya hay un registro en marcha o completado para
-  // este envío, ignorar disparos adicionales. Caso Surpan (04/06/2026): la
-  // consola mostró 6 PATCHes a Google Contacts para un solo click — origen
-  // exacto no determinado, posiblemente click repetido por el usuario al ver
-  // que el cliente externo de email tardaba en abrir. Esta guarda hace
-  // idempotente la marca de envío hasta que se regenere el email.
-  if(_emailRegistrado) {
-    console.log("[marcarEmailEnviado] ⚠️ Ya en proceso/completado, ignorando disparo duplicado");
-    return;
-  }
-  _emailRegistrado = true;
-  const c = selCliente;
+  // Wrapper de compatibilidad: el HTML del botón "✓ Marcar email enviado"
+  // (línea ~189) usa este nombre. Delega en marcarEnvio que detecta el canal
+  // según si selCliente está en flujo email o LinkedIn.
+  marcarEnvio();
+}
 
-  const inpAsunto = document.getElementById("asunto-text");
-  const inpCuerpo = document.getElementById("cuerpo-text");
-  if (inpAsunto && inpAsunto.value) emailAsunto = inpAsunto.value;
-  if (inpCuerpo && inpCuerpo.value) emailCuerpo = inpCuerpo.value;
-
-  if (!emailAsunto || !emailCuerpo || emailAsunto.includes("⚠️") || emailAsunto.includes("Error")) {
-    _emailRegistrado = false; // permitir reintento tras error de validación
-    mostrarError("⚠️ El email no se generó correctamente. Intenta de nuevo.");
-    return;
-  }
-
-  const esLinkedin = !!c._linkedinUsado;
-  console.log("[marcarEmailEnviado] Marcando", esLinkedin ? "LinkedIn" : "email", "enviado para:", c.empresa);
-
-  // BLOQUEANTE: primero escribir en Google Contacts. Si falla, no ocultamos el contacto.
-  try {
-    await registrarContactoEnGoogle(c);
-  } catch(e) {
-    _emailRegistrado = false; // permitir reintento tras error de red/API
-    mostrarError("⚠️ No se pudo guardar en Google Contacts: " + e.message + ". Inténtalo de nuevo.");
-    return; // no ocultar el contacto si no se grabó
-  }
-
-  // Solo si Google OK → ocultar en sesión y re-renderizar
-  // (_emailRegistrado queda true hasta que generarEmail lo resetee al
-  // procesar otro contacto o regenerar para el mismo)
-  const estadoPrev = estado[c.id] || {};
-  if (esLinkedin) {
-    estado[c.id] = { ...estadoPrev, linkedinEnviadoEn: Date.now(), ocultoEnSesion: true, posponerHasta: null };
-  } else {
-    estado[c.id] = { emailEnviadoEn: Date.now(), wappEnviadoEn: null, linkedinEnviadoEn: null, wappEnviado: false, ocultoEnSesion: true, posponerHasta: null };
-  }
-  cerrarPanel();
-  recalcularClientes();
-  renderChips();
-  renderLista();
+// Wrapper para los botones del panel email/linkedin. Detecta el canal a
+// partir de _linkedinUsado y delega en registrarEnvio.
+async function marcarEnvio() {
+  if (!selCliente) return;
+  const canal = selCliente._linkedinUsado ? "linkedin" : "email";
+  await registrarEnvio(selCliente, canal);
 }
 
 function posponerDesdeCard(id) {
@@ -1434,7 +1395,6 @@ function proximaAccionPendiente(c) {
 
 // ── WHATSAPP ─────────────────────────────────────────────────────────────────
 async function generarWapp(c, tipo = "seguimiento") {
-  _wappRegistrado = false; // reset al generar nuevo mensaje
   console.log("[generarWapp] Iniciando para:", c.empresa, c.contacto, "tipo:", tipo);
   document.getElementById("spin-wapp").style.display  = "block";
   document.getElementById("wapp-result").style.display = "none";
@@ -1566,7 +1526,6 @@ Devuelve solo el mensaje.`;
 function regenWapp() { if(selCliente) generarWapp(selCliente); }
 
 async function generarMensajeLinkedIn(c) {
-  _emailRegistrado = false; // reset: marcarEmailEnviado se usa también para LinkedIn
   console.log("[generarMensajeLinkedIn] Iniciando para:", c.empresa, c.contacto);
   document.getElementById("spin-email").style.display   = "block";
   document.getElementById("email-result").style.display = "none";
@@ -1673,7 +1632,7 @@ Devuelve solo el mensaje.`}]
         console.log("[generarMensajeLinkedIn] Mensaje copiado al portapapeles");
         alert("✅ Mensaje copiado al portapapeles — pégalo en LinkedIn");
       });
-      marcarEmailEnviado();
+      registrarEnvio(c, "linkedin");
     };
     const btnMarcar = document.getElementById("btn-marcar-enviado");
     if (btnMarcar) btnMarcar.textContent = "✓ Marcar mensaje LinkedIn enviado";
@@ -1762,9 +1721,31 @@ async function renovarTokenGoogle() {
         if (resp.error) { resolve(false); return; }
         window._gToken = resp.access_token;
         resolve(true);
+      },
+      // Callback de errores (popup bloqueado, sesión cerrada, etc.) — sin
+      // este handler, los fallos se quedan colgados en el Promise.
+      error_callback: (err) => {
+        console.warn("[renovarTokenGoogle] error_callback:", err);
+        resolve(false);
       }
     }).requestAccessToken();
   });
+}
+
+// Renueva el token proactivamente en background cada 50 minutos. Los tokens
+// OAuth2 caducan a la hora, y renovar antes de que expiren evita que un envío
+// llegue justo en el momento de caducidad (con la consiguiente probabilidad
+// de popup bloqueado). Si la renovación silenciosa falla, no insistimos —
+// la próxima acción del usuario disparará el flujo de reconexión manual.
+let _refreshTokenTimer = null;
+function iniciarRenovacionAutomatica() {
+  if (_refreshTokenTimer) clearInterval(_refreshTokenTimer);
+  _refreshTokenTimer = setInterval(async () => {
+    if (!window._gToken) return; // si ya no hay token, no insistir
+    const ok = await renovarTokenGoogle();
+    if (ok) console.log("[token] ✅ Renovación proactiva OK");
+    else    console.warn("[token] ⚠️ Renovación proactiva falló — se intentará en la próxima acción");
+  }, 50 * 60 * 1000); // 50 minutos
 }
 
 // Actualiza las notas de un contacto en Google con texto nuevo (con reintento si expira el token).
@@ -1780,10 +1761,14 @@ async function actualizarNotasGoogle(contactoId, nuevaLinea) {
       { headers: { "Authorization": `Bearer ${window._gToken}` } }
     );
     if (getRes.status === 401) {
-      // Token expirado — renovar y reintentar (única ruta que NO lanza)
+      // Token expirado — intentar renovar UNA VEZ. Si la renovación falla
+      // (popup bloqueado por el navegador porque hemos perdido el user-gesture
+      // contexto al estar en un await encadenado), lanzamos error con
+      // marcador SESION_EXPIRADA para que el caller muestre un mensaje claro
+      // pidiendo al usuario que pulse manualmente "Conectar Google".
       console.log("Token expirado, renovando...");
       const ok = await renovarTokenGoogle();
-      if (!ok) throw new Error("No se pudo renovar el token de Google");
+      if (!ok) throw new Error("SESION_EXPIRADA: no se pudo renovar el token automáticamente");
       continue;
     }
     if (!getRes.ok) {
@@ -1856,119 +1841,151 @@ async function escribirEnSheets(c) {
   } catch(e) { console.log("Error escribiendo en Sheets:", e.message); }
 }
 
-async function registrarContactoEnGoogle(c) {
-  if (!window._gToken || !c.fuenteG) return;
-  const hoy = new Date();
-  const dd = String(hoy.getDate()).padStart(2,"0");
-  const mm = String(hoy.getMonth()+1).padStart(2,"0");
-  const yyyy = hoy.getFullYear();
-  const fechaStr = `${dd}-${mm}-${yyyy}`;
-  // Resumen específico del email/LinkedIn enviado (en lugar de un texto genérico)
-  const esLinkedin = !!c._linkedinUsado;
-  const tipoMensaje = esLinkedin ? "mensaje LinkedIn" : "email";
-  const textoAccion = await generarResumenAccion(tipoMensaje, emailAsunto, emailCuerpo);
-  // Determinar si esta acción CIERRA el ciclo (próxima acción +3 meses) o si
-  // continúa (próxima acción +2 días hábiles para Wapp). El ciclo se cierra:
-  //   - Tras LinkedIn (paso final del cycle).
-  //   - Tras email cuando NO hay móvil — no podremos hacer seguimiento WApp,
-  //     así que pasamos directamente a "llamarle en 3 meses" sin escalada
-  //     a LinkedIn intermedia. (Nueva norma 04/06/2026.)
-  const esEmailSinMovil = !esLinkedin && !c.telefonoMovil;
-  const cierraCiclo = esLinkedin || esEmailSinMovil;
-  const fechaProxima = calcularFechaProximaAccion(cierraCiclo);
-  const textoProxima = cierraCiclo
-    ? `Próxima acción llamarle en ${fechaProxima}`
-    : `Próxima acción enviar Wapp de seguimiento en ${fechaProxima}`;
-  const nuevaLinea = `\n${fechaStr}\n${textoAccion}\n${textoProxima}`;
-  // BLOQUEANTE: si falla, el error sube a marcarEmailEnviado y el contacto no se oculta
-  await actualizarNotasGoogle(c.id, nuevaLinea);
-  c.historial = (c.historial || "") + nuevaLinea;
-  await escribirEnSheets(c);
-}
+// ──────────────────────────────────────────────────────────────────────────
+// REGISTRO UNIFICADO DE ENVÍOS
+// ──────────────────────────────────────────────────────────────────────────
+// Una sola función para los tres canales (email, linkedin, wapp). Reemplaza
+// a marcarEmailEnviado + registrarContactoEnGoogle + marcarWappEnviado +
+// registrarWappEnGoogle, que duplicaban prácticamente la misma lógica con
+// las consiguientes inconsistencias entre canales.
+//
+// Flujo:
+//   1. Anti-doble-disparo por (contacto, canal) → ignorar si ya en curso.
+//   2. Leer texto editado del DOM y validar.
+//   3. Generar resumen IA + calcular fecha próxima acción.
+//   4. Escribir en Google Contacts (BLOQUEANTE: si falla, lanza y NO oculta).
+//   5. Escribir en Sheets (best-effort, no bloqueante).
+//   6. Actualizar estado en memoria + ocultar de la lista en sesión.
+//   7. Caso especial sesión expirada: mensaje claro pidiendo reconectar.
+// ──────────────────────────────────────────────────────────────────────────
+const envíosEnCurso = new Set(); // pares "id|canal" en proceso para evitar duplicados
 
-let _wappRegistrado = false; // guarda para evitar doble registro del WApp
-let _emailRegistrado = false; // guarda para evitar doble registro del email/LinkedIn
-
-function abrirWappWeb() {
-  // Sincronizar variable con el texto EDITADO actual del textarea
-  const txtArea = document.getElementById("wapp-text");
-  if (txtArea && txtArea.value) wappMensaje = txtArea.value;
-  const tel = document.getElementById("wapp-tel").value.replace(/\D/g,"");
-  // Actualizar href para que el navegador abra WhatsApp Web en la nueva pestaña.
-  // El click del <a target="_blank"> consume este href tras devolver onclick.
-  document.getElementById("btn-wapp-web").href = `https://wa.me/${tel}?text=${encodeURIComponent(wappMensaje)}`;
-  // Pequeño delay (50ms) para dar tiempo al navegador a abrir la pestaña nueva
-  // ANTES de que cerrarPanel ponga el elemento del link en display:none.
-  // marcarWappEnviado se encarga de TODO el flujo: actualiza UI al instante y
-  // luego registra en Google en background. Así si Google falla, la UI queda
-  // consistente (contacto oculto) y avisamos al usuario.
-  setTimeout(() => marcarWappEnviado(), 50);
-}
-
-async function registrarWappEnGoogle(contactoExplicito) {
-  if (_wappRegistrado) return; // ya registrado, no duplicar
-  // Acepta el contacto como parámetro porque marcarWappEnviado nos llama
-  // DESPUÉS de cerrarPanel — cuando selCliente ya es null. Fallback a selCliente
-  // por compatibilidad si en el futuro alguien lo llama sin parámetro.
-  const c = contactoExplicito || selCliente;
+async function registrarEnvio(c, canal) {
   if (!c) return;
-  if (!window._gToken || !c.fuenteG) return;
-  _wappRegistrado = true;
+  if (!window._gToken) {
+    mostrarError("⚠️ No estás conectado a Google. Pulsa 'Conectar Google' arriba.");
+    return;
+  }
+  const key = c.id + "|" + canal;
+  if (envíosEnCurso.has(key)) {
+    console.log("[registrarEnvio] ⚠️ Ya en proceso para", c.empresa, canal, "— ignorando disparo duplicado");
+    return;
+  }
+  envíosEnCurso.add(key);
+
   try {
+    // 1. Leer texto editado del DOM según canal y validar
+    let textoEnviado;
+    let asuntoIA = "";
+    if (canal === "email" || canal === "linkedin") {
+      const inpAsunto = document.getElementById("asunto-text");
+      const inpCuerpo = document.getElementById("cuerpo-text");
+      if (inpAsunto && inpAsunto.value) emailAsunto = inpAsunto.value;
+      if (inpCuerpo && inpCuerpo.value) emailCuerpo = inpCuerpo.value;
+      if (!emailAsunto || !emailCuerpo || emailAsunto.includes("⚠️") || emailAsunto.includes("Error")) {
+        mostrarError("⚠️ El mensaje no se generó correctamente. Intenta regenerarlo.");
+        return;
+      }
+      textoEnviado = emailCuerpo;
+      asuntoIA = emailAsunto;
+    } else if (canal === "wapp") {
+      const txtArea = document.getElementById("wapp-text");
+      if (txtArea && txtArea.value) wappMensaje = txtArea.value;
+      if (!wappMensaje || wappMensaje.includes("⚠️")) {
+        mostrarError("⚠️ El WhatsApp no se generó correctamente.");
+        return;
+      }
+      textoEnviado = wappMensaje;
+    } else {
+      console.error("[registrarEnvio] canal desconocido:", canal);
+      return;
+    }
+
+    console.log("[registrarEnvio]", canal, "→", c.empresa, c.contacto);
+
+    // 2. Construir línea para notas
     const hoy = new Date();
     const dd = String(hoy.getDate()).padStart(2,"0");
     const mm = String(hoy.getMonth()+1).padStart(2,"0");
     const yyyy = hoy.getFullYear();
     const fechaStr = `${dd}-${mm}-${yyyy}`;
-    // Resumen específico del WhatsApp enviado (en lugar de genérico)
-    const textoWapp = await generarResumenAccion("WhatsApp", "", wappMensaje);
-    // Próxima acción fija: +3 meses (determinista, sin IA — nunca falla)
-    const fechaProxima = calcularFechaProximaAccion(true);
-    const nuevaLinea = `\n${fechaStr}\n${textoWapp}\nPróxima acción llamarle en ${fechaProxima}`;
+    const tipoMensaje = canal === "wapp" ? "WhatsApp" : (canal === "linkedin" ? "mensaje LinkedIn" : "email");
+    const textoAccion = await generarResumenAccion(tipoMensaje, asuntoIA, textoEnviado);
+    // Determinar si la acción CIERRA el ciclo (+3 meses) o continúa (+2 días hábiles):
+    //   - LinkedIn → cierra (paso final del ciclo).
+    //   - WApp → cierra (paso final).
+    //   - Email + móvil → continúa (vendrá WApp en 2 días).
+    //   - Email sin móvil → cierra (norma 04/06/2026: sin móvil no escalamos).
+    const esEmailSinMovil = canal === "email" && !c.telefonoMovil;
+    const cierraCiclo = canal === "linkedin" || canal === "wapp" || esEmailSinMovil;
+    const fechaProxima = calcularFechaProximaAccion(cierraCiclo);
+    const textoProxima = cierraCiclo
+      ? `Próxima acción llamarle en ${fechaProxima}`
+      : `Próxima acción enviar Wapp de seguimiento en ${fechaProxima}`;
+    const nuevaLinea = `\n${fechaStr}\n${textoAccion}\n${textoProxima}`;
+
+    // 3. Escribir en Google Contacts — BLOQUEANTE: si falla, lanza y NO continuamos
     await actualizarNotasGoogle(c.id, nuevaLinea);
     c.historial = (c.historial || "") + nuevaLinea;
-    await escribirEnSheets(c);
-    console.log("[registrarWappEnGoogle] ✅ Registrado en Google Contacts + Sheets");
+
+    // 4. Escribir en Sheets (best-effort: si Sheets falla, GC ya está OK; no rompemos)
+    try { await escribirEnSheets(c); }
+    catch(e) { console.warn("[registrarEnvio] Sheets falló (no crítico):", e.message); }
+
+    // 5. Actualizar estado en memoria + ocultar de la lista en sesión
+    const prev = estado[c.id] || {};
+    if (canal === "email") {
+      estado[c.id] = { emailEnviadoEn: Date.now(), wappEnviadoEn: null, linkedinEnviadoEn: null, ocultoEnSesion: true, posponerHasta: null };
+    } else if (canal === "linkedin") {
+      estado[c.id] = { ...prev, linkedinEnviadoEn: Date.now(), ocultoEnSesion: true, posponerHasta: null };
+    } else if (canal === "wapp") {
+      estado[c.id] = { emailEnviadoEn: prev.emailEnviadoEn || null, wappEnviadoEn: Date.now(), linkedinEnviadoEn: null, ocultoEnSesion: true, posponerHasta: null };
+    }
+    console.log("[registrarEnvio] ✅ OK:", canal, c.empresa);
+    cerrarPanel();
+    recalcularClientes();
+    renderChips();
+    renderLista();
   } catch(e) {
-    // Resetear flag para permitir reintento si el error fue transitorio
-    // (token expirado, red caída, IA con timeout). Tras un reload de la página
-    // estado se reconstruye desde notas de Google: si la escritura falló, el
-    // contacto reaparece en la lista y el usuario puede mandar el WApp de nuevo.
-    _wappRegistrado = false;
-    console.error("[registrarWappEnGoogle] ❌ Error:", e);
-    throw e; // propagar para que marcarWappEnviado pueda avisar al usuario
+    console.error("[registrarEnvio] ❌ Error:", e);
+    // Caso especial: token expirado y la renovación automática falló
+    // (popup bloqueado por el navegador, o sesión Google cerrada en otra pestaña).
+    // Mensaje claro al usuario para que reconecte manualmente con el botón Google
+    // — eso sí es user-gesture válido y el popup pasa.
+    if (/SESION_EXPIRADA/i.test(e.message)) {
+      mostrarError("⚠️ Sesión de Google expirada. Pulsa 'Conectar Google' arriba y vuelve a intentar el envío.");
+    } else {
+      mostrarError("⚠️ No se pudo guardar en Google Contacts: " + e.message + ". Inténtalo de nuevo.");
+    }
+    // No ocultamos el contacto: sigue visible en la lista para reintentar
+  } finally {
+    envíosEnCurso.delete(key);
   }
 }
 
-async function marcarWappEnviado() {
-  if(!selCliente) return;
-  // Sincronizar variable con el texto EDITADO actual del textarea
+// (Las antiguas guardas _wappRegistrado y _emailRegistrado han sido sustituidas
+//  por el Set `envíosEnCurso` declarado junto a registrarEnvio.)
+
+
+// Handler del botón "💬 Abrir WhatsApp Web". Reemplaza al antiguo
+// abrirWappWeb + setTimeout(50ms) + marcarWappEnviado + registrarWappEnGoogle.
+//
+// Importante: el botón es un <a target="_blank">, por lo que el navegador
+// abre la nueva pestaña con el href que actualizamos justo antes de retornar
+// del onclick (eso sí cuenta como user-gesture válida). Inmediatamente después
+// disparamos registrarEnvio sin setTimeout — la pestaña ya se está abriendo
+// en paralelo y nuestro registro continúa en background sobre la pestaña del CRM.
+function enviarWapp() {
+  if (!selCliente) return;
+  // Sincronizar texto editado y construir el href de wa.me ANTES de retornar,
+  // para que el navegador navegue al WhatsApp Web correcto.
   const txtArea = document.getElementById("wapp-text");
   if (txtArea && txtArea.value) wappMensaje = txtArea.value;
-  // Capturar el contacto AHORA porque cerrarPanel pondrá selCliente a null
-  const c = selCliente;
-  // BLOQUEANTE: primero escribir en Google Contacts. Si falla, no ocultamos el contacto.
-  try {
-    await registrarWappEnGoogle(c);
-  } catch(e) {
-    mostrarError("⚠️ No se pudo guardar en Google Contacts: " + e.message + ". Inténtalo de nuevo.");
-    return; // no ocultar el contacto si no se grabó
-  }
-
-  // Solo si Google OK → ocultar en sesión y re-renderizar
-  const prev = estado[c.id] || {};
-  estado[c.id] = {
-    emailEnviadoEn: prev.emailEnviadoEn || null,
-    wappEnviadoEn: Date.now(),
-    linkedinEnviadoEn: null,
-    wappEnviado: true,
-    ocultoEnSesion: true,
-    posponerHasta: null
-  };
-  cerrarPanel();
-  recalcularClientes();
-  renderChips();
-  renderLista();
+  const tel = (document.getElementById("wapp-tel").value || "").replace(/\D/g,"");
+  document.getElementById("btn-wapp-web").href = `https://wa.me/${tel}?text=${encodeURIComponent(wappMensaje)}`;
+  // Disparar el registro en Google sin esperar (no bloqueamos la apertura de la pestaña).
+  // registrarEnvio gestiona sus propios errores y guardas.
+  registrarEnvio(selCliente, "wapp");
 }
 
 
@@ -2064,6 +2081,14 @@ function conectarGoogle() {
         document.getElementById("dot-status").style.background="#34a853";
         renderChips();
         renderLista();
+        // Renovación proactiva del token: los tokens OAuth2 duran 1h. Si llega
+        // un envío justo cuando expira, la renovación automática puede fallar
+        // (popup bloqueado por el navegador al perder el user-gesture context).
+        // Renovamos cada 50 min en background — con la sesión Google activa
+        // en el navegador esto pasa silenciosamente. Si en algún caso falla,
+        // el siguiente envío detectará el 401 y mostrará mensaje claro al
+        // usuario para reconectar manualmente.
+        iniciarRenovacionAutomatica();
         // info-text lo escribe recalcularClientes() vía actualizarInfoText()
       } catch(e) { mostrarError("Error: "+e.message); resetBtn(); }
     }
