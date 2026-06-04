@@ -987,6 +987,7 @@ function tipoDescripcionCliente(c) {
 
 // ── EMAIL ────────────────────────────────────────────────────────────────────
 async function generarEmail(c) {
+  _emailRegistrado = false; // reset al generar (regenerar o cliente nuevo)
   console.log("[generarEmail] Iniciando para:", c.empresa, c.contacto);
   // Limpiar flag de LinkedIn por si venimos de un mensaje LinkedIn previo
   if (c) c._linkedinUsado = false;
@@ -1205,7 +1206,13 @@ Si te encaja, te llamo cuando me digas y nos ponemos al día.`;
       marcarEmailEnviado();
     };
     const btnMarcar = document.getElementById("btn-marcar-enviado");
-    if (btnMarcar) btnMarcar.textContent = "✓ Marcar email enviado — esperar respuesta 2 días";
+    if (btnMarcar) {
+      // Si no hay móvil, la nueva norma (04/06/2026) cierra el ciclo a 3 meses
+      // tras email — no habrá Wapp de seguimiento. Reflejarlo en el botón.
+      btnMarcar.textContent = c.telefonoMovil
+        ? "✓ Marcar email enviado — esperar respuesta 2 días"
+        : "✓ Marcar email enviado — sin móvil, próxima acción en 3 meses";
+    }
     
   } catch(err) { 
     console.error("[generarEmail] ❌ Error:", err.message, err);
@@ -1229,6 +1236,17 @@ function copiarEmail() {
 
 async function marcarEmailEnviado() {
   if(!selCliente) return;
+  // Anti-doble-disparo: si ya hay un registro en marcha o completado para
+  // este envío, ignorar disparos adicionales. Caso Surpan (04/06/2026): la
+  // consola mostró 6 PATCHes a Google Contacts para un solo click — origen
+  // exacto no determinado, posiblemente click repetido por el usuario al ver
+  // que el cliente externo de email tardaba en abrir. Esta guarda hace
+  // idempotente la marca de envío hasta que se regenere el email.
+  if(_emailRegistrado) {
+    console.log("[marcarEmailEnviado] ⚠️ Ya en proceso/completado, ignorando disparo duplicado");
+    return;
+  }
+  _emailRegistrado = true;
   const c = selCliente;
 
   const inpAsunto = document.getElementById("asunto-text");
@@ -1237,6 +1255,7 @@ async function marcarEmailEnviado() {
   if (inpCuerpo && inpCuerpo.value) emailCuerpo = inpCuerpo.value;
 
   if (!emailAsunto || !emailCuerpo || emailAsunto.includes("⚠️") || emailAsunto.includes("Error")) {
+    _emailRegistrado = false; // permitir reintento tras error de validación
     mostrarError("⚠️ El email no se generó correctamente. Intenta de nuevo.");
     return;
   }
@@ -1248,11 +1267,14 @@ async function marcarEmailEnviado() {
   try {
     await registrarContactoEnGoogle(c);
   } catch(e) {
+    _emailRegistrado = false; // permitir reintento tras error de red/API
     mostrarError("⚠️ No se pudo guardar en Google Contacts: " + e.message + ". Inténtalo de nuevo.");
     return; // no ocultar el contacto si no se grabó
   }
 
   // Solo si Google OK → ocultar en sesión y re-renderizar
+  // (_emailRegistrado queda true hasta que generarEmail lo resetee al
+  // procesar otro contacto o regenerar para el mismo)
   const estadoPrev = estado[c.id] || {};
   if (esLinkedin) {
     estado[c.id] = { ...estadoPrev, linkedinEnviadoEn: Date.now(), ocultoEnSesion: true, posponerHasta: null };
@@ -1327,8 +1349,22 @@ async function posponer(numDias) {
 
 async function posponerAFecha(isoFecha, fechaDisplay) {
   if(!selCliente) return;
-  // Actualizar estado en memoria (Google Contacts actualizado por actualizarNotasGoogle).
-  // Posponer reinicia el ciclo: ya no proponemos email/wapp/linkedin hasta que llegue la fecha.
+  // Escribir PRIMERO en Google Contacts. Si falla (token expirado, 4xx, red),
+  // actualizarNotasGoogle lanzará y NO posponemos en memoria para evitar
+  // que la UI quede inconsistente con GC.
+  const hoy = new Date();
+  const hdd = String(hoy.getDate()).padStart(2,"0");
+  const hmm = String(hoy.getMonth()+1).padStart(2,"0");
+  const hyyyy = hoy.getFullYear();
+  const nuevaLinea = `\n${hdd}-${hmm}-${hyyyy}\nPróxima acción llamarle en ${fechaDisplay}`;
+  try {
+    await actualizarNotasGoogle(selCliente.id, nuevaLinea);
+  } catch(e) {
+    mostrarError("⚠️ No se pudo posponer en Google Contacts: " + e.message + ". Inténtalo de nuevo.");
+    return;
+  }
+  // Solo si GC OK → actualizar estado en memoria. Posponer reinicia el ciclo:
+  // ya no proponemos email/wapp/linkedin hasta que llegue la fecha.
   estado[selCliente.id] = {
     emailEnviadoEn: null,
     wappEnviadoEn: null,
@@ -1336,13 +1372,6 @@ async function posponerAFecha(isoFecha, fechaDisplay) {
     wappEnviado: false,
     posponerHasta: isoFecha
   };
-  // Escribir en Google Contacts
-  const hoy = new Date();
-  const hdd = String(hoy.getDate()).padStart(2,"0");
-  const hmm = String(hoy.getMonth()+1).padStart(2,"0");
-  const hyyyy = hoy.getFullYear();
-  const nuevaLinea = `\n${hdd}-${hmm}-${hyyyy}\nPróxima acción llamarle en ${fechaDisplay}`;
-  await actualizarNotasGoogle(selCliente.id, nuevaLinea);
   cerrarPanel();
   recalcularClientes();
   renderChips();
@@ -1377,18 +1406,29 @@ function estaPostpuesto(id) {
 function estaGestionado(id) {
   const e = estado[id];
   if (!e) return false;
-  // RED DE SEGURIDAD: próxima acción vencida o de hoy → nunca ocultar
+  // PRIORIDAD: ocultoEnSesion gana sobre la red de seguridad. Si el usuario
+  // acaba de marcar acción en esta sesión, el contacto se oculta hasta recargar
+  // — aunque su proximaAccion siga apuntando a hoy (esa fecha vieja se
+  // actualizará al refrescar GC tras el reload). Sin esta prioridad, los
+  // contactos con próxima acción de hoy reaparecían en la lista justo tras
+  // ser gestionados, dando la impresión de que el envío no se materializó.
+  if (e.ocultoEnSesion) return true;
+  // RED DE SEGURIDAD: próxima acción vencida o de hoy y sin acción en sesión
+  // → NUNCA se considera gestionado pasivamente.
   const c = clientes.find(x => x.id === id) || _todosLosContactos.find(x => x.id === id);
   if (c && proximaAccionPendiente(c)) return false;
-  // Acción marcada en esta sesión → ocultar hasta recargar
-  if (e.ocultoEnSesion) return true;
   return false;
 }
 
 function proximaAccionPendiente(c) {
   if (!c.proximaAccion) return false;
   const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const fecha = new Date(c.proximaAccion);
+  // Parsear "YYYY-MM-DD" como hora LOCAL, no UTC. new Date("2026-06-04")
+  // devuelve UTC midnight, que en España (UTC+2 en verano) queda 2h posterior
+  // a la medianoche local. Resultado: fecha > hoy y los contactos con próxima
+  // acción para HOY quedaban fuera de la lista hasta el día siguiente.
+  const [yyyy, mm, dd] = c.proximaAccion.split("-").map(Number);
+  const fecha = new Date(yyyy, mm - 1, dd);
   return fecha <= hoy;
 }
 
@@ -1526,6 +1566,7 @@ Devuelve solo el mensaje.`;
 function regenWapp() { if(selCliente) generarWapp(selCliente); }
 
 async function generarMensajeLinkedIn(c) {
+  _emailRegistrado = false; // reset: marcarEmailEnviado se usa también para LinkedIn
   console.log("[generarMensajeLinkedIn] Iniciando para:", c.empresa, c.contacto);
   document.getElementById("spin-email").style.display   = "block";
   document.getElementById("email-result").style.display = "none";
@@ -1726,40 +1767,50 @@ async function renovarTokenGoogle() {
   });
 }
 
-// Actualiza las notas de un contacto en Google con texto nuevo (con reintento si expira el token)
+// Actualiza las notas de un contacto en Google con texto nuevo (con reintento si expira el token).
+// IMPORTANTE: si falla, lanza error para que el caller (marcarEmail/Wapp/posponer)
+// pueda detectar el fallo y NO ocultar el contacto. Antes tragaba todos los
+// errores con console.log+return y el contacto desaparecía aunque GC no se
+// hubiese actualizado realmente.
 async function actualizarNotasGoogle(contactoId, nuevaLinea) {
-  if (!window._gToken) return;
+  if (!window._gToken) throw new Error("Sin token de Google");
   for (let intento = 0; intento < 2; intento++) {
-    try {
-      const getRes = await fetch(
-        `https://people.googleapis.com/v1/${contactoId}?personFields=biographies,metadata`,
-        { headers: { "Authorization": `Bearer ${window._gToken}` } }
-      );
-      if (getRes.status === 401) {
-        // Token expirado — renovar y reintentar
-        console.log("Token expirado, renovando...");
-        const ok = await renovarTokenGoogle();
-        if (!ok) { console.log("No se pudo renovar el token"); return; }
-        continue;
+    const getRes = await fetch(
+      `https://people.googleapis.com/v1/${contactoId}?personFields=biographies,metadata`,
+      { headers: { "Authorization": `Bearer ${window._gToken}` } }
+    );
+    if (getRes.status === 401) {
+      // Token expirado — renovar y reintentar (única ruta que NO lanza)
+      console.log("Token expirado, renovando...");
+      const ok = await renovarTokenGoogle();
+      if (!ok) throw new Error("No se pudo renovar el token de Google");
+      continue;
+    }
+    if (!getRes.ok) {
+      throw new Error(`Error obteniendo contacto ${contactoId}: HTTP ${getRes.status}`);
+    }
+    const contactData = await getRes.json();
+    const etag = contactData.etag;
+    const notasActuales = contactData.biographies?.[0]?.value || "";
+    const notasNuevas = notasActuales + nuevaLinea;
+    const updateRes = await fetch(
+      `https://people.googleapis.com/v1/${contactoId}:updateContact?updatePersonFields=biographies`,
+      {
+        method: "PATCH",
+        headers: { "Authorization": `Bearer ${window._gToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ etag, biographies: [{ value: notasNuevas, contentType: "TEXT_PLAIN" }] })
       }
-      if (!getRes.ok) { console.log("Error obteniendo contacto:", getRes.status); return; }
-      const contactData = await getRes.json();
-      const etag = contactData.etag;
-      const notasActuales = contactData.biographies?.[0]?.value || "";
-      const notasNuevas = notasActuales + nuevaLinea;
-      const updateRes = await fetch(
-        `https://people.googleapis.com/v1/${contactoId}:updateContact?updatePersonFields=biographies`,
-        {
-          method: "PATCH",
-          headers: { "Authorization": `Bearer ${window._gToken}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ etag, biographies: [{ value: notasNuevas, contentType: "TEXT_PLAIN" }] })
-        }
-      );
-      if (updateRes.ok) { console.log("Notas actualizadas en Google Contacts OK"); return; }
-      else console.log("Error actualizando:", await updateRes.json());
+    );
+    if (updateRes.ok) {
+      // Log con contactoId para diagnosticar a qué recurso se aplicó el PATCH
+      // (útil ante sospechas de duplicados o IDs cruzados).
+      console.log(`✅ Notas actualizadas en Google Contacts OK (${contactoId})`);
       return;
-    } catch(e) { console.log("No se pudo actualizar nota en Google:", e.message); return; }
+    }
+    const errBody = await updateRes.text();
+    throw new Error(`Error PATCH contacto ${contactoId}: HTTP ${updateRes.status} ${errBody.slice(0,200)}`);
   }
+  throw new Error("No se pudo actualizar tras renovar token");
 }
 
 // ── GOOGLE SHEETS ─────────────────────────────────────────────────────────────
@@ -1812,15 +1863,20 @@ async function registrarContactoEnGoogle(c) {
   const mm = String(hoy.getMonth()+1).padStart(2,"0");
   const yyyy = hoy.getFullYear();
   const fechaStr = `${dd}-${mm}-${yyyy}`;
-  // Resumen específico del email enviado (en lugar de genérico)
+  // Resumen específico del email/LinkedIn enviado (en lugar de un texto genérico)
   const esLinkedin = !!c._linkedinUsado;
   const tipoMensaje = esLinkedin ? "mensaje LinkedIn" : "email";
   const textoAccion = await generarResumenAccion(tipoMensaje, emailAsunto, emailCuerpo);
-  // Próxima acción fija: +2 días hábiles (determinista, sin IA — nunca falla)
-  const fechaProxima = calcularFechaProximaAccion(false);
-  // Tras email → siguiente paso es WApp de seguimiento.
-  // Tras LinkedIn → siguiente paso es llamarle (cierre del ciclo).
-  const textoProxima = esLinkedin
+  // Determinar si esta acción CIERRA el ciclo (próxima acción +3 meses) o si
+  // continúa (próxima acción +2 días hábiles para Wapp). El ciclo se cierra:
+  //   - Tras LinkedIn (paso final del cycle).
+  //   - Tras email cuando NO hay móvil — no podremos hacer seguimiento WApp,
+  //     así que pasamos directamente a "llamarle en 3 meses" sin escalada
+  //     a LinkedIn intermedia. (Nueva norma 04/06/2026.)
+  const esEmailSinMovil = !esLinkedin && !c.telefonoMovil;
+  const cierraCiclo = esLinkedin || esEmailSinMovil;
+  const fechaProxima = calcularFechaProximaAccion(cierraCiclo);
+  const textoProxima = cierraCiclo
     ? `Próxima acción llamarle en ${fechaProxima}`
     : `Próxima acción enviar Wapp de seguimiento en ${fechaProxima}`;
   const nuevaLinea = `\n${fechaStr}\n${textoAccion}\n${textoProxima}`;
@@ -1830,7 +1886,8 @@ async function registrarContactoEnGoogle(c) {
   await escribirEnSheets(c);
 }
 
-let _wappRegistrado = false; // guarda para evitar doble registro
+let _wappRegistrado = false; // guarda para evitar doble registro del WApp
+let _emailRegistrado = false; // guarda para evitar doble registro del email/LinkedIn
 
 function abrirWappWeb() {
   // Sincronizar variable con el texto EDITADO actual del textarea
@@ -1865,7 +1922,6 @@ async function registrarWappEnGoogle(contactoExplicito) {
     const fechaStr = `${dd}-${mm}-${yyyy}`;
     // Resumen específico del WhatsApp enviado (en lugar de genérico)
     const textoWapp = await generarResumenAccion("WhatsApp", "", wappMensaje);
-    const tipoCliente = c.esClienteFinal ? "Cliente final con flota propia" : c.esIntermediario ? "Intermediario" : "General";
     // Próxima acción fija: +3 meses (determinista, sin IA — nunca falla)
     const fechaProxima = calcularFechaProximaAccion(true);
     const nuevaLinea = `\n${fechaStr}\n${textoWapp}\nPróxima acción llamarle en ${fechaProxima}`;
