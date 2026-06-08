@@ -987,14 +987,13 @@ function recordatorioElectrico(c) {
   const esLCV   = etiquetas.some(e => e.includes("LCV"));
   const esTRUCK = etiquetas.some(e => e.includes("TRUCK"));
   if (!esLCV && !esTRUCK) return null;
-  const tipoVeh = (esLCV && esTRUCK) ? "furgonetas/LCV y camiones"
-                : esLCV             ? "furgonetas/LCV"
-                :                     "camiones";
-  return `Tenemos todas las soluciones para refrigerar ${tipoVeh} 100% eléctricos.`;
+  if (esLCV && esTRUCK) return "Tenemos todas las soluciones para refrigerar furgonetas y camiones 100% eléctricos.";
+  if (esLCV)            return "Tenemos todas las soluciones para refrigerar furgonetas 100% eléctricas.";
+  return "Tenemos todas las soluciones para refrigerar camiones 100% eléctricos.";
 }
 
 // Reglas de estilo de marca, obligatorias en todo texto generado (email/WApp/LinkedIn).
-const REGLAS_ESTILO = 'REGLAS DE ESTILO (obligatorias): escribe siempre "diésel" con tilde; al mencionar los equipos di siempre "equipos frigoríficos MITSUBISHI", nunca solo "equipos frigoríficos" ni "nuestros equipos".';
+const REGLAS_ESTILO = 'REGLAS DE ESTILO (obligatorias): escribe siempre "diésel" con tilde; al mencionar los equipos di siempre "equipos frigoríficos MITSUBISHI", nunca solo "equipos frigoríficos" ni "nuestros equipos"; NUNCA uses las siglas "LCV", "TRUCK" ni "vans" en el texto — di "furgonetas" o "camiones" según corresponda; escribe "carrocería" y "carrocerías" con tilde en la i (también en el asunto); si nombras la empresa, omite la forma jurídica final (S.A., SA, S.L., SL, S.L.U., etc.) y usa solo el nombre comercial.';
 
 // Devuelve descripción del tipo de cliente con instrucciones precisas para la IA
 // sobre cómo orientar el mensaje: preguntar por flota propia, por renting o por proyectos de clientes.
