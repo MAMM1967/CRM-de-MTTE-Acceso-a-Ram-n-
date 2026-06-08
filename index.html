@@ -948,7 +948,7 @@ function obtenerUSPsCliente(c) {
     bloques.push(
 `SEGMENTO LCV (furgoneta/van) — ventajas REALES de nuestros equipos para este cliente:
 • Evaporador externo: no ocupa espacio en la caja de carga — gran diferencial frente al split tradicional, muy valorado por clientes a quienes incomoda el evaporador tipo split dentro de la caja
-• Reducen un 15% el consumo diesel del vehículo
+• Reducen un 15% el consumo diésel del vehículo
 • Garantía de fábrica de 5 años
 • Funcionan independientes del motor: mantienen la temperatura con el motor al ralentí o apagado`
     );
@@ -958,7 +958,7 @@ function obtenerUSPsCliente(c) {
     bloques.push(
 `SEGMENTO TRUCK (camión) — ventajas REALES de nuestros equipos para este cliente:
 • Reducen un 25% el riesgo de vuelco → menos mortalidad de conductores (argumento de seguridad muy potente con flotas y responsables de flota)
-• Los de menor consumo diesel del mercado en su segmento
+• Los de menor consumo diésel del mercado en su segmento
 • Alta fiabilidad demostrada
 • Larga experiencia y certificaciones con fabricantes para instalar equipos 100% eléctricos en camiones eléctricos`
     );
@@ -967,7 +967,7 @@ function obtenerUSPsCliente(c) {
   if (etiquetas.some(e => e.includes("TRAILER"))) {
     bloques.push(
 `SEGMENTO TRAILER (semirremolque) — ventajas REALES de nuestros equipos para este cliente:
-• Más de 50 años fabricando equipos frigoríficos para transporte
+• Más de 50 años fabricando equipos frigoríficos MITSUBISHI para transporte
 • Alta fiabilidad probada: más de 10 años sin problemas en flotas de Japón, Europa y Australia
 • Adaptados al calor extremo del verano en España: NO se paran por alarmas de alta temperatura como los de la competencia
 • Alta capacidad de descarche: ideales para productos con alta humedad — frutas, verduras, carne colgada`
@@ -976,6 +976,25 @@ function obtenerUSPsCliente(c) {
 
   return bloques.length > 0 ? bloques.join("\n\n") : null;
 }
+
+// ── RECORDATORIO ELÉCTRICO (mención GARANTIZADA para LCV / TRUCK) ─────────────
+// A diferencia de las USPs (de las que el motor usa SOLO UNA y solo si encaja),
+// esta mención debe aparecer SIEMPRE que el contacto sea LCV o TRUCK, en email,
+// WhatsApp y LinkedIn. Por eso va por su cuenta y no como un punto más del menú
+// de USPs. Devuelve la frase a inyectar, o null si el contacto no es LCV/TRUCK.
+function recordatorioElectrico(c) {
+  const etiquetas = (c.etiquetas || []).map(e => (e || "").toUpperCase());
+  const esLCV   = etiquetas.some(e => e.includes("LCV"));
+  const esTRUCK = etiquetas.some(e => e.includes("TRUCK"));
+  if (!esLCV && !esTRUCK) return null;
+  const tipoVeh = (esLCV && esTRUCK) ? "furgonetas/LCV y camiones"
+                : esLCV             ? "furgonetas/LCV"
+                :                     "camiones";
+  return `Tenemos todas las soluciones para refrigerar ${tipoVeh} 100% eléctricos.`;
+}
+
+// Reglas de estilo de marca, obligatorias en todo texto generado (email/WApp/LinkedIn).
+const REGLAS_ESTILO = 'REGLAS DE ESTILO (obligatorias): escribe siempre "diésel" con tilde; al mencionar los equipos di siempre "equipos frigoríficos MITSUBISHI", nunca solo "equipos frigoríficos" ni "nuestros equipos".';
 
 // Devuelve descripción del tipo de cliente con instrucciones precisas para la IA
 // sobre cómo orientar el mensaje: preguntar por flota propia, por renting o por proyectos de clientes.
@@ -1001,6 +1020,7 @@ async function generarEmail(c) {
   document.getElementById("email-result").style.display = "none";
   const d = dias(c.ultimoContacto);
   const usps = obtenerUSPsCliente(c); // ventajas reales de producto por segmento (null si no aplica)
+  const recElectrico = recordatorioElectrico(c); // mención garantizada de solución eléctrica (LCV/TRUCK), null si no aplica
   const miNombre      = window._currentUser?.nombre      || "el director comercial";
   const miNombreCorto = window._currentUser?.nombreCorto || "el director";
   
@@ -1027,6 +1047,10 @@ VENTAJAS REALES DEL PRODUCTO (datos verificados — no inventados):
 ${usps}
 
 → Si alguna encaja de forma NATURAL con el historial o el sector de este cliente, menciónala. Usa UNA sola, integrada en el texto como argumento — no como lista de catálogo. Si el historial ya tiene un hilo claro (proyecto, oferta, decisión pendiente), prioriza ese hilo; añade la ventaja solo si complementa sin forzar. Si el historial está vacío, aquí tienes un gancho real y concreto con el que arrancar el email.
+` : ""}${recElectrico ? `
+MENCIÓN OBLIGATORIA — SOLUCIÓN PARA VEHÍCULO ELÉCTRICO (cliente LCV/TRUCK):
+${recElectrico}
+→ Inclúyela SIEMPRE en el email, además de cualquier USP que uses, integrada con naturalidad como argumento — nunca como eslogan suelto. Si el cliente no opera aún con eléctricos, plantéala como capacidad disponible para cuando dé el paso.
 ` : ""}
 INSTRUCCIONES:
 
@@ -1059,6 +1083,8 @@ Te llamo a propósito de eso porque me gustaría entender cómo vais y si os pue
 EJEMPLO CON HISTORIAL ESCUETO (solo fechas, sin contenido):
 "Hola Pedro, hace tiempo que no contactamos. ¿Cómo va la flota? ¿Tenéis algún proyecto de renovación o ampliación previsto? Si te encaja, te llamo cuando me digas y nos ponemos al día."
 
+${REGLAS_ESTILO}
+
 FORMATO:
 ASUNTO: [breve, específico al cliente y al tema concreto, sin las palabras "seguimiento" ni "contacto"]
 
@@ -1067,7 +1093,7 @@ ASUNTO: [breve, específico al cliente y al tema concreto, sin las palabras "seg
     const promptLlama =
 `Eres ${miNombre}, director comercial de Mitsubishi Equipos Frigoríficos en España. Hoy es ${new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})}.
 
-Vas a escribir un email a ${c.contacto}${c.cargo?` (${c.cargo})`:""} de ${c.empresa}. Tipo de cliente: ${tipoDescripcionCliente(c)}. Sector: ${c.sector}. Equipos actuales: ${c.equipos}. Llevamos ${d} días sin hablar.
+Vas a escribir un email a ${c.contacto}${c.cargo?` (${c.cargo})`:""} de ${c.empresa}. Tipo de cliente: ${tipoDescripcionCliente(c)}. Sector: ${c.sector}. Equipos actuales: ${c.equipos}. Llevamos ${d} días sin contactar.
 
 Estas son TODAS las notas que tenemos del contacto — léelas con atención porque es lo que te diferencia de un email genérico:
 
@@ -1079,6 +1105,10 @@ VENTAJAS REALES DEL PRODUCTO (datos verificados — puedes usarlos):
 ${usps}
 
 → Si alguna de estas ventajas encaja de forma NATURAL con el historial y el sector de este cliente, incorpórala en el cuerpo del email. Usa UNA sola, integrada como argumento creíble — no como lista. Si el historial tiene ya un hilo claro (proyecto, oferta, conversación pendiente), prioriza ese hilo y añade la ventaja solo si complementa sin forzar. Si el historial está vacío, aquí tienes un gancho real y concreto con el que construir el email.
+` : ""}${recElectrico ? `
+MENCIÓN OBLIGATORIA — SOLUCIÓN PARA VEHÍCULO ELÉCTRICO (cliente LCV/TRUCK):
+${recElectrico}
+→ Inclúyela SIEMPRE en el email, además de cualquier USP que uses, integrada con naturalidad como argumento — nunca como eslogan suelto. Si el cliente no opera aún con eléctricos, plantéala como capacidad disponible para cuando dé el paso.
 ` : ""}
 ANTES DE ESCRIBIR, ANALIZA EL HISTORIAL Y EXTRAE:
 - ¿Qué personas se mencionan? (nombres propios distintos al contacto principal — pueden ser jefes, compañeros, técnicos, otros interlocutores)
@@ -1108,6 +1138,8 @@ REGLAS DE FORMA:
 - Longitud: 140-180 palabras. Suficiente para construir el mensaje con calado humano, sin volverse pesado.
 - Prohibido: "Espero que estés bien", "Me pongo en contacto", "Aprovecho para", despedidas formales, firma con tu nombre.
 
+${REGLAS_ESTILO}
+
 FORMATO DE SALIDA (respeta exactamente):
 ASUNTO: [una línea, específica al cliente y al tema concreto que extrajiste — sin "seguimiento" ni "contacto"]
 CUERPO:
@@ -1119,7 +1151,7 @@ CUERPO:
 Hola Jaume,
 Hace tiempo que no contactamos. Espero que el barco esté listo para la época de navegación que ya empieza. A ver si este año me animo con esa invitación al barco que llevas haciéndome tiempo.
 Vi que no llegaste a responder cuando te mandé la guía de selección en enero. No sé si es que no había nada en marcha por vuestra parte o simplemente no era el momento.
-¿Cómo van las cosas en Carrosseries Tolosa? ¿Tenéis algún proyecto donde os podamos echar una mano con equipos frigoríficos?
+¿Cómo van las cosas en Carrosseries Tolosa? ¿Tenéis algún proyecto donde os podamos echar una mano con equipos frigoríficos MITSUBISHI?
 
 Fíjate en lo que hace bien este ejemplo: arranca con un detalle personal (el barco) que crea conexión real, reconoce con honestidad y sin reproche que un envío previo quedó sin respuesta, y termina con una pregunta abierta y fácil de responder. NO inventa datos técnicos ni cifras — todo lo que dice se apoya en lo que ya conoce del cliente.
 
@@ -1410,6 +1442,8 @@ async function generarWapp(c, tipo = "seguimiento") {
   const miNombre      = window._currentUser?.nombre      || "el director comercial";
   const miNombreCorto = window._currentUser?.nombreCorto || "el director";
 
+  const recElectrico = recordatorioElectrico(c); // mención garantizada eléctrica (LCV/TRUCK)
+
   // Construir el prompt según el tipo de mensaje
   let promptContent;
   if (tipo === "primer_contacto") {
@@ -1437,13 +1471,17 @@ INSTRUCCIONES:
 
 4. Pregunta concreta: ${c.esClienteFinal ? '"¿Tenéis previsto renovar flota frigorífica próximamente?"' : c.esRenting ? '"¿Tenéis prevista alguna ampliación de vuestra flota de renting frigorífico?"' : c.esIntermediario ? '"¿Estás trabajando en algún proyecto de cliente donde podamos colaborar?"' : '"¿Tenéis algún proyecto de flota frigorífica en marcha?"'}
 
-5. Máximo 4 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
+${recElectrico ? `IMPORTANTE (cliente LCV/TRUCK): que el mensaje deje claro, sin añadir líneas de más, que tenemos solución para refrigerar su vehículo eléctrico — "${recElectrico}".
+
+` : ""}5. Máximo 4 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
 
 EJEMPLO DEL ESTILO:
 "Hola Pedro,
 Soy ${miNombreCorto}, de Mitsubishi Equipos Frigoríficos. Vi que llevas la flota de MercaFrío.
 ¿Tenéis previsto renovar equipos en los próximos meses?
 Si te encaja, te llamo cuando me digas."
+
+${REGLAS_ESTILO}
 
 Devuelve solo el mensaje.`;
   } else {
@@ -1456,7 +1494,7 @@ INSTRUCCIONES:
 
 1. Saludo corto: "Hola ${c.contacto.split(" ")[0]},".
 
-2. Una sola frase: "Te mandé un email hace unos días sobre [tema] y no sé si te llegó."
+2. Una sola frase: "Te mandé un email hace unos días sobre [tema] y no sé si te llegó."${recElectrico ? ' Si el cliente es LCV/TRUCK, que ese [tema] sea precisamente que tenemos solución para refrigerar su vehículo eléctrico.' : ''}
 
 3. Pregunta directa: "¿Tienes 5 minutos esta semana para hablar?"
 
@@ -1466,6 +1504,8 @@ EJEMPLO:
 "Hola Pedro,
 Te escribí el otro día sobre las unidades nuevas, no sé si te llegó.
 ¿Tienes 5 min esta semana para hablarlo?"
+
+${REGLAS_ESTILO}
 
 Devuelve solo el mensaje.`;
   }
@@ -1539,6 +1579,7 @@ async function generarMensajeLinkedIn(c) {
   const d = Math.floor((Date.now() - new Date(c.ultimoContacto)) / 86400000);
   const miNombre      = window._currentUser?.nombre      || "el director comercial";
   const miNombreCorto = window._currentUser?.nombreCorto || "el director";
+  const recElectrico = recordatorioElectrico(c); // mención garantizada eléctrica (LCV/TRUCK)
   
   try {
     const payload = {
@@ -1564,13 +1605,17 @@ INSTRUCCIONES:
 
 3. Pregunta abierta: ${c.esClienteFinal ? '"¿Tenéis planes de renovación o ampliación de flota?"' : c.esRenting ? '"¿Tenéis prevista alguna ampliación de vuestra flota de renting?"' : c.esIntermediario ? '"¿Estás llevando algún proyecto de cliente donde podamos colaborar?"' : '"¿Tenéis algún proyecto de flota frigorífica en marcha?"'}
 
-4. Máximo 4 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
+${recElectrico ? `IMPORTANTE (cliente LCV/TRUCK): que el mensaje deje claro, sin añadir líneas de más, que tenemos solución para refrigerar su vehículo eléctrico — "${recElectrico}".
+
+` : ""}4. Máximo 4 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
 
 EJEMPLO:
 "Hola Pedro,
 Hace tiempo que no contactamos. Vi que MercaFrío sigue creciendo.
 ¿Tenéis planes de renovar la flota frigorífica?
 Si te encaja, charlamos."
+
+${REGLAS_ESTILO}
 
 Devuelve solo el mensaje.`}]
     };
