@@ -1474,6 +1474,8 @@ ${recElectrico ? `IMPORTANTE (cliente LCV/TRUCK): que el mensaje deje claro, sin
 
 ` : ""}5. Máximo 4 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
 
+6. NO inventes: no menciones tipos de vehículo (furgonetas, camiones, semirremolques) ni temas que no aparezcan en el historial de notas. Si el historial no indica de qué tipo de vehículo es el cliente, no asumas ninguno.
+
 EJEMPLO DEL ESTILO:
 "Hola Pedro,
 Soy ${miNombreCorto}, de Mitsubishi Equipos Frigoríficos. Vi que llevas la flota de MercaFrío.
@@ -1489,15 +1491,20 @@ Devuelve solo el mensaje.`;
 `Tu rol: ${miNombre}, director de Mitsubishi Equipos Frigoríficos.
 Hace unos días mandaste un email a ${c.contacto} de ${c.empresa} y no responde.
 
+HISTORIAL DE NOTAS:
+${c.historial}
+
 INSTRUCCIONES:
 
 1. Saludo corto: "Hola ${c.contacto.split(" ")[0]},".
 
-2. Una sola frase: "Te mandé un email hace unos días sobre [tema] y no sé si te llegó."${recElectrico ? ' Si el cliente es LCV/TRUCK, que ese [tema] sea precisamente que tenemos solución para refrigerar su vehículo eléctrico.' : ''}
+2. Una sola frase: "Te mandé un email hace unos días sobre [tema] y no sé si te llegó." El [tema] debe salir del historial; si el historial no aporta un tema concreto, usa algo genérico como "los equipos frigoríficos MITSUBISHI para transporte".${recElectrico ? ' Si el cliente es LCV/TRUCK, que ese [tema] sea precisamente que tenemos solución para refrigerar su vehículo eléctrico.' : ''}
 
 3. Pregunta directa: "¿Tienes 5 minutos esta semana para hablar?"
 
 4. Máximo 3 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
+
+5. NO inventes: no menciones tipos de vehículo (furgonetas, camiones, semirremolques) ni temas que no aparezcan en el historial de notas. Si el historial no indica de qué tipo de vehículo es el cliente, no asumas ninguno.
 
 EJEMPLO:
 "Hola Pedro,
@@ -1607,6 +1614,8 @@ INSTRUCCIONES:
 ${recElectrico ? `IMPORTANTE (cliente LCV/TRUCK): que el mensaje deje claro, sin añadir líneas de más, que tenemos solución para refrigerar su vehículo eléctrico — "${recElectrico}".
 
 ` : ""}4. Máximo 4 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
+
+5. NO inventes: no menciones tipos de vehículo (furgonetas, camiones, semirremolques) ni temas que no aparezcan en el historial. Si el historial no indica de qué tipo de vehículo es el cliente, no asumas ninguno.
 
 EJEMPLO:
 "Hola Pedro,
