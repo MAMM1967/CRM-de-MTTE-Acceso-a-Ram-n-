@@ -1045,7 +1045,8 @@ ${usps ? `
 VENTAJAS REALES DEL PRODUCTO (datos verificados — no inventados):
 ${usps}
 
-→ Si alguna encaja de forma NATURAL con el historial o el sector de este cliente, menciónala. Usa UNA sola, integrada en el texto como argumento — no como lista de catálogo. Si el historial ya tiene un hilo claro (proyecto, oferta, decisión pendiente), prioriza ese hilo; añade la ventaja solo si complementa sin forzar. Si el historial está vacío, aquí tienes un gancho real y concreto con el que arrancar el email.
+→ Si alguna encaja de forma NATURAL con el historial o el sector de este cliente, menciónala. Usa UNA sola, integrada en el texto como argumento — no como lista de catálogo. Si el historial ya tiene un hilo claro (proyecto, oferta, decisión pendiente), prioriza ese hilo; añade la ventaja solo si complementa sin forzar. Si el historial está vacío, aquí tienes un gancho real y concreto con el que arrancar el email.${(!c.esClienteFinal && !c.esRenting && c.esIntermediario) ? `
+→ OJO — este contacto es un INTERMEDIARIO SIN flota propia. Presenta la ventaja que elijas como ARGUMENTO QUE ÉL puede usar para recomendar los equipos frigoríficos MITSUBISHI a SU cliente final (p. ej. "a tu cliente le interesará porque…", "te dará menos postventa porque…"), NUNCA como beneficio para su propia flota — no la tiene.` : ""}
 ` : ""}${recElectrico ? `
 MENCIÓN OBLIGATORIA — SOLUCIÓN PARA VEHÍCULO ELÉCTRICO (cliente LCV/TRUCK):
 ${recElectrico}
@@ -1066,7 +1067,10 @@ INSTRUCCIONES:
 
 4. CONSTRUYE EL EMAIL SOBRE LO QUE TIENES. No "aportes valor" inventando — el valor viene de demostrar que recuerdas la conversación previa, de hacer la pregunta correcta, de mostrar continuidad. Si el historial es escueto, el email también lo será, y eso está bien: mejor un email corto y honesto que uno largo con datos falsos.
 
-5. UNA SOLA PETICIÓN al final. Llamada O visita O enviar info. Una pregunta clara y fácil de responder.
+5. UNA SOLA PREGUNTA al final, enfocada al objetivo:
+   - Si es cliente final o renting: averiguar CUÁNDO prevén su próxima renovación o ampliación de flota frigorífica (horizonte temporal), NO proponer una llamada o reunión "pronto".
+   - Si es intermediario sin flota: averiguar si tienen alguna operación en marcha donde haya que montar equipo frigorífico y su cliente confíe en ellos para recomendarle MITSUBISHI.
+   Pregunta clara y fácil de responder, sin presionar para "hablar/llamar próximamente".
 
 6. LONGITUD: 100-160 palabras. Adapta a lo que tengas: con historial rico puedes acercarte a 160; con historial escueto, mantente cerca de 100.
 
@@ -1075,12 +1079,12 @@ INSTRUCCIONES:
 EJEMPLO DEL ESTILO QUE BUSCO (caso ficticio — los códigos de modelo aquí son placeholders ilustrativos, NO los uses si no aparecen en el historial real):
 "Hola Pedro, repasando notas vi que en agosto comentaste con María que estabais valorando 3-4 unidades nuevas para Q2. ¿Sigue en pie esa decisión?
 
-Te llamo a propósito de eso porque me gustaría entender cómo vais y si os puedo echar una mano con la comparativa entre opciones que comentamos. Si seguís en ello, os puedo pasar datos reales de consumo de clientes parecidos a vosotros en distribución frigorífica.
+Lo comento porque me ayudaría saber para cuándo prevéis esa renovación, así puedo prepararos con tiempo datos reales de consumo de clientes parecidos a vosotros en distribución frigorífica.
 
-¿Te viene bien una llamada el martes o miércoles?"
+¿Tenéis ya una fecha aproximada en mente para la renovación o ampliación?"
 
 EJEMPLO CON HISTORIAL ESCUETO (solo fechas, sin contenido):
-"Hola Pedro, hace tiempo que no contactamos. ¿Cómo va la flota? ¿Tenéis algún proyecto de renovación o ampliación previsto? Si te encaja, te llamo cuando me digas y nos ponemos al día."
+"Hola Pedro, hace tiempo que no contactamos. ¿Cómo va la flota? ¿Para cuándo prevéis vuestra próxima renovación o ampliación de equipos frigoríficos?"
 
 ${REGLAS_ESTILO}
 
@@ -1103,7 +1107,8 @@ ${usps ? `
 VENTAJAS REALES DEL PRODUCTO (datos verificados — puedes usarlos):
 ${usps}
 
-→ Si alguna de estas ventajas encaja de forma NATURAL con el historial y el sector de este cliente, incorpórala en el cuerpo del email. Usa UNA sola, integrada como argumento creíble — no como lista. Si el historial tiene ya un hilo claro (proyecto, oferta, conversación pendiente), prioriza ese hilo y añade la ventaja solo si complementa sin forzar. Si el historial está vacío, aquí tienes un gancho real y concreto con el que construir el email.
+→ Si alguna de estas ventajas encaja de forma NATURAL con el historial y el sector de este cliente, incorpórala en el cuerpo del email. Usa UNA sola, integrada como argumento creíble — no como lista. Si el historial tiene ya un hilo claro (proyecto, oferta, conversación pendiente), prioriza ese hilo y añade la ventaja solo si complementa sin forzar. Si el historial está vacío, aquí tienes un gancho real y concreto con el que construir el email.${(!c.esClienteFinal && !c.esRenting && c.esIntermediario) ? `
+→ OJO — este contacto es un INTERMEDIARIO SIN flota propia. Presenta la ventaja que elijas como ARGUMENTO QUE ÉL puede usar para recomendar los equipos frigoríficos MITSUBISHI a SU cliente final (p. ej. "a tu cliente le interesará porque…", "te dará menos postventa porque…"), NUNCA como beneficio para su propia flota — no la tiene.` : ""}
 ` : ""}${recElectrico ? `
 MENCIÓN OBLIGATORIA — SOLUCIÓN PARA VEHÍCULO ELÉCTRICO (cliente LCV/TRUCK):
 ${recElectrico}
@@ -1117,12 +1122,14 @@ ANTES DE ESCRIBIR, ANALIZA EL HISTORIAL Y EXTRAE:
 
 Usa al menos UN dato concreto de los que has extraído. Cuanto más específico, mejor — eso es lo que hace que el email funcione.
 
-Si el historial está vacío o solo tiene fechas sin contenido, escribe sin inventar: empieza con "Hace tiempo que no contactamos" y haz una pregunta abierta sobre su flota.
+Si el historial está vacío o solo tiene fechas sin contenido, escribe sin inventar: empieza con "Hace tiempo que no contactamos" y haz la pregunta de cierre que corresponda al tipo de cliente (timing de renovación si es cliente final/renting; operación con confianza para recomendar MITSUBISHI si es intermediario).
 
 ESTRUCTURA DEL EMAIL:
 1. Apertura cercana con UNA referencia concreta del historial. Si hay un detalle personal (afición, hobby, situación familiar mencionada en notas), inclúyelo con naturalidad — eso crea conexión real. Sin "Espero que estés bien".
 2. Si en el historial hay constancia de un envío previo sin respuesta (oferta, guía, propuesta, llamada no devuelta), MENCIÓNALO con honestidad y sin reproche, dándole una salida fácil al receptor. Ejemplo: "Vi que no llegaste a responder cuando te mandé X. No sé si es que no había nada en marcha por vuestra parte o simplemente no era el momento."
-3. UNA pregunta abierta y desactivada al final, fácil de responder y que no presione: "¿Tenéis algún proyecto donde os podamos echar una mano?", "¿Cómo va la flota?", "¿Hay algo en marcha donde pueda ayudaros?".
+3. UNA pregunta abierta al final, enfocada al objetivo y fácil de responder, SIN proponer "hablar/llamar pronto":
+   - Cliente final o renting: para cuándo prevén su próxima renovación o ampliación de flota frigorífica. Ej.: "¿Para cuándo tenéis prevista la próxima renovación o ampliación de flota?".
+   - Intermediario sin flota: si tienen alguna operación donde haya que montar equipo frigorífico y su cliente confíe en ellos para recomendarle MITSUBISHI. Ej.: "¿Tienes alguna operación en marcha donde haya que montar equipo frigorífico y tu cliente confíe en ti para recomendarle MITSUBISHI?".
 
 REGLA CRÍTICA — PROHIBIDO INVENTAR DATOS TÉCNICOS O COMERCIALES:
 - NUNCA inventes nombres de modelos, códigos de producto ni nomenclatura comercial.
@@ -1150,16 +1157,14 @@ CUERPO:
 Hola Jaume,
 Hace tiempo que no contactamos. Espero que el barco esté listo para la época de navegación que ya empieza. A ver si este año me animo con esa invitación al barco que llevas haciéndome tiempo.
 Vi que no llegaste a responder cuando te mandé la guía de selección en enero. No sé si es que no había nada en marcha por vuestra parte o simplemente no era el momento.
-¿Cómo van las cosas en Carrosseries Tolosa? ¿Tenéis algún proyecto donde os podamos echar una mano con equipos frigoríficos MITSUBISHI?
+¿Cómo van las cosas en Carrosseries Tolosa? ¿Tienes alguna operación en marcha donde haya que montar equipo frigorífico y tu cliente confíe en ti para recomendarle equipos frigoríficos MITSUBISHI?
 
-Fíjate en lo que hace bien este ejemplo: arranca con un detalle personal (el barco) que crea conexión real, reconoce con honestidad y sin reproche que un envío previo quedó sin respuesta, y termina con una pregunta abierta y fácil de responder. NO inventa datos técnicos ni cifras — todo lo que dice se apoya en lo que ya conoce del cliente.
+Fíjate en lo que hace bien este ejemplo: arranca con un detalle personal (el barco) que crea conexión real, reconoce con honestidad y sin reproche que un envío previo quedó sin respuesta, y termina con la pregunta de cierre adecuada (aquí intermediario: operación + confianza para recomendar). NO inventa datos técnicos ni cifras — todo lo que dice se apoya en lo que ya conoce del cliente.
 
 EJEMPLO CON HISTORIAL ESCUETO (solo fechas, sin contenido):
-ASUNTO: Cómo va la flota — me gustaría ponerme al día
+ASUNTO: Cómo va la flota
 CUERPO:
-Hola Javier, hace tiempo que no contactamos. ¿Cómo va la flota? ¿Tenéis algún proyecto de renovación o ampliación previsto?
-
-Si te encaja, te llamo cuando me digas y nos ponemos al día.`;
+Hola Javier, hace tiempo que no contactamos. ¿Cómo va la flota? ¿Para cuándo prevéis vuestra próxima renovación o ampliación de equipos frigoríficos?`;
 
     const payload = {
       model:"claude-sonnet-4-20250514",
@@ -1468,7 +1473,7 @@ INSTRUCCIONES:
 
 3. Si hay un detalle concreto en el historial (un proyecto, un equipo, alguien), menciónalo. Si no, di "te escribo por si os puede interesar lo que hacemos en frigoríficos para transporte".
 
-4. Pregunta concreta: ${c.esClienteFinal ? '"¿Tenéis previsto renovar flota frigorífica próximamente?"' : c.esRenting ? '"¿Tenéis prevista alguna ampliación de vuestra flota de renting frigorífico?"' : c.esIntermediario ? '"¿Estás trabajando en algún proyecto de cliente donde podamos colaborar?"' : '"¿Tenéis algún proyecto de flota frigorífica en marcha?"'}
+4. Pregunta concreta enfocada al objetivo: ${c.esClienteFinal ? '"¿Para cuándo prevéis la próxima renovación o ampliación de flota frigorífica?"' : c.esRenting ? '"¿Para cuándo tenéis prevista alguna ampliación de vuestra flota de renting frigorífico?"' : c.esIntermediario ? '"¿Tienes alguna operación en marcha donde haya que montar equipo frigorífico y tu cliente confíe en ti para recomendarle MITSUBISHI?"' : '"¿Para cuándo prevéis algún proyecto de renovación o ampliación de flota frigorífica?"'}
 
 ${recElectrico ? `IMPORTANTE (cliente LCV/TRUCK): que el mensaje deje claro, sin añadir líneas de más, que tenemos solución para refrigerar su vehículo eléctrico — "${recElectrico}".
 
@@ -1479,7 +1484,7 @@ ${recElectrico ? `IMPORTANTE (cliente LCV/TRUCK): que el mensaje deje claro, sin
 EJEMPLO DEL ESTILO:
 "Hola Pedro,
 Soy ${miNombreCorto}, de Mitsubishi Equipos Frigoríficos. Vi que llevas la flota de MercaFrío.
-¿Tenéis previsto renovar equipos en los próximos meses?
+¿Para cuándo prevéis renovar equipos?
 Si te encaja, te llamo cuando me digas."
 
 ${REGLAS_ESTILO}
@@ -1500,7 +1505,7 @@ INSTRUCCIONES:
 
 2. Una sola frase: "Te mandé un email hace unos días sobre [tema] y no sé si te llegó." El [tema] debe salir del historial; si el historial no aporta un tema concreto, usa algo genérico como "los equipos frigoríficos MITSUBISHI para transporte".${recElectrico ? ' Si el cliente es LCV/TRUCK, que ese [tema] sea precisamente que tenemos solución para refrigerar su vehículo eléctrico.' : ''}
 
-3. Pregunta directa: "¿Tienes 5 minutos esta semana para hablar?"
+3. Pregunta de cierre enfocada al objetivo, sin proponer "hablar/llamar pronto": ${c.esClienteFinal ? '"¿Para cuándo prevéis vuestra próxima renovación o ampliación de flota?"' : c.esRenting ? '"¿Para cuándo tenéis prevista alguna ampliación de vuestra flota de renting?"' : c.esIntermediario ? '"¿Tienes alguna operación donde haya que montar equipo frigorífico y tu cliente confíe en ti para recomendarle MITSUBISHI?"' : '"¿Para cuándo prevéis algún proyecto de renovación o ampliación de flota?"'}
 
 4. Máximo 3 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
 
@@ -1509,7 +1514,7 @@ INSTRUCCIONES:
 EJEMPLO:
 "Hola Pedro,
 Te escribí el otro día sobre las unidades nuevas, no sé si te llegó.
-¿Tienes 5 min esta semana para hablarlo?"
+¿Para cuándo prevéis vuestra próxima renovación de flota?"
 
 ${REGLAS_ESTILO}
 
@@ -1609,7 +1614,7 @@ INSTRUCCIONES:
 
 2. Una frase con UN detalle del historial (proyecto, equipo, conversación). Si no hay nada concreto, di: "Hace tiempo que no contactamos".
 
-3. Pregunta abierta: ${c.esClienteFinal ? '"¿Tenéis planes de renovación o ampliación de flota?"' : c.esRenting ? '"¿Tenéis prevista alguna ampliación de vuestra flota de renting?"' : c.esIntermediario ? '"¿Estás llevando algún proyecto de cliente donde podamos colaborar?"' : '"¿Tenéis algún proyecto de flota frigorífica en marcha?"'}
+3. Pregunta de cierre enfocada al objetivo, sin proponer "hablar/charlar pronto": ${c.esClienteFinal ? '"¿Para cuándo prevéis vuestra próxima renovación o ampliación de flota?"' : c.esRenting ? '"¿Para cuándo tenéis prevista alguna ampliación de vuestra flota de renting?"' : c.esIntermediario ? '"¿Tienes alguna operación donde haya que montar equipo frigorífico y tu cliente confíe en ti para recomendarle MITSUBISHI?"' : '"¿Para cuándo prevéis algún proyecto de renovación o ampliación de flota frigorífica?"'}
 
 ${recElectrico ? `IMPORTANTE (cliente LCV/TRUCK): que el mensaje deje claro, sin añadir líneas de más, que tenemos solución para refrigerar su vehículo eléctrico — "${recElectrico}".
 
@@ -1620,8 +1625,7 @@ ${recElectrico ? `IMPORTANTE (cliente LCV/TRUCK): que el mensaje deje claro, sin
 EJEMPLO:
 "Hola Pedro,
 Hace tiempo que no contactamos. Vi que MercaFrío sigue creciendo.
-¿Tenéis planes de renovar la flota frigorífica?
-Si te encaja, charlamos."
+¿Para cuándo prevéis vuestra próxima renovación o ampliación de flota frigorífica?"
 
 ${REGLAS_ESTILO}
 
