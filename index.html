@@ -185,6 +185,7 @@
         <!-- EMAIL TAB -->
         <div id="content-email">
           <div class="spin-wrap" id="spin-email"><div class="spin-circle"></div><div style="font-size:13px;color:#6b7280;">Generando email personalizado...</div></div>
+          <div id="email-aviso" style="display:none;background:#2a2008;border:1px solid #92710c;border-radius:8px;padding:14px;font-size:13px;color:#fbbf24;line-height:1.5;">⚠️ Este contacto no tiene email, ni teléfono móvil, ni LinkedIn registrados.<br>Revísalo en Google Contacts y completa algún canal antes de poder contactarle.</div>
           <div id="email-result" style="display:none;animation:fadeIn 0.3s ease;">
             <div class="asunto-box"><div class="asunto-label">Asunto</div><input type="text" class="asunto-input" id="asunto-text" /></div>
             <textarea class="msg-edit" id="cuerpo-text" spellcheck="true"></textarea>
@@ -846,12 +847,27 @@ function clickCliente(id) {
   renderLista();
   const c = selCliente;
   const a = accionPara(c);
-  // Sin acción concreta → abrir tab email genérico (usuario podrá generar manualmente)
+  // Sin acción concreta del ciclo → proponer por canales DISPONIBLES, en el
+  // orden email → WApp → LinkedIn. Antes existía un "caso degenerado" que
+  // generaba un email para contactos SIN email (típico: solo teléfono fijo,
+  // sin móvil ni LinkedIn). Ahora, sin ningún canal, se muestra un aviso para
+  // revisar el contacto en Google Contacts en lugar de generar nada.
   if (!a) {
-    abrirPanel(c, "email");
-    if (c.email) generarEmail(c);
-    else if (c.linkedin) generarMensajeLinkedIn(c);
-    else generarEmail(c); // caso degenerado
+    if (c.email) {
+      abrirPanel(c, "email");
+      generarEmail(c);
+    } else if (c.telefonoMovil) {
+      abrirPanel(c, "wapp");
+      generarWapp(c, "primer_contacto");
+    } else if (c.linkedin) {
+      abrirPanel(c, "email"); // tab email pero contenido LinkedIn
+      generarMensajeLinkedIn(c);
+    } else {
+      abrirPanel(c, "email");
+      document.getElementById("spin-email").style.display   = "none";
+      document.getElementById("email-result").style.display = "none";
+      document.getElementById("email-aviso").style.display  = "block";
+    }
     return;
   }
   if (a.tipo === "email") {
@@ -964,34 +980,43 @@ function obtenerUSPsCliente(c) {
   }
 
   if (etiquetas.some(e => e.includes("TRAILER"))) {
-    // Caso especial CÁRNICAS (etiqueta GC "clientes finales cárnicas"): el argumento
-    // NO es que los equipos soporten altas temperaturas, sino que son los de MAYOR
-    // capacidad de descarche del mercado — crítico para transportar productos con
-    // alto grado de humedad como la carne. Para el resto de TRAILER, bloque estándar.
-    const esCarnica = etiquetas.some(e => e.includes("CÁRNIC") || e.includes("CARNIC"));
-    bloques.push(esCarnica ?
-`SEGMENTO TRAILER (semirremolque) — cliente CÁRNICA — ventajas REALES de nuestros equipos para este cliente:
-• Más de 50 años fabricando equipos frigoríficos MITSUBISHI para transporte
-• Alta fiabilidad probada: más de 10 años sin problemas en flotas de Japón, Europa y Australia
-• ARGUMENTO PRIORITARIO para este cliente (cárnica): los equipos con MAYOR capacidad de descarche del mercado — crítico para el transporte de productos con alto grado de humedad como la carne. NO uses como argumento que los equipos soportan altas temperaturas: para una cárnica el argumento es el descarche.`
-:
+    // Caso especial CÁRNICAS (etiqueta GC "clientes finales cárnicas"): UN solo
+    // argumento, OBLIGATORIO (sale siempre, no "si encaja"): la mayor capacidad
+    // de descarche del mercado — crítico para productos con alto grado de
+    // humedad como la carne. NO usar "soportan altas temperaturas". Sin más
+    // bullets para evitar efecto catálogo. Resto de TRAILER: bloque estándar.
+    if (esContactoCarnica(c)) {
+      bloques.push(
+`SEGMENTO TRAILER (semirremolque) — cliente CÁRNICA — ARGUMENTO OBLIGATORIO (inclúyelo SIEMPRE, integrado con naturalidad):
+• Los equipos frigoríficos MITSUBISHI son los de MAYOR capacidad de descarche del mercado — crítico para el transporte de productos con alto grado de humedad como la carne. NO uses como argumento que los equipos soportan altas temperaturas: para una cárnica el argumento es el descarche. No añadas más argumentos de producto.`
+      );
+    } else {
+      bloques.push(
 `SEGMENTO TRAILER (semirremolque) — ventajas REALES de nuestros equipos para este cliente:
 • Más de 50 años fabricando equipos frigoríficos MITSUBISHI para transporte
 • Alta fiabilidad probada: más de 10 años sin problemas en flotas de Japón, Europa y Australia
 • Adaptados al calor extremo del verano en España: NO se paran por alarmas de alta temperatura como los de la competencia
 • Alta capacidad de descarche: ideales para productos con alta humedad — frutas, verduras, carne colgada`
-    );
+      );
+    }
   }
 
   return bloques.length > 0 ? bloques.join("\n\n") : null;
 }
 
-// ── RECORDATORIO ELÉCTRICO (mención GARANTIZADA para LCV / TRUCK) ─────────────
+// Detección de cliente cárnica (etiqueta GC "clientes finales cárnicas").
+// Helper único compartido por obtenerUSPsCliente, recordatorioElectrico y generarEmail.
+const esContactoCarnica = c => (c.etiquetas || []).some(e => { const u = (e || "").toUpperCase(); return u.includes("CÁRNIC") || u.includes("CARNIC"); });
+
+// ── RECORDATORIO ELÉCTRICO (mención GARANTIZADA para LCV / TRUCK / CÁRNICAS) ──
 // A diferencia de las USPs (de las que el motor usa SOLO UNA y solo si encaja),
-// esta mención debe aparecer SIEMPRE que el contacto sea LCV o TRUCK, en email,
-// WhatsApp y LinkedIn. Por eso va por su cuenta y no como un punto más del menú
-// de USPs. Devuelve la frase a inyectar, o null si el contacto no es LCV/TRUCK.
+// esta mención debe aparecer SIEMPRE que el contacto sea LCV, TRUCK o cárnica,
+// en email, WhatsApp y LinkedIn. Por eso va por su cuenta y no como un punto más
+// del menú de USPs. Devuelve la frase a inyectar, o null si no aplica.
 function recordatorioElectrico(c) {
+  // Cárnicas: mención eléctrica garantizada con orientación de flota, sin
+  // fórmulas tipo "cuando deis el paso" (suenan a que van desfasados).
+  if (esContactoCarnica(c)) return "Tenemos todas las soluciones si estáis considerando electrificar vuestra flota frigorífica.";
   const etiquetas = (c.etiquetas || []).map(e => (e || "").toUpperCase());
   const esLCV   = etiquetas.some(e => e.includes("LCV"));
   const esTRUCK = etiquetas.some(e => e.includes("TRUCK"));
@@ -1026,9 +1051,13 @@ async function generarEmail(c) {
   if (c) c._linkedinUsado = false;
   document.getElementById("spin-email").style.display  = "block";
   document.getElementById("email-result").style.display = "none";
+  document.getElementById("email-aviso").style.display  = "none";
   const d = dias(c.ultimoContacto);
   const usps = obtenerUSPsCliente(c); // ventajas reales de producto por segmento (null si no aplica)
-  const recElectrico = recordatorioElectrico(c); // mención garantizada de solución eléctrica (LCV/TRUCK), null si no aplica
+  const recElectrico = recordatorioElectrico(c); // mención garantizada de solución eléctrica (LCV/TRUCK/cárnicas), null si no aplica
+  // Cárnicas: solo dos argumentos en el email (descarche + eléctrico). La mención
+  // de fiabilidad japonesa se OMITE para evitar efecto catálogo (decisión 10/06/2026).
+  const esCarnica = esContactoCarnica(c);
   const miNombre      = window._currentUser?.nombre      || "el director comercial";
   const miNombreCorto = window._currentUser?.nombreCorto || "el director";
   
@@ -1057,9 +1086,9 @@ ${usps}
 → Si alguna encaja de forma NATURAL con el historial o el sector de este cliente, menciónala. Usa UNA sola, integrada en el texto como argumento — no como lista de catálogo. Si el historial ya tiene un hilo claro (proyecto, oferta, decisión pendiente), prioriza ese hilo; añade la ventaja solo si complementa sin forzar. Si el historial está vacío, aquí tienes un gancho real y concreto con el que arrancar el email.${(!c.esClienteFinal && !c.esRenting && c.esIntermediario) ? `
 → OJO — este contacto es un INTERMEDIARIO SIN flota propia. Presenta la ventaja que elijas como ARGUMENTO QUE ÉL puede usar para recomendar los equipos frigoríficos MITSUBISHI a SU cliente final (p. ej. "a tu cliente le interesará porque…", "te dará menos postventa porque…"), NUNCA como beneficio para su propia flota — no la tiene.` : ""}
 ` : ""}${recElectrico ? `
-MENCIÓN OBLIGATORIA — SOLUCIÓN PARA VEHÍCULO ELÉCTRICO (cliente LCV/TRUCK):
+MENCIÓN OBLIGATORIA — SOLUCIÓN ELÉCTRICA (cliente LCV/TRUCK/cárnica):
 ${recElectrico}
-→ Inclúyela SIEMPRE en el email, además de cualquier USP que uses, integrada con naturalidad como argumento — nunca como eslogan suelto. Si el cliente no opera aún con eléctricos, plantéala como capacidad disponible para cuando dé el paso.
+→ Inclúyela SIEMPRE en el email, además de cualquier USP que uses, integrada con naturalidad como argumento — nunca como eslogan suelto. Si el cliente no opera aún con eléctricos, plantéala en clave de presente: "si estáis considerando electrificar vuestra flota frigorífica". PROHIBIDO usar fórmulas tipo "cuando decidáis dar el paso", "cuando deis el paso", "para cuando dé el paso" o similares — suenan a que el cliente va por detrás.
 ` : ""}
 INSTRUCCIONES:
 
@@ -1096,8 +1125,9 @@ EJEMPLO CON HISTORIAL ESCUETO (solo fechas, sin contenido):
 "Hola Pedro, hace tiempo que no contactamos. ¿Cómo va la flota? ¿Para cuándo prevéis vuestra próxima renovación o ampliación de equipos frigoríficos?"
 
 ${REGLAS_ESTILO}
-
+${esCarnica ? "" : `
 MENCIÓN OBLIGATORIA EN TODO EMAIL — FIABILIDAD JAPONESA: integra con naturalidad, como argumento dentro del texto (nunca como eslogan suelto), la alta fiabilidad de los equipos frigoríficos MITSUBISHI gracias a la tradición de fabricación de calidad de las fábricas japonesas.
+`}
 
 FORMATO:
 ASUNTO: [breve, específico al cliente y al tema concreto, sin las palabras "seguimiento" ni "contacto"]
@@ -1121,9 +1151,9 @@ ${usps}
 → Si alguna de estas ventajas encaja de forma NATURAL con el historial y el sector de este cliente, incorpórala en el cuerpo del email. Usa UNA sola, integrada como argumento creíble — no como lista. Si el historial tiene ya un hilo claro (proyecto, oferta, conversación pendiente), prioriza ese hilo y añade la ventaja solo si complementa sin forzar. Si el historial está vacío, aquí tienes un gancho real y concreto con el que construir el email.${(!c.esClienteFinal && !c.esRenting && c.esIntermediario) ? `
 → OJO — este contacto es un INTERMEDIARIO SIN flota propia. Presenta la ventaja que elijas como ARGUMENTO QUE ÉL puede usar para recomendar los equipos frigoríficos MITSUBISHI a SU cliente final (p. ej. "a tu cliente le interesará porque…", "te dará menos postventa porque…"), NUNCA como beneficio para su propia flota — no la tiene.` : ""}
 ` : ""}${recElectrico ? `
-MENCIÓN OBLIGATORIA — SOLUCIÓN PARA VEHÍCULO ELÉCTRICO (cliente LCV/TRUCK):
+MENCIÓN OBLIGATORIA — SOLUCIÓN ELÉCTRICA (cliente LCV/TRUCK/cárnica):
 ${recElectrico}
-→ Inclúyela SIEMPRE en el email, además de cualquier USP que uses, integrada con naturalidad como argumento — nunca como eslogan suelto. Si el cliente no opera aún con eléctricos, plantéala como capacidad disponible para cuando dé el paso.
+→ Inclúyela SIEMPRE en el email, además de cualquier USP que uses, integrada con naturalidad como argumento — nunca como eslogan suelto. Si el cliente no opera aún con eléctricos, plantéala en clave de presente: "si estáis considerando electrificar vuestra flota frigorífica". PROHIBIDO usar fórmulas tipo "cuando decidáis dar el paso", "cuando deis el paso", "para cuando dé el paso" o similares — suenan a que el cliente va por detrás.
 ` : ""}
 ANTES DE ESCRIBIR, ANALIZA EL HISTORIAL Y EXTRAE:
 - ¿Qué personas se mencionan? (nombres propios distintos al contacto principal — pueden ser jefes, compañeros, técnicos, otros interlocutores)
@@ -1156,8 +1186,9 @@ REGLAS DE FORMA:
 - Prohibido: "Espero que estés bien", "Me pongo en contacto", "Aprovecho para", despedidas formales, firma con tu nombre.
 
 ${REGLAS_ESTILO}
-
+${esCarnica ? "" : `
 MENCIÓN OBLIGATORIA EN TODO EMAIL — FIABILIDAD JAPONESA: integra con naturalidad, como argumento dentro del texto (nunca como eslogan suelto), la alta fiabilidad de los equipos frigoríficos MITSUBISHI gracias a la tradición de fabricación de calidad de las fábricas japonesas.
+`}
 
 FORMATO DE SALIDA (respeta exactamente):
 ASUNTO: [una línea, específica al cliente y al tema concreto que extrajiste — sin "seguimiento" ni "contacto"]
@@ -1456,7 +1487,7 @@ async function generarWapp(c, tipo = "seguimiento") {
   const miNombre      = window._currentUser?.nombre      || "el director comercial";
   const miNombreCorto = window._currentUser?.nombreCorto || "el director";
 
-  const recElectrico = recordatorioElectrico(c); // mención garantizada eléctrica (LCV/TRUCK)
+  const recElectrico = recordatorioElectrico(c); // mención garantizada eléctrica (LCV/TRUCK/cárnicas)
 
   // Construir el prompt según el tipo de mensaje
   let promptContent;
@@ -1485,7 +1516,7 @@ INSTRUCCIONES:
 
 4. Pregunta concreta enfocada al objetivo: ${c.esClienteFinal ? '"¿Para cuándo prevéis la próxima renovación o ampliación de flota frigorífica?"' : c.esRenting ? '"¿Para cuándo tenéis prevista alguna ampliación de vuestra flota de renting frigorífico?"' : c.esIntermediario ? '"¿Tienes alguna operación en marcha donde haya que montar equipo frigorífico y tu cliente confíe en ti para recomendarle MITSUBISHI?"' : '"¿Para cuándo prevéis algún proyecto de renovación o ampliación de flota frigorífica?"'}
 
-${recElectrico ? `IMPORTANTE (cliente LCV/TRUCK): que el mensaje deje claro, sin añadir líneas de más, que tenemos solución para refrigerar su vehículo eléctrico — "${recElectrico}".
+${recElectrico ? `IMPORTANTE (cliente LCV/TRUCK/cárnica): que el mensaje deje claro, sin añadir líneas de más, que tenemos la solución eléctrica — "${recElectrico}". PROHIBIDO usar fórmulas tipo "cuando decidáis dar el paso" o similares.
 
 ` : ""}5. Máximo 4 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
 
@@ -1513,7 +1544,7 @@ INSTRUCCIONES:
 
 1. Saludo corto: "Hola ${c.contacto.split(" ")[0]},".
 
-2. Una sola frase: "Te mandé un email hace unos días sobre [tema] y no sé si te llegó." El [tema] debe salir del historial; si el historial no aporta un tema concreto, usa algo genérico como "los equipos frigoríficos MITSUBISHI para transporte".${recElectrico ? ' Si el cliente es LCV/TRUCK, que ese [tema] sea precisamente que tenemos solución para refrigerar su vehículo eléctrico.' : ''}
+2. Una sola frase: "Te mandé un email hace unos días sobre [tema] y no sé si te llegó." El [tema] debe salir del historial; si el historial no aporta un tema concreto, usa algo genérico como "los equipos frigoríficos MITSUBISHI para transporte".${recElectrico ? ' Si el cliente es LCV/TRUCK o cárnica, que ese [tema] sea precisamente la solución eléctrica: pégate a la frase de la mención.' : ''}
 
 3. Pregunta de cierre enfocada al objetivo, sin proponer "hablar/llamar pronto": ${c.esClienteFinal ? '"¿Para cuándo prevéis vuestra próxima renovación o ampliación de flota?"' : c.esRenting ? '"¿Para cuándo tenéis prevista alguna ampliación de vuestra flota de renting?"' : c.esIntermediario ? '"¿Tienes alguna operación donde haya que montar equipo frigorífico y tu cliente confíe en ti para recomendarle MITSUBISHI?"' : '"¿Para cuándo prevéis algún proyecto de renovación o ampliación de flota?"'}
 
@@ -1597,10 +1628,11 @@ async function generarMensajeLinkedIn(c) {
   console.log("[generarMensajeLinkedIn] Iniciando para:", c.empresa, c.contacto);
   document.getElementById("spin-email").style.display   = "block";
   document.getElementById("email-result").style.display = "none";
+  document.getElementById("email-aviso").style.display  = "none";
   const d = Math.floor((Date.now() - new Date(c.ultimoContacto)) / 86400000);
   const miNombre      = window._currentUser?.nombre      || "el director comercial";
   const miNombreCorto = window._currentUser?.nombreCorto || "el director";
-  const recElectrico = recordatorioElectrico(c); // mención garantizada eléctrica (LCV/TRUCK)
+  const recElectrico = recordatorioElectrico(c); // mención garantizada eléctrica (LCV/TRUCK/cárnicas)
   
   try {
     const payload = {
@@ -1626,7 +1658,7 @@ INSTRUCCIONES:
 
 3. Pregunta de cierre enfocada al objetivo, sin proponer "hablar/charlar pronto": ${c.esClienteFinal ? '"¿Para cuándo prevéis vuestra próxima renovación o ampliación de flota?"' : c.esRenting ? '"¿Para cuándo tenéis prevista alguna ampliación de vuestra flota de renting?"' : c.esIntermediario ? '"¿Tienes alguna operación donde haya que montar equipo frigorífico y tu cliente confíe en ti para recomendarle MITSUBISHI?"' : '"¿Para cuándo prevéis algún proyecto de renovación o ampliación de flota frigorífica?"'}
 
-${recElectrico ? `IMPORTANTE (cliente LCV/TRUCK): que el mensaje deje claro, sin añadir líneas de más, que tenemos solución para refrigerar su vehículo eléctrico — "${recElectrico}".
+${recElectrico ? `IMPORTANTE (cliente LCV/TRUCK/cárnica): que el mensaje deje claro, sin añadir líneas de más, que tenemos la solución eléctrica — "${recElectrico}". PROHIBIDO usar fórmulas tipo "cuando decidáis dar el paso" o similares.
 
 ` : ""}4. Máximo 4 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
 
