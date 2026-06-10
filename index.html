@@ -307,7 +307,8 @@ const LIMITE = 200;
 // Se reconstruye al cargar los contactos desde las notas
 let estado = {};
 
-function guardarEstado() { /* Estado en Google Contacts, no localStorage */ }
+// Decisión arquitectónica: el estado vive en Google Contacts, no en localStorage
+// ni en ninguna BD propia. Se reconstruye desde las notas en cada carga.
 
 // Reconstruir estado desde las notas de un contacto
 function reconstruirEstado(c) {
@@ -409,8 +410,6 @@ function reconstruirEstado(c) {
       emailEnviadoEn,
       wappEnviadoEn,
       linkedinEnviadoEn,
-      // Compatibilidad con código existente
-      wappEnviado: !!wappEnviadoEn,
       posponerHasta
     };
   }
@@ -965,7 +964,17 @@ function obtenerUSPsCliente(c) {
   }
 
   if (etiquetas.some(e => e.includes("TRAILER"))) {
-    bloques.push(
+    // Caso especial CÁRNICAS (etiqueta GC "clientes finales cárnicas"): el argumento
+    // NO es que los equipos soporten altas temperaturas, sino que son los de MAYOR
+    // capacidad de descarche del mercado — crítico para transportar productos con
+    // alto grado de humedad como la carne. Para el resto de TRAILER, bloque estándar.
+    const esCarnica = etiquetas.some(e => e.includes("CÁRNIC") || e.includes("CARNIC"));
+    bloques.push(esCarnica ?
+`SEGMENTO TRAILER (semirremolque) — cliente CÁRNICA — ventajas REALES de nuestros equipos para este cliente:
+• Más de 50 años fabricando equipos frigoríficos MITSUBISHI para transporte
+• Alta fiabilidad probada: más de 10 años sin problemas en flotas de Japón, Europa y Australia
+• ARGUMENTO PRIORITARIO para este cliente (cárnica): los equipos con MAYOR capacidad de descarche del mercado — crítico para el transporte de productos con alto grado de humedad como la carne. NO uses como argumento que los equipos soportan altas temperaturas: para una cárnica el argumento es el descarche.`
+:
 `SEGMENTO TRAILER (semirremolque) — ventajas REALES de nuestros equipos para este cliente:
 • Más de 50 años fabricando equipos frigoríficos MITSUBISHI para transporte
 • Alta fiabilidad probada: más de 10 años sin problemas en flotas de Japón, Europa y Australia
@@ -1088,6 +1097,8 @@ EJEMPLO CON HISTORIAL ESCUETO (solo fechas, sin contenido):
 
 ${REGLAS_ESTILO}
 
+MENCIÓN OBLIGATORIA EN TODO EMAIL — FIABILIDAD JAPONESA: integra con naturalidad, como argumento dentro del texto (nunca como eslogan suelto), la alta fiabilidad de los equipos frigoríficos MITSUBISHI gracias a la tradición de fabricación de calidad de las fábricas japonesas.
+
 FORMATO:
 ASUNTO: [breve, específico al cliente y al tema concreto, sin las palabras "seguimiento" ni "contacto"]
 
@@ -1145,6 +1156,8 @@ REGLAS DE FORMA:
 - Prohibido: "Espero que estés bien", "Me pongo en contacto", "Aprovecho para", despedidas formales, firma con tu nombre.
 
 ${REGLAS_ESTILO}
+
+MENCIÓN OBLIGATORIA EN TODO EMAIL — FIABILIDAD JAPONESA: integra con naturalidad, como argumento dentro del texto (nunca como eslogan suelto), la alta fiabilidad de los equipos frigoríficos MITSUBISHI gracias a la tradición de fabricación de calidad de las fábricas japonesas.
 
 FORMATO DE SALIDA (respeta exactamente):
 ASUNTO: [una línea, específica al cliente y al tema concreto que extrajiste — sin "seguimiento" ni "contacto"]
@@ -1269,7 +1282,6 @@ Hola Javier, hace tiempo que no contactamos. ¿Cómo va la flota? ¿Para cuándo
   document.getElementById("email-result").style.display = "block";
 }
 
-function regenEmail() { if(selCliente) generarEmail(selCliente); }
 function copiarEmail() {
   const a = document.getElementById("asunto-text")?.value || emailAsunto;
   const b = document.getElementById("cuerpo-text")?.value || emailCuerpo;
@@ -1373,7 +1385,6 @@ async function posponerAFecha(isoFecha, fechaDisplay) {
     emailEnviadoEn: null,
     wappEnviadoEn: null,
     linkedinEnviadoEn: null,
-    wappEnviado: false,
     posponerHasta: isoFecha
   };
   cerrarPanel();
@@ -1417,10 +1428,9 @@ function estaGestionado(id) {
   // contactos con próxima acción de hoy reaparecían en la lista justo tras
   // ser gestionados, dando la impresión de que el envío no se materializó.
   if (e.ocultoEnSesion) return true;
-  // RED DE SEGURIDAD: próxima acción vencida o de hoy y sin acción en sesión
-  // → NUNCA se considera gestionado pasivamente.
-  const c = clientes.find(x => x.id === id) || _todosLosContactos.find(x => x.id === id);
-  if (c && proximaAccionPendiente(c)) return false;
+  // RED DE SEGURIDAD: sin acción marcada en esta sesión, un contacto NUNCA se
+  // considera gestionado pasivamente — en particular los que tienen próxima
+  // acción vencida o de hoy, que son prioritarios por definición.
   return false;
 }
 
@@ -1754,10 +1764,11 @@ Frase:`
 }
 
 // Calcula fecha de próxima acción de forma determinista (sin IA):
-// email enviado → +2 días hábiles | wapp enviado → +3 meses
-function calcularFechaProximaAccion(esWapp) {
+// cierraCiclo=true (wapp, linkedin, email sin móvil) → +3 meses
+// cierraCiclo=false (email con móvil, vendrá WApp)   → +2 días hábiles
+function calcularFechaProximaAccion(cierraCiclo) {
   const fecha = new Date();
-  if (esWapp) {
+  if (cierraCiclo) {
     fecha.setMonth(fecha.getMonth() + 3);
   } else {
     // +2 días hábiles (saltando sábado y domingo)
@@ -2265,7 +2276,9 @@ function mapContact(p) {
   const ultimoContacto = fechaNotas || "2020-01-01";
   // Etiquetas del contacto
   const etiquetas = (p.memberships||[]).map(m => (window._gruposMap||{})[m.contactGroupMembership?.contactGroupResourceName]||"").filter(Boolean);
-  const esClienteFinal = etiquetas.some(e => e.toUpperCase().includes("CLIENTE FINAL"));
+  // Cliente final: acepta singular "CLIENTE FINAL" y plural "CLIENTES FINALES"
+  // (la etiqueta "clientes finales cárnicas" va en plural y debe contar).
+  const esClienteFinal = etiquetas.some(e => { const u = e.toUpperCase(); return u.includes("CLIENTE FINAL") || u.includes("CLIENTES FINALES"); });
   // esRenting: tiene flota propia pero para alquilarla a terceros — caso especial de intermediario
   const esRenting = etiquetas.some(e => e.toUpperCase().includes("RENTING"));
   const esIntermediario = etiquetas.some(e =>
