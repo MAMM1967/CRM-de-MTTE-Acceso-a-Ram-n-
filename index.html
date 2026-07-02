@@ -961,20 +961,19 @@ function obtenerUSPsCliente(c) {
 
   if (etiquetas.some(e => e.includes("LCV"))) {
     bloques.push(
-`SEGMENTO LCV (furgoneta/van) — ventajas REALES de nuestros equipos para este cliente:
-• La mayor fiabilidad del mercado, con hasta 5 años de garantía
-• Reducen hasta un 15% el diésel consumido por el vehículo de reparto y ayudan a alcanzar los planes de reducción de emisiones
-• Evitan las típicas variaciones de temperatura del reparto urbano al bajar las revoluciones del motor diésel, conservando la calidad del producto transportado
-• Funcionan al 100% con el motor del vehículo hasta una hora y no es necesario recargarlos por la noche`
+`SEGMENTO LCV (furgoneta/van) — ventajas REALES de nuestros equipos para este cliente (usa las 3, integradas como argumentos de venta):
+• Menos coste de combustible: reduce hasta un 15% el diésel consumido por el vehículo de reparto y ayuda a cumplir los planes de reducción de emisiones
+• Temperatura bajo control pase lo que pase: la capacidad frigorífica no depende de las RPM del motor, así que mantiene control exacto de la temperatura incluso con el motor apagado o parado en el tráfico más complicado de la ciudad
+• Menos sustos: de los equipos más fiables del mercado, con hasta 5 años de garantía`
     );
   }
 
   if (etiquetas.some(e => e.includes("TRUCK"))) {
     bloques.push(
-`SEGMENTO TRUCK (camión) — ventajas REALES de nuestros equipos para este cliente:
-• La mayor fiabilidad del mercado
-• Reducen el consumo y las emisiones del camión de reparto
-• -25% riesgo de vuelco, mejoran la estabilidad del camión`
+`SEGMENTO TRUCK (camión) — ventajas REALES de nuestros equipos para este cliente (usa las 3, integradas como argumentos de venta):
+• Más seguridad al volante: -25% riesgo de vuelco y mejor estabilidad del camión
+• Menos consumo, menos emisiones: reduce el consumo y las emisiones del camión de reparto, ayudando a cumplir los planes de descarbonización de la empresa
+• Fiabilidad de origen: la mayor fiabilidad del mercado, gracias a la tradición de fabricación de calidad de las fábricas japonesas`
     );
   }
 
@@ -986,17 +985,14 @@ function obtenerUSPsCliente(c) {
     // bullets para evitar efecto catálogo. Resto de TRAILER: bloque estándar.
     if (esContactoCarnica(c)) {
       bloques.push(
-`SEGMENTO TRAILER (semirremolque) — cliente CÁRNICA — ARGUMENTO OBLIGATORIO (inclúyelo SIEMPRE, integrado con naturalidad):
-• Los equipos frigoríficos MITSUBISHI son los de MAYOR capacidad de descarche del mercado — crítico para el transporte de productos con alto grado de humedad como la carne. NO uses como argumento que los equipos soportan altas temperaturas: para una cárnica el argumento es el descarche. No añadas más argumentos de producto.`
+`SEGMENTO TRAILER (semirremolque) — cliente CÁRNICA — ARGUMENTO OBLIGATORIO (inclúyelo SIEMPRE, integrado con naturalidad EN PROSA, nunca como bullet): cuando el evaporador se hiela por la humedad de la carne, el equipo deja de producir frío mientras descongela — los equipos frigoríficos MITSUBISHI tardan solo unos minutos, frente a los 20-30 minutos habituales de la competencia, evitando quemar combustible en vano y que la caja pierda temperatura. NO uses como argumento que los equipos soportan altas temperaturas: para una cárnica el argumento es el descarche rápido. No añadas más argumentos de producto.`
       );
     } else {
       bloques.push(
-`SEGMENTO TRAILER (semirremolque) — ventajas REALES de nuestros equipos para este cliente:
-• Más de 50 años fabricando equipos frigoríficos MITSUBISHI para transporte
-• Alta fiabilidad probada: más de 10 años sin problemas en flotas de Japón, Europa y Australia
-• Adaptados al calor extremo del verano en España: NO se paran por alarmas de alta temperatura como los de la competencia, ni al cargar en el campo o en las bodegas de los barcos
-• Alta capacidad de descarche: ideales para productos con alta humedad — frutas, verduras, carne colgada
-• Más de 45 servicios oficiales en España y más de 250 en toda Europa`
+`SEGMENTO TRAILER (semirremolque) — ventajas REALES de nuestros equipos para este cliente (usa las 3, integradas como argumentos de venta):
+• Aguanta donde otros fallan: adaptado al calor extremo del verano en España, no se para por alarmas de alta temperatura como la competencia, ni al cargar en el campo o en las bodegas de los barcos
+• Trayectoria que respalda: más de 50 años fabricando equipos frigoríficos MITSUBISHI, más de 10 años de fiabilidad probada en flotas de Japón, Europa y Australia, y una red de más de 45 servicios oficiales en España y 250 en Europa
+• Descarche que no derrocha combustible: cuando el evaporador se hiela por la humedad del producto (fruta, verdura, carne), el equipo deja de producir frío mientras descongela — los nuestros tardan solo unos minutos, frente a los 20-30 minutos habituales de la competencia, sin quemar combustible en vano ni arriesgar la temperatura de la caja`
       );
     }
   }
@@ -1083,7 +1079,7 @@ ${usps ? `
 VENTAJAS REALES DEL PRODUCTO (datos verificados — no inventados):
 ${usps}
 
-→ Usa TODAS estas ventajas, integradas con naturalidad en el texto como argumentos creíbles — no las presentes como lista de catálogo, teje cada una dentro de una frase natural. Si el historial ya tiene un hilo claro (proyecto, oferta, decisión pendiente), prioriza ese hilo y engarza las ventajas alrededor sin forzar. Si el historial está vacío, aquí tienes un gancho real y concreto con el que arrancar el email.${(!c.esClienteFinal && !c.esRenting && c.esIntermediario) ? `
+→ Si las ventajas anteriores vienen en formato de bullets (líneas que empiezan por "•"), inclúyelas en el email exactamente en ese formato — una línea por bullet, tal cual te las he dado (titular seguido de dos puntos y detalle), sin fusionarlas en párrafo ni añadir negrita con asteriscos (el email se abre en texto plano, el markdown no se renderiza). Si vienen en prosa (cliente cárnica), intégralas de forma natural dentro del texto, sin convertirlas en bullet. Si el historial ya tiene un hilo claro (proyecto, oferta, decisión pendiente), menciónalo en la apertura o el cierre, sin forzarlo dentro de los bullets. Si el historial está vacío, aquí tienes un gancho real y concreto con el que arrancar el email.${(!c.esClienteFinal && !c.esRenting && c.esIntermediario) ? `
 → OJO — este contacto es un INTERMEDIARIO SIN flota propia. Presenta la ventaja que elijas como ARGUMENTO QUE ÉL puede usar para recomendar los equipos frigoríficos MITSUBISHI a SU cliente final (p. ej. "a tu cliente le interesará porque…", "te dará menos postventa porque…"), NUNCA como beneficio para su propia flota — no la tiene.` : ""}
 ` : ""}${recElectrico ? `
 MENCIÓN OBLIGATORIA — SOLUCIÓN ELÉCTRICA (cliente LCV/TRUCK/cárnica):
@@ -1110,7 +1106,7 @@ INSTRUCCIONES:
    - Si es intermediario sin flota: averiguar si tienen alguna operación en marcha donde haya que montar equipo frigorífico y su cliente confíe en ellos para recomendarle MITSUBISHI.
    Pregunta clara y fácil de responder, sin presionar para "hablar/llamar próximamente".
 
-6. LONGITUD: 100-160 palabras. Adapta a lo que tengas: con historial rico puedes acercarte a 160; con historial escueto, mantente cerca de 100.
+6. LONGITUD: 120-190 palabras. Adapta a lo que tengas: con historial rico y varios bullets de ventajas puedes acercarte a 190; con historial escueto, mantente cerca de 120.
 
 7. NO firmes el email. Sin "Saludos" ni nombre al final.
 
@@ -1126,7 +1122,7 @@ EJEMPLO CON HISTORIAL ESCUETO (solo fechas, sin contenido):
 
 ${REGLAS_ESTILO}
 
-MENCIÓN OBLIGATORIA EN TODO EMAIL — FIABILIDAD JAPONESA: integra con naturalidad, como argumento dentro del texto (nunca como eslogan suelto), la alta fiabilidad de los equipos frigoríficos MITSUBISHI gracias a la tradición de fabricación de calidad de las fábricas japonesas.
+MENCIÓN OBLIGATORIA EN TODO EMAIL — FIABILIDAD JAPONESA: integra con naturalidad, como argumento dentro del texto (nunca como eslogan suelto ni como bullet adicional), que la fiabilidad de los equipos frigoríficos MITSUBISHI —gracias a la tradición de fabricación de calidad de las fábricas japonesas— se traduce en menos visitas al taller, menos gasto en reparaciones y mantenimiento, y una vida útil que supera los 10 años.
 
 
 FORMATO:
@@ -1148,7 +1144,7 @@ ${usps ? `
 VENTAJAS REALES DEL PRODUCTO (datos verificados — puedes usarlos):
 ${usps}
 
-→ Usa TODAS estas ventajas en el cuerpo del email, integradas con naturalidad como argumentos creíbles — no las presentes como lista de catálogo, teje cada una dentro de una frase natural. Si el historial tiene ya un hilo claro (proyecto, oferta, conversación pendiente), prioriza ese hilo y engarza las ventajas alrededor sin forzar. Si el historial está vacío, aquí tienes un gancho real y concreto con el que construir el email.${(!c.esClienteFinal && !c.esRenting && c.esIntermediario) ? `
+→ Si las ventajas anteriores vienen en formato de bullets (líneas que empiezan por "•"), inclúyelas en el cuerpo del email exactamente en ese formato — una línea por bullet, tal cual te las he dado (titular seguido de dos puntos y detalle), sin fusionarlas en párrafo ni añadir negrita con asteriscos (el email se abre en texto plano, el markdown no se renderiza). Si vienen en prosa (cliente cárnica), intégralas de forma natural dentro del texto, sin convertirlas en bullet. Si el historial tiene ya un hilo claro (proyecto, oferta, conversación pendiente), menciónalo en la apertura o el cierre, sin forzarlo dentro de los bullets. Si el historial está vacío, aquí tienes un gancho real y concreto con el que construir el email.${(!c.esClienteFinal && !c.esRenting && c.esIntermediario) ? `
 → OJO — este contacto es un INTERMEDIARIO SIN flota propia. Presenta la ventaja que elijas como ARGUMENTO QUE ÉL puede usar para recomendar los equipos frigoríficos MITSUBISHI a SU cliente final (p. ej. "a tu cliente le interesará porque…", "te dará menos postventa porque…"), NUNCA como beneficio para su propia flota — no la tiene.` : ""}
 ` : ""}${recElectrico ? `
 MENCIÓN OBLIGATORIA — SOLUCIÓN ELÉCTRICA (cliente LCV/TRUCK/cárnica):
@@ -1182,12 +1178,12 @@ REGLA CRÍTICA — PROHIBIDO INVENTAR DATOS TÉCNICOS O COMERCIALES:
 
 REGLAS DE FORMA:
 - Español comercial natural, tono cercano y humano como un comercial veterano que conoce al cliente.
-- Longitud: 140-180 palabras. Suficiente para construir el mensaje con calado humano, sin volverse pesado.
+- Longitud: 160-200 palabras. Suficiente para construir el mensaje con calado humano y encajar los bullets de ventajas, sin volverse pesado.
 - Prohibido: "Espero que estés bien", "Me pongo en contacto", "Aprovecho para", despedidas formales, firma con tu nombre.
 
 ${REGLAS_ESTILO}
 
-MENCIÓN OBLIGATORIA EN TODO EMAIL — FIABILIDAD JAPONESA: integra con naturalidad, como argumento dentro del texto (nunca como eslogan suelto), la alta fiabilidad de los equipos frigoríficos MITSUBISHI gracias a la tradición de fabricación de calidad de las fábricas japonesas.
+MENCIÓN OBLIGATORIA EN TODO EMAIL — FIABILIDAD JAPONESA: integra con naturalidad, como argumento dentro del texto (nunca como eslogan suelto ni como bullet adicional), que la fiabilidad de los equipos frigoríficos MITSUBISHI —gracias a la tradición de fabricación de calidad de las fábricas japonesas— se traduce en menos visitas al taller, menos gasto en reparaciones y mantenimiento, y una vida útil que supera los 10 años.
 
 
 FORMATO DE SALIDA (respeta exactamente):
