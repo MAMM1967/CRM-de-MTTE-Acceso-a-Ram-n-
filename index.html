@@ -962,20 +962,19 @@ function obtenerUSPsCliente(c) {
   if (etiquetas.some(e => e.includes("LCV"))) {
     bloques.push(
 `SEGMENTO LCV (furgoneta/van) — ventajas REALES de nuestros equipos para este cliente:
-• Evaporador externo: no ocupa espacio en la caja de carga — gran diferencial frente al split tradicional, muy valorado por clientes a quienes incomoda el evaporador tipo split dentro de la caja
-• Reducen un 15% el consumo diésel del vehículo
-• Garantía de fábrica de 5 años
-• Funcionan independientes del motor: mantienen la temperatura con el motor al ralentí o apagado`
+• La mayor fiabilidad del mercado, con hasta 5 años de garantía
+• Reducen hasta un 15% el diésel consumido por el vehículo de reparto y ayudan a alcanzar los planes de reducción de emisiones
+• Evitan las típicas variaciones de temperatura del reparto urbano al bajar las revoluciones del motor diésel, conservando la calidad del producto transportado
+• Funcionan al 100% con el motor del vehículo hasta una hora y no es necesario recargarlos por la noche`
     );
   }
 
   if (etiquetas.some(e => e.includes("TRUCK"))) {
     bloques.push(
 `SEGMENTO TRUCK (camión) — ventajas REALES de nuestros equipos para este cliente:
-• Reducen un 25% el riesgo de vuelco → menos mortalidad de conductores (argumento de seguridad muy potente con flotas y responsables de flota)
-• Los de menor consumo diésel del mercado en su segmento
-• Alta fiabilidad demostrada
-• Larga experiencia y certificaciones con fabricantes para instalar equipos 100% eléctricos en camiones eléctricos`
+• La mayor fiabilidad del mercado
+• Reducen el consumo y las emisiones del camión de reparto
+• -25% riesgo de vuelco, mejoran la estabilidad del camión`
     );
   }
 
@@ -995,8 +994,9 @@ function obtenerUSPsCliente(c) {
 `SEGMENTO TRAILER (semirremolque) — ventajas REALES de nuestros equipos para este cliente:
 • Más de 50 años fabricando equipos frigoríficos MITSUBISHI para transporte
 • Alta fiabilidad probada: más de 10 años sin problemas en flotas de Japón, Europa y Australia
-• Adaptados al calor extremo del verano en España: NO se paran por alarmas de alta temperatura como los de la competencia
-• Alta capacidad de descarche: ideales para productos con alta humedad — frutas, verduras, carne colgada`
+• Adaptados al calor extremo del verano en España: NO se paran por alarmas de alta temperatura como los de la competencia, ni al cargar en el campo o en las bodegas de los barcos
+• Alta capacidad de descarche: ideales para productos con alta humedad — frutas, verduras, carne colgada
+• Más de 45 servicios oficiales en España y más de 250 en toda Europa`
       );
     }
   }
@@ -1083,7 +1083,7 @@ ${usps ? `
 VENTAJAS REALES DEL PRODUCTO (datos verificados — no inventados):
 ${usps}
 
-→ Si alguna encaja de forma NATURAL con el historial o el sector de este cliente, menciónala. Usa UNA sola, integrada en el texto como argumento — no como lista de catálogo. Si el historial ya tiene un hilo claro (proyecto, oferta, decisión pendiente), prioriza ese hilo; añade la ventaja solo si complementa sin forzar. Si el historial está vacío, aquí tienes un gancho real y concreto con el que arrancar el email.${(!c.esClienteFinal && !c.esRenting && c.esIntermediario) ? `
+→ Usa TODAS estas ventajas, integradas con naturalidad en el texto como argumentos creíbles — no las presentes como lista de catálogo, teje cada una dentro de una frase natural. Si el historial ya tiene un hilo claro (proyecto, oferta, decisión pendiente), prioriza ese hilo y engarza las ventajas alrededor sin forzar. Si el historial está vacío, aquí tienes un gancho real y concreto con el que arrancar el email.${(!c.esClienteFinal && !c.esRenting && c.esIntermediario) ? `
 → OJO — este contacto es un INTERMEDIARIO SIN flota propia. Presenta la ventaja que elijas como ARGUMENTO QUE ÉL puede usar para recomendar los equipos frigoríficos MITSUBISHI a SU cliente final (p. ej. "a tu cliente le interesará porque…", "te dará menos postventa porque…"), NUNCA como beneficio para su propia flota — no la tiene.` : ""}
 ` : ""}${recElectrico ? `
 MENCIÓN OBLIGATORIA — SOLUCIÓN ELÉCTRICA (cliente LCV/TRUCK/cárnica):
@@ -1125,9 +1125,9 @@ EJEMPLO CON HISTORIAL ESCUETO (solo fechas, sin contenido):
 "Hola Pedro, hace tiempo que no contactamos. ¿Cómo va la flota? ¿Para cuándo prevéis vuestra próxima renovación o ampliación de equipos frigoríficos?"
 
 ${REGLAS_ESTILO}
-${esCarnica ? "" : `
+
 MENCIÓN OBLIGATORIA EN TODO EMAIL — FIABILIDAD JAPONESA: integra con naturalidad, como argumento dentro del texto (nunca como eslogan suelto), la alta fiabilidad de los equipos frigoríficos MITSUBISHI gracias a la tradición de fabricación de calidad de las fábricas japonesas.
-`}
+
 
 FORMATO:
 ASUNTO: [breve, específico al cliente y al tema concreto, sin las palabras "seguimiento" ni "contacto"]
@@ -1148,7 +1148,7 @@ ${usps ? `
 VENTAJAS REALES DEL PRODUCTO (datos verificados — puedes usarlos):
 ${usps}
 
-→ Si alguna de estas ventajas encaja de forma NATURAL con el historial y el sector de este cliente, incorpórala en el cuerpo del email. Usa UNA sola, integrada como argumento creíble — no como lista. Si el historial tiene ya un hilo claro (proyecto, oferta, conversación pendiente), prioriza ese hilo y añade la ventaja solo si complementa sin forzar. Si el historial está vacío, aquí tienes un gancho real y concreto con el que construir el email.${(!c.esClienteFinal && !c.esRenting && c.esIntermediario) ? `
+→ Usa TODAS estas ventajas en el cuerpo del email, integradas con naturalidad como argumentos creíbles — no las presentes como lista de catálogo, teje cada una dentro de una frase natural. Si el historial tiene ya un hilo claro (proyecto, oferta, conversación pendiente), prioriza ese hilo y engarza las ventajas alrededor sin forzar. Si el historial está vacío, aquí tienes un gancho real y concreto con el que construir el email.${(!c.esClienteFinal && !c.esRenting && c.esIntermediario) ? `
 → OJO — este contacto es un INTERMEDIARIO SIN flota propia. Presenta la ventaja que elijas como ARGUMENTO QUE ÉL puede usar para recomendar los equipos frigoríficos MITSUBISHI a SU cliente final (p. ej. "a tu cliente le interesará porque…", "te dará menos postventa porque…"), NUNCA como beneficio para su propia flota — no la tiene.` : ""}
 ` : ""}${recElectrico ? `
 MENCIÓN OBLIGATORIA — SOLUCIÓN ELÉCTRICA (cliente LCV/TRUCK/cárnica):
@@ -1186,9 +1186,9 @@ REGLAS DE FORMA:
 - Prohibido: "Espero que estés bien", "Me pongo en contacto", "Aprovecho para", despedidas formales, firma con tu nombre.
 
 ${REGLAS_ESTILO}
-${esCarnica ? "" : `
+
 MENCIÓN OBLIGATORIA EN TODO EMAIL — FIABILIDAD JAPONESA: integra con naturalidad, como argumento dentro del texto (nunca como eslogan suelto), la alta fiabilidad de los equipos frigoríficos MITSUBISHI gracias a la tradición de fabricación de calidad de las fábricas japonesas.
-`}
+
 
 FORMATO DE SALIDA (respeta exactamente):
 ASUNTO: [una línea, específica al cliente y al tema concreto que extrajiste — sin "seguimiento" ni "contacto"]
