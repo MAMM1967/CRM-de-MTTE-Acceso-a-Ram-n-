@@ -339,6 +339,13 @@ function reconstruirEstado(c) {
   let wappEnviadoEn     = null;
   let linkedinEnviadoEn = null;
   let posponerHasta     = null;
+  // Cierre por llamada (decisión 03/07/2026): true si la ÚLTIMA línea
+  // "Próxima acción" del historial (sistema o manual) es de tipo llamada
+  // ("llamarle en DD-MM-YYYY"). En ese caso el ciclo de canales queda
+  // CERRADO — no se propone email/WApp/LinkedIn, ni antes ni después de la
+  // fecha. La llamada es 100% manual; el contacto sigue apareciendo como
+  // vencido en el Grupo 1 vía proximaAccion.
+  let cicloLlamada      = false;
 
   // Helper para extraer fecha de la línea anterior (header del bloque)
   const fechaDeBloqueEn = (i) => {
@@ -381,6 +388,11 @@ function reconstruirEstado(c) {
         const fechaISO = `${mF[3]}-${mF[2].padStart(2,"0")}-${mF[1].padStart(2,"0")}`;
         const fechaTs = new Date(fechaISO).getTime();
         if (!isNaN(fechaTs)) {
+          // Cada línea de próxima acción actualiza el flag: la ÚLTIMA gana.
+          // "llamar" (llamarle/llamar/volver a llamarle…) → cierre por llamada.
+          // Cualquier otra próxima acción (p. ej. "enviar Wapp de seguimiento"
+          // o una nota manual sin llamada) reabre el ciclo de canales.
+          cicloLlamada = /llamar/i.test(l);
           if (esSistema) {
             if (fechaTs > hoyMs) {
               posponerHasta = fechaISO;
@@ -406,12 +418,13 @@ function reconstruirEstado(c) {
   });
 
   // Solo guardamos estado si hay alguna información útil
-  if (emailEnviadoEn || wappEnviadoEn || linkedinEnviadoEn || posponerHasta) {
+  if (emailEnviadoEn || wappEnviadoEn || linkedinEnviadoEn || posponerHasta || cicloLlamada) {
     estado[c.id] = {
       emailEnviadoEn,
       wappEnviadoEn,
       linkedinEnviadoEn,
-      posponerHasta
+      posponerHasta,
+      cicloLlamada
     };
   }
 }
@@ -802,6 +815,12 @@ function diasDesde(ts) {
 function accionPara(c) {
   if (!c) return null;
   const e = estado[c.id] || {};
+  // Cierre por llamada (decisión 03/07/2026): si la última "Próxima acción"
+  // del historial es "llamarle en DD-MM-YYYY", NO se propone ningún canal
+  // (ni email, ni WApp, ni LinkedIn), tanto si la fecha es futura como si ya
+  // venció. La llamada es manual, fuera del flujo de canales de la app; el
+  // contacto vencido sigue subiendo al Grupo 1 por proximaAccion.
+  if (e.cicloLlamada) return null;
   const dE = diasDesde(e.emailEnviadoEn);
   const dW = diasDesde(e.wappEnviadoEn);
   const dL = diasDesde(e.linkedinEnviadoEn);
@@ -1051,9 +1070,12 @@ async function generarEmail(c) {
   const d = dias(c.ultimoContacto);
   const usps = obtenerUSPsCliente(c); // ventajas reales de producto por segmento (null si no aplica)
   const recElectrico = recordatorioElectrico(c); // mención garantizada de solución eléctrica (LCV/TRUCK/cárnicas), null si no aplica
-  // Cárnicas: solo dos argumentos en el email (descarche + eléctrico). La mención
-  // de fiabilidad japonesa se OMITE para evitar efecto catálogo (decisión 10/06/2026).
   const esCarnica = esContactoCarnica(c);
+  // TRUCK: su bloque de USPs ya incluye el bullet "Fiabilidad de origen"
+  // (fabricación japonesa). Para no duplicar el argumento en el mismo email,
+  // la MENCIÓN OBLIGATORIA de fiabilidad japonesa en prosa se EXCLUYE para
+  // TRUCK (decisión 03/07/2026). El resto de segmentos la mantiene.
+  const esTruck = (c.etiquetas || []).some(e => (e || "").toUpperCase().includes("TRUCK"));
   const miNombre      = window._currentUser?.nombre      || "el director comercial";
   const miNombreCorto = window._currentUser?.nombreCorto || "el director";
   
@@ -1102,7 +1124,7 @@ INSTRUCCIONES:
 4. CONSTRUYE EL EMAIL SOBRE LO QUE TIENES. No "aportes valor" inventando — el valor viene de demostrar que recuerdas la conversación previa, de hacer la pregunta correcta, de mostrar continuidad. Si el historial es escueto, el email también lo será, y eso está bien: mejor un email corto y honesto que uno largo con datos falsos.
 
 5. UNA SOLA PREGUNTA al final, enfocada al objetivo:
-   - Si es cliente final o renting: averiguar CUÁNDO prevén su próxima renovación o ampliación de flota frigorífica (horizonte temporal), NO proponer una llamada o reunión "pronto".
+   - Si es cliente final o renting: averiguar CUÁNDO prevén su próxima renovación o ampliación de flota frigorífica (horizonte temporal), NO proponer una llamada o reunión "pronto". Acompaña la pregunta explicando con naturalidad su propósito, para que no suene a insistencia: es para apuntarlo y contactar en el momento apropiado (adapta la formulación, no la copies literal). Modelo de referencia: "¿Para cuándo tenéis prevista la próxima renovación o ampliación de flota? Es para apuntarlo y contactar en el momento apropiado."
    - Si es intermediario sin flota: averiguar si tienen alguna operación en marcha donde haya que montar equipo frigorífico y su cliente confíe en ellos para recomendarle MITSUBISHI.
    Pregunta clara y fácil de responder, sin presionar para "hablar/llamar próximamente".
 
@@ -1118,12 +1140,12 @@ Lo comento porque me ayudaría saber para cuándo prevéis esa renovación, así
 ¿Tenéis ya una fecha aproximada en mente para la renovación o ampliación?"
 
 EJEMPLO CON HISTORIAL ESCUETO (solo fechas, sin contenido):
-"Hola Pedro, hace tiempo que no contactamos. ¿Cómo va la flota? ¿Para cuándo prevéis vuestra próxima renovación o ampliación de equipos frigoríficos?"
+"Hola Pedro, hace tiempo que no contactamos. ¿Cómo va la flota? ¿Para cuándo prevéis vuestra próxima renovación o ampliación de equipos frigoríficos? Es para apuntarlo y contactar en el momento apropiado."
 
 ${REGLAS_ESTILO}
-
+${esTruck ? "" : `
 MENCIÓN OBLIGATORIA EN TODO EMAIL — FIABILIDAD JAPONESA: integra con naturalidad, como argumento dentro del texto (nunca como eslogan suelto ni como bullet adicional), que la fiabilidad de los equipos frigoríficos MITSUBISHI —gracias a la tradición de fabricación de calidad de las fábricas japonesas— se traduce en menos visitas al taller, menos gasto en reparaciones y mantenimiento, y una vida útil que supera los 10 años.
-
+`}
 
 FORMATO:
 ASUNTO: [breve, específico al cliente y al tema concreto, sin las palabras "seguimiento" ni "contacto"]
@@ -1165,7 +1187,7 @@ ESTRUCTURA DEL EMAIL:
 1. Apertura cercana con UNA referencia concreta del historial. Si hay un detalle personal (afición, hobby, situación familiar mencionada en notas), inclúyelo con naturalidad — eso crea conexión real. Sin "Espero que estés bien".
 2. Si en el historial hay constancia de un envío previo sin respuesta (oferta, guía, propuesta, llamada no devuelta), MENCIÓNALO con honestidad y sin reproche, dándole una salida fácil al receptor. Ejemplo: "Vi que no llegaste a responder cuando te mandé X. No sé si es que no había nada en marcha por vuestra parte o simplemente no era el momento."
 3. UNA pregunta abierta al final, enfocada al objetivo y fácil de responder, SIN proponer "hablar/llamar pronto":
-   - Cliente final o renting: para cuándo prevén su próxima renovación o ampliación de flota frigorífica. Ej.: "¿Para cuándo tenéis prevista la próxima renovación o ampliación de flota?".
+   - Cliente final o renting: para cuándo prevén su próxima renovación o ampliación de flota frigorífica, explicando con naturalidad el propósito de la pregunta para que no suene a insistencia (adapta la formulación, no la copies literal). Ej.: "¿Para cuándo tenéis prevista la próxima renovación o ampliación de flota? Es para apuntarlo y contactar en el momento apropiado.".
    - Intermediario sin flota: si tienen alguna operación donde haya que montar equipo frigorífico y su cliente confíe en ellos para recomendarle MITSUBISHI. Ej.: "¿Tienes alguna operación en marcha donde haya que montar equipo frigorífico y tu cliente confíe en ti para recomendarle MITSUBISHI?".
 
 REGLA CRÍTICA — PROHIBIDO INVENTAR DATOS TÉCNICOS O COMERCIALES:
@@ -1182,9 +1204,9 @@ REGLAS DE FORMA:
 - Prohibido: "Espero que estés bien", "Me pongo en contacto", "Aprovecho para", despedidas formales, firma con tu nombre.
 
 ${REGLAS_ESTILO}
-
+${esTruck ? "" : `
 MENCIÓN OBLIGATORIA EN TODO EMAIL — FIABILIDAD JAPONESA: integra con naturalidad, como argumento dentro del texto (nunca como eslogan suelto ni como bullet adicional), que la fiabilidad de los equipos frigoríficos MITSUBISHI —gracias a la tradición de fabricación de calidad de las fábricas japonesas— se traduce en menos visitas al taller, menos gasto en reparaciones y mantenimiento, y una vida útil que supera los 10 años.
-
+`}
 
 FORMATO DE SALIDA (respeta exactamente):
 ASUNTO: [una línea, específica al cliente y al tema concreto que extrajiste — sin "seguimiento" ni "contacto"]
@@ -1204,7 +1226,7 @@ Fíjate en lo que hace bien este ejemplo: arranca con un detalle personal (el ba
 EJEMPLO CON HISTORIAL ESCUETO (solo fechas, sin contenido):
 ASUNTO: Cómo va la flota
 CUERPO:
-Hola Javier, hace tiempo que no contactamos. ¿Cómo va la flota? ¿Para cuándo prevéis vuestra próxima renovación o ampliación de equipos frigoríficos?`;
+Hola Javier, hace tiempo que no contactamos. ¿Cómo va la flota? ¿Para cuándo prevéis vuestra próxima renovación o ampliación de equipos frigoríficos? Es para apuntarlo y contactar en el momento apropiado.`;
 
     const payload = {
       model:"claude-sonnet-4-20250514",
@@ -1652,7 +1674,7 @@ INSTRUCCIONES:
 
 2. Una frase con UN detalle del historial (proyecto, equipo, conversación). Si no hay nada concreto, di: "Hace tiempo que no contactamos".
 
-3. Pregunta de cierre enfocada al objetivo, sin proponer "hablar/charlar pronto": ${c.esClienteFinal ? '"¿Para cuándo prevéis vuestra próxima renovación o ampliación de flota?"' : c.esRenting ? '"¿Para cuándo tenéis prevista alguna ampliación de vuestra flota de renting?"' : c.esIntermediario ? '"¿Tienes alguna operación donde haya que montar equipo frigorífico y tu cliente confíe en ti para recomendarle MITSUBISHI?"' : '"¿Para cuándo prevéis algún proyecto de renovación o ampliación de flota frigorífica?"'}
+3. Pregunta de cierre enfocada al objetivo, sin proponer "hablar/charlar pronto": ${c.esClienteFinal ? '"¿Para cuándo prevéis vuestra próxima renovación o ampliación de flota? Es para apuntarlo y contactar en el momento apropiado."' : c.esRenting ? '"¿Para cuándo tenéis prevista alguna ampliación de vuestra flota de renting? Es para apuntarlo y contactar en el momento apropiado."' : c.esIntermediario ? '"¿Tienes alguna operación donde haya que montar equipo frigorífico y tu cliente confíe en ti para recomendarle MITSUBISHI?"' : '"¿Para cuándo prevéis algún proyecto de renovación o ampliación de flota frigorífica? Es para apuntarlo y contactar en el momento apropiado."'}
 
 ${recElectrico ? `IMPORTANTE (cliente LCV/TRUCK/cárnica): que el mensaje deje claro, sin añadir líneas de más, que tenemos la solución eléctrica — "${recElectrico}". PROHIBIDO usar fórmulas tipo "cuando decidáis dar el paso" o similares.
 
@@ -1663,7 +1685,7 @@ ${recElectrico ? `IMPORTANTE (cliente LCV/TRUCK/cárnica): que el mensaje deje c
 EJEMPLO:
 "Hola Pedro,
 Hace tiempo que no contactamos. Vi que MercaFrío sigue creciendo.
-¿Para cuándo prevéis vuestra próxima renovación o ampliación de flota frigorífica?"
+¿Para cuándo prevéis vuestra próxima renovación o ampliación de flota frigorífica? Es para apuntarlo y contactar en el momento apropiado."
 
 ${REGLAS_ESTILO}
 
