@@ -1229,7 +1229,7 @@ CUERPO:
 Hola Javier, hace tiempo que no contactamos. ¿Cómo va la flota? ¿Para cuándo prevéis vuestra próxima renovación o ampliación de equipos frigoríficos? Es para apuntarlo y contactar en el momento apropiado.`;
 
     const payload = {
-      model:"claude-sonnet-4-20250514",
+      model:"claude-sonnet-5",
       max_tokens:1200,
       messages:[{role:"user", content: _motorActivo === "workersai" ? promptLlama : promptClaude}]
     };
@@ -1582,7 +1582,7 @@ Devuelve solo el mensaje.`;
 
   try {
     const payload = {
-      model:"claude-sonnet-4-20250514",
+      model:"claude-sonnet-5",
       max_tokens:600,
       messages:[{role:"user", content: promptContent}]
     };
@@ -1654,7 +1654,7 @@ async function generarMensajeLinkedIn(c) {
   
   try {
     const payload = {
-      model:"claude-sonnet-4-20250514", 
+      model:"claude-sonnet-5", 
       max_tokens:400,
       messages:[{role:"user", content:
 `Tu rol: ${miNombre}, director de Mitsubishi Equipos Frigoríficos en España.
@@ -1788,7 +1788,7 @@ async function generarResumenAccion(tipoMensaje, asunto, cuerpo) {
     const res = await fetch(PROXY_URL, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514", max_tokens: 80,
+        model: "claude-sonnet-5", max_tokens: 80,
         messages: [{ role: "user", content:
 `Resume en UNA SOLA FRASE de 10-18 palabras lo más relevante de este ${tipoMensaje} comercial enviado a un cliente. Empieza con "Envío ${tipoMensaje}" seguido de los puntos concretos tratados. No uses comillas. No hagas comentarios. Solo la frase.
 
