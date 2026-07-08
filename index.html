@@ -125,7 +125,8 @@
       <div style="display:flex;align-items:center;gap:12px;">
         <div class="logo-box">M</div>
         <div>
-          <div style="font-size:15px;font-weight:700;letter-spacing:-0.3px;">Mitsubishi Frigoríficos</div>
+          <div style="font-size:15px;font-weight:700;letter-spacing:-0.3px;display:flex;align-items:center;gap:8px;">Mitsubishi Frigoríficos<!-- Badge de versión estático (07/07/2026): refleja el nombre del archivo entregado. Sin lógica ni red — se fija manualmente en cada entrega. -->
+            <span id="version-badge" style="font-size:10px;font-weight:600;color:#6b7280;background:#161b22;border:1px solid #1e2535;padding:1px 7px;border-radius:7px;letter-spacing:0.3px;">crm_2026_07_07_1924</span></div>
           <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Seguimiento Comercial · IA</div>
         </div>
       </div>
@@ -1229,7 +1230,7 @@ CUERPO:
 Hola Javier, hace tiempo que no contactamos. ¿Cómo va la flota? ¿Para cuándo prevéis vuestra próxima renovación o ampliación de equipos frigoríficos? Es para apuntarlo y contactar en el momento apropiado.`;
 
     const payload = {
-      model:"claude-sonnet-5",
+      model:"claude-sonnet-4-20250514",
       max_tokens:1200,
       messages:[{role:"user", content: _motorActivo === "workersai" ? promptLlama : promptClaude}]
     };
@@ -1582,7 +1583,7 @@ Devuelve solo el mensaje.`;
 
   try {
     const payload = {
-      model:"claude-sonnet-5",
+      model:"claude-sonnet-4-20250514",
       max_tokens:600,
       messages:[{role:"user", content: promptContent}]
     };
@@ -1654,7 +1655,7 @@ async function generarMensajeLinkedIn(c) {
   
   try {
     const payload = {
-      model:"claude-sonnet-5", 
+      model:"claude-sonnet-4-20250514", 
       max_tokens:400,
       messages:[{role:"user", content:
 `Tu rol: ${miNombre}, director de Mitsubishi Equipos Frigoríficos en España.
@@ -1788,7 +1789,7 @@ async function generarResumenAccion(tipoMensaje, asunto, cuerpo) {
     const res = await fetch(PROXY_URL, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-5", max_tokens: 80,
+        model: "claude-sonnet-4-20250514", max_tokens: 80,
         messages: [{ role: "user", content:
 `Resume en UNA SOLA FRASE de 10-18 palabras lo más relevante de este ${tipoMensaje} comercial enviado a un cliente. Empieza con "Envío ${tipoMensaje}" seguido de los puntos concretos tratados. No uses comillas. No hagas comentarios. Solo la frase.
 
@@ -2331,14 +2332,28 @@ function mapContact(p) {
   const esClienteFinal = etiquetas.some(e => { const u = e.toUpperCase(); return u.includes("CLIENTE FINAL") || u.includes("CLIENTES FINALES"); });
   // esRenting: tiene flota propia pero para alquilarla a terceros — caso especial de intermediario
   const esRenting = etiquetas.some(e => e.toUpperCase().includes("RENTING"));
-  const esIntermediario = etiquetas.some(e =>
-    e.toUpperCase().includes("CARROCERO") ||
-    e.toUpperCase().includes("RENTING") ||
-    e.toUpperCase().includes("SERVICIO OFICIAL") ||
-    e.toUpperCase().includes("SERVICIO TECNICO") ||
-    e.toUpperCase().includes("SERVICIO TÉCNICO") ||
-    e.toUpperCase().includes("INTERMEDIARIO")
-  );
+  // Detección de intermediarios sin flota ampliada (decisión 07/07/2026):
+  //  · CARROCERO → carroceros y fabricantes (etiquetados como CARROCEROS).
+  //  · CONCESIONARIO → "FABRICANTES y CONCESIONARIOS V.I" (concesionarios de
+  //    vehículo industrial).
+  //  · COMPRA VENTA → "COMPRA VENTA INDUSTRIALES".
+  //  · RECAMBIOS → "VENTA RECAMBIOS".
+  //  · SERVICIO → engloba servicio oficial/técnico y cualquier taller con
+  //    "servicio" en su denominación (sustituye a las tres variantes previas).
+  // Antes, fabricantes/concesionarios/compraventa/recambios/talleres sueltos
+  // caían en "General" y recibían la pregunta de flota (errónea: no tienen
+  // flota propia). CLIENTE FINAL mantiene prioridad en tipoDescripcionCliente,
+  // así que un contacto con ambas etiquetas se trata como cliente final.
+  const esIntermediario = etiquetas.some(e => {
+    const u = e.toUpperCase();
+    return u.includes("CARROCERO") ||
+           u.includes("RENTING") ||
+           u.includes("SERVICIO") ||
+           u.includes("CONCESIONARIO") ||
+           u.includes("COMPRA VENTA") ||
+           u.includes("RECAMBIOS") ||
+           u.includes("INTERMEDIARIO");
+  });
   // Teléfonos: separar móvil y fijo
   const telefonos = p.phoneNumbers || [];
   const movil = telefonos.find(t => { const n = t.value.replace(/\D/g,""); return n.startsWith("6") || n.startsWith("7") || n.startsWith("346") || n.startsWith("347"); });
