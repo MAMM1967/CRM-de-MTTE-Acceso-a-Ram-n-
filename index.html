@@ -114,6 +114,8 @@
     .motor-btn.active-claude  { background:#1a0608; color:#e63946; }
     .motor-btn.active-workers { background:#0a1220; color:#60a5fa; }
     .motor-btn:disabled { opacity:0.4; cursor:not-allowed; }
+    .motor-btn.active-canal-email { background:#1a0608; color:#e63946; }
+    .motor-btn.active-canal-wapp  { background:#001a0d; color:#25d366; }
     .pendiente-wapp { background:#001a0d; border:1px solid #25d36633; border-radius:6px; padding:3px 8px; font-size:10px; color:#25d366; font-weight:600; }
 
     /* IMPORTAR EMAIL / WHATSAPP (03/10/2026) */
@@ -158,12 +160,16 @@
         <div class="logo-box">M</div>
         <div>
           <div style="font-size:15px;font-weight:700;letter-spacing:-0.3px;display:flex;align-items:center;gap:8px;">Mitsubishi Frigoríficos<!-- Badge de versión estático (07/07/2026): refleja el nombre del archivo entregado. Sin lógica ni red — se fija manualmente en cada entrega. -->
-            <span id="version-badge" style="font-size:10px;font-weight:600;color:#6b7280;background:#161b22;border:1px solid #1e2535;padding:1px 7px;border-radius:7px;letter-spacing:0.3px;">crm_2026_10_03_importar</span></div>
+            <span id="version-badge" style="font-size:10px;font-weight:600;color:#6b7280;background:#161b22;border:1px solid #1e2535;padding:1px 7px;border-radius:7px;letter-spacing:0.3px;">crm_2026_10_03_wapp</span></div>
           <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Seguimiento Comercial · IA</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;">
         <button id="btn-importar" onclick="abrirImportar()" title="Importar el último email o WhatsApp de un tema a las notas del contacto">📥 Importar email</button>
+        <div class="motor-switcher" id="canal-switcher" title="Canal con el que el CRM propone contactar (se guarda en este navegador)">
+          <button class="motor-btn" id="btn-canal-email" onclick="setCanalPreferente('email')">✉ Email</button>
+          <button class="motor-btn" id="btn-canal-wapp" onclick="setCanalPreferente('wapp')">💬 WhatsApp</button>
+        </div>
         <div class="motor-switcher" id="motor-switcher" title="Motor de IA activo">
           <button class="motor-btn" id="btn-motor-claude" onclick="setMotorIA('anthropic')">⚡ Claude</button>
           <button class="motor-btn active-workers" id="btn-motor-workers" onclick="setMotorIA('workersai')">☁️ Workers AI</button>
@@ -922,6 +928,11 @@ function renderLista() {
                 label = "💬 Enviar WApp";    color = "#25d366"; bg = "#001a0d"; border = "#25d36633";
               } else if (tipo === "linkedin") {
                 label = "💼 Enviar LinkedIn"; color = "#0a66c2"; bg = "#0a1929"; border = "#0a66c244";
+              } else if (canalPreferente() === "wapp" && tipo !== "email") {
+                // Modo WhatsApp sin acción de canal: llamada prevista o sin móvil
+                const e = estado[c.id] || {};
+                label = e.cicloLlamada ? "📞 Llamar" : (c.telefonoMovil ? "⏳ Esperando" : "📵 Sin móvil");
+                color = "#9ca3af"; bg = "#111827"; border = "#374151";
               } else {
                 label = "✉ Enviar email";    color = "#e63946"; bg = "#1a0608"; border = "#3d0d12";
               }
@@ -936,6 +947,38 @@ function renderLista() {
 function diasDesde(ts) {
   if (!ts) return null;
   return Math.floor((Date.now() - ts) / 86400000);
+}
+
+// ── CANAL PREFERENTE (03/10/2026) ─────────────────────────────────────────────
+// "email" (por defecto, comportamiento de siempre) o "wapp": mientras no haya
+// dominio de correo definitivo, el CRM propone WhatsApp para iniciar contacto
+// y para responder. TODO lo de email sigue intacto: basta volver a "Email".
+// Se guarda en localStorage de cada navegador → no afecta a otros usuarios.
+const CANAL_KEY = "crm_canal_preferente";
+function canalPreferente() {
+  try { return localStorage.getItem(CANAL_KEY) === "wapp" ? "wapp" : "email"; } catch(e) { return "email"; }
+}
+function setCanalPreferente(v) {
+  try { localStorage.setItem(CANAL_KEY, v === "wapp" ? "wapp" : "email"); } catch(e) {}
+  pintarCanalPreferente();
+  renderLista();
+}
+function pintarCanalPreferente() {
+  const w = canalPreferente() === "wapp";
+  document.getElementById("btn-canal-email")?.classList.toggle("active-canal-email", !w);
+  document.getElementById("btn-canal-wapp")?.classList.toggle("active-canal-wapp", w);
+}
+// ¿El último bloque de notas es un mensaje RECIBIDO del cliente (nos toca contestar)?
+function ultimoBloqueEsRecibido(c) {
+  const ua = ultimaAccion(c?.historial);
+  return !!(ua && /^recibido\s+(email|whatsapp)/i.test(ua.texto));
+}
+// Qué tipo de WhatsApp redactar para este contacto.
+function tipoWappPara(c, a) {
+  if (a && a.tipo === "wapp_seguimiento") return "seguimiento";
+  if (ultimoBloqueEsRecibido(c)) return "respuesta";
+  if (tieneHistorial(c)) return "reactivacion";
+  return "primer_contacto";
 }
 
 // Decide la PRÓXIMA acción a proponer según la secuencia obligatoria:
@@ -983,6 +1026,12 @@ function accionPara(c) {
   }
 
   // INICIO DE CICLO: ningún envío previo, decidir por canales disponibles
+  // Modo WhatsApp: wapp (con móvil) > linkedin; sin email.
+  if (canalPreferente() === "wapp") {
+    if (c.telefonoMovil) return { tipo: "wapp_primer_contacto", motivo: "Canal preferente WhatsApp" };
+    if (c.linkedin) return { tipo: "linkedin", motivo: "Canal preferente WhatsApp, sin móvil" };
+    return null;
+  }
   // Prioridad: email > wapp (sin email pero con móvil) > linkedin
   if (c.email) return { tipo: "email", motivo: "Inicio de ciclo" };
   if (c.telefonoMovil) return { tipo: "wapp_primer_contacto", motivo: "Sin email, contacto inicial por WApp" };
@@ -1003,7 +1052,10 @@ function clickCliente(id) {
   // sin móvil ni LinkedIn). Ahora, sin ningún canal, se muestra un aviso para
   // revisar el contacto en Google Contacts en lugar de generar nada.
   if (!a) {
-    if (c.email) {
+    if (canalPreferente() === "wapp" && c.telefonoMovil) {
+      abrirPanel(c, "wapp");
+      generarWapp(c, tipoWappPara(c, null));
+    } else if (c.email && canalPreferente() !== "wapp") {
       abrirPanel(c, "email");
       generarEmail(c);
     } else if (c.telefonoMovil) {
@@ -1025,7 +1077,7 @@ function clickCliente(id) {
     generarEmail(c);
   } else if (a.tipo === "wapp_seguimiento" || a.tipo === "wapp_primer_contacto") {
     abrirPanel(c, "wapp");
-    generarWapp(c, a.tipo === "wapp_seguimiento" ? "seguimiento" : "primer_contacto");
+    generarWapp(c, tipoWappPara(c, a));
   } else if (a.tipo === "linkedin") {
     abrirPanel(c, "email"); // tab email pero contenido LinkedIn
     generarMensajeLinkedIn(c);
@@ -1088,7 +1140,7 @@ function actualizarWappPanel() {
   if (esWapp) {
     info.style.display   = "none";
     activo.style.display = "block";
-    const tipoW = a.tipo === "wapp_seguimiento" ? "seguimiento" : "primer_contacto";
+    const tipoW = tipoWappPara(c, a);
     if (!wappMensaje) generarWapp(c, tipoW);
   } else {
     if (c && !c.telefonoMovil && !c.email) {
@@ -1638,9 +1690,59 @@ async function generarWapp(c, tipo = "seguimiento") {
 
   const recElectrico = recordatorioElectrico(c); // mención garantizada eléctrica (LCV/TRUCK/cárnicas)
 
+  window._ultimoTipoWapp = tipo;
   // Construir el prompt según el tipo de mensaje
   let promptContent;
-  if (tipo === "primer_contacto") {
+  const ultimoBloque = ultimaAccion(c.historial);
+  if (tipo === "respuesta") {
+    // El cliente nos ha escrito (email o WhatsApp) y toca contestarle por WhatsApp
+    promptContent =
+`Tu rol: ${miNombre}, director de Mitsubishi Equipos Frigoríficos en España.
+${c.contacto} de ${c.empresa} nos ha escrito y te toca contestarle por WhatsApp.
+
+ÚLTIMO MENSAJE / ÚLTIMA ANOTACIÓN (${ultimoBloque?.fecha || ""}):
+${ultimoBloque?.texto || "—"}
+
+HISTORIAL DE NOTAS:
+${c.historial}
+
+INSTRUCCIONES:
+1. Saludo corto: "Hola ${c.contacto.split(" ")[0]},".
+2. Contesta a lo concreto que pide o comenta en su último mensaje. Si pide algo que aún no tienes (precio, plazo, ficha), di que se lo preparas y cuándo se lo envías, sin inventar cifras.
+3. Si procede, cierra con una pregunta o propuesta concreta (una llamada, una visita, una fecha).
+4. Máximo 4 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
+5. NO inventes: ni precios, ni plazos, ni modelos, ni tipos de vehículo que no aparezcan en las notas.
+
+${REGLAS_ESTILO}
+
+Devuelve solo el mensaje.`;
+  } else if (tipo === "reactivacion") {
+    // Cliente conocido con el que hace tiempo que no hablamos
+    promptContent =
+`Tu rol: ${miNombre}, director de Mitsubishi Equipos Frigoríficos en España.
+Vas a escribir un WhatsApp a ${c.contacto} de ${c.empresa}. Ya os conocéis, pero hace ${d} días que no habláis.
+
+DATOS:
+Cargo: ${c.cargo || "—"}
+Sector: ${c.sector}
+Equipos: ${c.equipos}
+Tipo: ${tipoCliente}
+
+HISTORIAL DE NOTAS:
+${c.historial}
+
+INSTRUCCIONES:
+1. Saludo corto: "Hola ${c.contacto.split(" ")[0]},". No te presentes como si no os conocierais.
+2. Retoma UN detalle concreto del historial (proyecto, equipo, conversación, persona). Si no hay nada concreto, di "hace tiempo que no hablamos".
+3. Pregunta concreta enfocada al objetivo: ${c.esClienteFinal ? '"¿Para cuándo prevéis la próxima renovación o ampliación de flota frigorífica?"' : c.esRenting ? '"¿Para cuándo tenéis prevista alguna ampliación de vuestra flota de renting frigorífico?"' : c.esIntermediario ? '"¿Tienes alguna operación en marcha donde haya que montar equipo frigorífico y tu cliente confíe en ti para recomendarle MITSUBISHI?"' : '"¿Para cuándo prevéis algún proyecto de renovación o ampliación de flota frigorífica?"'}
+${recElectrico ? `IMPORTANTE (cliente LCV/TRUCK/cárnica): que el mensaje deje claro, sin añadir líneas de más, que tenemos la solución eléctrica — "${recElectrico}". PROHIBIDO usar fórmulas tipo "cuando decidáis dar el paso" o similares.
+` : ""}4. Máximo 4 líneas. Texto plano. Sin asteriscos. Sin "Espero que estés bien".
+5. NO inventes: no menciones tipos de vehículo (furgonetas, camiones, semirremolques) ni temas que no aparezcan en el historial de notas.
+
+${REGLAS_ESTILO}
+
+Devuelve solo el mensaje.`;
+  } else if (tipo === "primer_contacto") {
     // WApp como primer canal de contacto: no hay email previo
     promptContent =
 `Tu rol: ${miNombre}, director de Mitsubishi Equipos Frigoríficos en España.
@@ -1771,7 +1873,7 @@ Devuelve solo el mensaje.`;
   document.getElementById("wapp-result").style.display = "block";
 }
 
-function regenWapp() { if(selCliente) generarWapp(selCliente); }
+function regenWapp() { if(selCliente) generarWapp(selCliente, window._ultimoTipoWapp || tipoWappPara(selCliente, accionPara(selCliente))); }
 
 async function generarMensajeLinkedIn(c) {
   console.log("[generarMensajeLinkedIn] Iniciando para:", c.empresa, c.contacto);
@@ -2823,7 +2925,7 @@ Responde SOLO con un objeto JSON, sin texto antes ni después, con estas claves:
  "cliente": {"nombre": "nombre y apellido", "email": "", "telefono": "", "empresa": ""},
  "resumen": "UNA frase de 10-25 palabras con lo concreto del último mensaje: qué se pide, se ofrece o se acuerda (modelos, cantidades, fechas si aparecen)",
  "proximaAccion": {"texto": "verbo + objeto en infinitivo, p. ej. 'contestarle con precio de 3 TU-85' o 'llamarle para cerrar la visita'", "fecha": "DD-MM-AAAA"},
- "borradorRespuesta": "solo si el último mensaje es del cliente: respuesta breve y cordial en su idioma, firmada por quien de nosotros lleve el hilo, sin inventar precios ni datos; si no, cadena vacía"}
+ "borradorRespuesta": "solo si el último mensaje es del cliente: ${canalPreferente() === "wapp" ? "respuesta para enviar por WhatsApp (máximo 4 líneas, texto plano, sin asteriscos), en su idioma" : "respuesta breve y cordial en su idioma, firmada por quien de nosotros lleve el hilo"}, sin inventar precios ni datos; si no, cadena vacía"}
 
 Reglas: no inventes datos que no estén en el texto; deja "" si no lo sabes. Si el último mensaje es del cliente, la fecha de la próxima acción es hoy salvo que el propio mensaje fije otra.
 
@@ -2988,7 +3090,7 @@ function impRegenerarBloque(recalcularPA) {
   const email = c ? (((c.emails || []).map(e => e.toLowerCase()).includes(emDatos)) ? emDatos : c.email) : document.getElementById("imp-n-email").value.trim();
   const asunto = _impDatos.asunto ? (/^re:/i.test(_impDatos.asunto) ? _impDatos.asunto : "Re: " + _impDatos.asunto) : "";
   const a = document.getElementById("imp-resp-abrir");
-  if (canal === "whatsapp") {
+  if (canal === "whatsapp" || canalPreferente() === "wapp") {
     const tel = (c ? (c.telefonoMovil || c.telefono) : document.getElementById("imp-n-tel").value).replace(/\D/g, "");
     a.href = tel ? `https://wa.me/${tel}?text=${encodeURIComponent(document.getElementById("imp-respuesta").value)}` : "#";
     a.textContent = "Abrir en WhatsApp";
@@ -3084,6 +3186,8 @@ async function guardarImportacion() {
     _impGuardando = false; btn.disabled = false;
   }
 }
+
+pintarCanalPreferente();
 
 // Render inicial: muestra los contactos demo en la lista al cargar la página.
 // Sin esto, la lista queda vacía hasta que el usuario conecta Google o
