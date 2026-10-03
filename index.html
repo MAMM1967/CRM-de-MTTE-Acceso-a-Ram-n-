@@ -115,6 +115,38 @@
     .motor-btn.active-workers { background:#0a1220; color:#60a5fa; }
     .motor-btn:disabled { opacity:0.4; cursor:not-allowed; }
     .pendiente-wapp { background:#001a0d; border:1px solid #25d36633; border-radius:6px; padding:3px 8px; font-size:10px; color:#25d366; font-weight:600; }
+
+    /* IMPORTAR EMAIL / WHATSAPP (03/10/2026) */
+    #btn-importar { background:#111827; color:#e8eaf0; border:1px solid #374151; border-radius:8px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+    #btn-importar:hover { border-color:#e63946; }
+    #imp-overlay { position:fixed; inset:0; background:rgba(5,7,12,0.78); z-index:200; display:none; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; }
+    #imp-overlay.visible { display:flex; }
+    #imp-modal { background:#0d1117; border:1px solid #1e2535; border-radius:12px; width:100%; max-width:720px; box-shadow:0 20px 60px #0008; animation:fadeIn 0.2s ease; }
+    #imp-modal-head { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid #1e2535; background:linear-gradient(135deg,#1a0608,#1e0a0d); border-radius:12px 12px 0 0; }
+    #imp-modal-body { padding:16px 18px 18px; display:flex; flex-direction:column; gap:12px; }
+    .imp-drop { border:1.5px dashed #374151; border-radius:10px; padding:14px; background:#111827; display:flex; flex-direction:column; gap:8px; transition:border-color 0.15s, background 0.15s; }
+    .imp-drop.over { border-color:#e63946; background:#1a0608; }
+    .imp-drop textarea, .imp-field textarea { width:100%; background:#0d1117; border:1px solid #1e2535; border-radius:7px; padding:9px 11px; color:#e8eaf0; font-size:12.5px; line-height:1.55; font-family:inherit; outline:none; resize:vertical; }
+    .imp-drop textarea:focus, .imp-field textarea:focus, .imp-field input:focus, .imp-field select:focus { border-color:#4b5563; }
+    .imp-hint { font-size:11.5px; color:#6b7280; line-height:1.5; }
+    .imp-files { display:flex; flex-wrap:wrap; gap:6px; }
+    .imp-file { font-size:11px; color:#9ca3af; background:#1e2535; border:1px solid #374151; border-radius:6px; padding:2px 8px; }
+    .imp-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .imp-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    @media (max-width:640px){ .imp-grid { grid-template-columns:1fr; } }
+    .imp-field { display:flex; flex-direction:column; gap:4px; min-width:0; }
+    .imp-field label, .imp-label { font-size:10px; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px; font-weight:600; }
+    .imp-field input, .imp-field select { width:100%; background:#0d1117; border:1px solid #1e2535; border-radius:7px; padding:7px 10px; color:#e8eaf0; font-size:12.5px; font-family:inherit; outline:none; min-width:0; }
+    .imp-status { font-size:12px; color:#9ca3af; }
+    .imp-status.err { color:#ff6b6b; }
+    .imp-status.ok { color:#34a853; }
+    .imp-sum { background:#111827; border:1px solid #1e2535; border-radius:8px; padding:10px 12px; font-size:12.5px; color:#d1d5db; line-height:1.6; }
+    .imp-sum strong { color:#e8eaf0; }
+    .imp-pill { display:inline-block; font-size:10.5px; font-weight:700; border-radius:7px; padding:1px 8px; margin-right:6px; }
+    .imp-pill.yo { color:#60a5fa; background:#0a1220; border:1px solid #60a5fa44; }
+    .imp-pill.cli { color:#a78bfa; background:#1a1030; border:1px solid #a78bfa44; }
+    .imp-sep { border:none; border-top:1px solid #1e2535; margin:2px 0; }
+    #imp-nuevo { display:none; }
   </style>
 </head>
 <body>
@@ -126,11 +158,12 @@
         <div class="logo-box">M</div>
         <div>
           <div style="font-size:15px;font-weight:700;letter-spacing:-0.3px;display:flex;align-items:center;gap:8px;">Mitsubishi Frigoríficos<!-- Badge de versión estático (07/07/2026): refleja el nombre del archivo entregado. Sin lógica ni red — se fija manualmente en cada entrega. -->
-            <span id="version-badge" style="font-size:10px;font-weight:600;color:#6b7280;background:#161b22;border:1px solid #1e2535;padding:1px 7px;border-radius:7px;letter-spacing:0.3px;">crm_2026_07_07_1924</span></div>
+            <span id="version-badge" style="font-size:10px;font-weight:600;color:#6b7280;background:#161b22;border:1px solid #1e2535;padding:1px 7px;border-radius:7px;letter-spacing:0.3px;">crm_2026_10_03_importar</span></div>
           <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Seguimiento Comercial · IA</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;">
+        <button id="btn-importar" onclick="abrirImportar()" title="Importar el último email o WhatsApp de un tema a las notas del contacto">📥 Importar email</button>
         <div class="motor-switcher" id="motor-switcher" title="Motor de IA activo">
           <button class="motor-btn" id="btn-motor-claude" onclick="setMotorIA('anthropic')">⚡ Claude</button>
           <button class="motor-btn active-workers" id="btn-motor-workers" onclick="setMotorIA('workersai')">☁️ Workers AI</button>
@@ -238,6 +271,103 @@
           </div>
         </div>
 
+      </div>
+    </div>
+  </div>
+
+  <!-- IMPORTAR EMAIL / WHATSAPP (03/10/2026) -->
+  <div id="imp-overlay" onclick="if(event.target===this) cerrarImportar()">
+    <div id="imp-modal" role="dialog" aria-labelledby="imp-titulo">
+      <div id="imp-modal-head">
+        <div>
+          <div id="imp-titulo" style="font-size:11px;font-weight:700;color:#e63946;letter-spacing:0.5px;">📥 IMPORTAR EMAIL O WHATSAPP</div>
+          <div style="font-size:12px;color:#9ca3af;margin-top:1px;">Suelta el último mensaje del tema y se apunta en las notas del contacto</div>
+        </div>
+        <button onclick="cerrarImportar()" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:20px;" aria-label="Cerrar">×</button>
+      </div>
+      <div id="imp-modal-body">
+        <div class="imp-drop" id="imp-drop">
+          <div style="font-size:13px;font-weight:700;color:#e8eaf0;">Arrastra aquí el email (.eml / .msg) o pega el texto</div>
+          <div class="imp-hint">Outlook.com: abre el email → «…» → <em>Descargar</em> y arrastra el archivo. Outlook de escritorio: arrastra el correo directamente. WhatsApp Web: selecciona los mensajes, copia y pega.</div>
+          <textarea id="imp-texto" rows="5" placeholder="…o pega aquí el email completo (con De / Para / Fecha si puedes) o la conversación de WhatsApp"></textarea>
+          <div class="imp-files" id="imp-files"></div>
+          <div class="imp-row">
+            <button class="btn-primary" style="flex:0 0 auto;padding:8px 16px;" id="imp-btn-analizar" onclick="analizarImportacion()">Analizar</button>
+            <label class="btn-secondary" style="cursor:pointer;">Elegir archivo<input type="file" id="imp-file-in" accept=".eml,.msg,.txt,message/rfc822" multiple style="display:none;" onchange="impAnadirArchivos(this.files); this.value='';" /></label>
+            <button class="btn-secondary" onclick="impLimpiar()">Vaciar</button>
+            <span class="imp-status" id="imp-status"></span>
+          </div>
+        </div>
+
+        <div id="imp-resultado" style="display:none;flex-direction:column;gap:12px;">
+          <div class="imp-sum" id="imp-sum"></div>
+
+          <div class="imp-field">
+            <label for="imp-buscar">Contacto en Google Contacts</label>
+            <div class="imp-grid">
+              <select id="imp-contacto" onchange="impCambioContacto()"></select>
+              <input id="imp-buscar" type="text" placeholder="Buscar otro contacto por nombre o empresa…" oninput="impRellenarSelect(this.value)" />
+            </div>
+          </div>
+
+          <div id="imp-nuevo" class="imp-grid">
+            <div class="imp-field"><label for="imp-n-nombre">Nombre</label><input id="imp-n-nombre" /></div>
+            <div class="imp-field"><label for="imp-n-empresa">Empresa</label><input id="imp-n-empresa" /></div>
+            <div class="imp-field"><label for="imp-n-email">Email</label><input id="imp-n-email" /></div>
+            <div class="imp-field"><label for="imp-n-tel">Móvil</label><input id="imp-n-tel" /></div>
+          </div>
+
+          <div class="imp-grid">
+            <div class="imp-field">
+              <label for="imp-quien">Último mensaje</label>
+              <select id="imp-quien" onchange="impRegenerarBloque(true)">
+                <option value="nosotros">Lo enviamos nosotros · esperamos respuesta</option>
+                <option value="cliente">Lo envió el cliente · nos toca contestar</option>
+              </select>
+            </div>
+            <div class="imp-field">
+              <label for="imp-canal">Canal</label>
+              <select id="imp-canal" onchange="impRegenerarBloque(true)">
+                <option value="email">Email</option>
+                <option value="whatsapp">WhatsApp</option>
+              </select>
+            </div>
+            <div class="imp-field">
+              <label for="imp-fecha">Fecha del mensaje</label>
+              <input id="imp-fecha" type="date" onchange="impRegenerarBloque(document.getElementById('imp-quien').value === 'nosotros')" />
+            </div>
+            <div class="imp-field">
+              <label for="imp-resumen">Resumen para las notas</label>
+              <input id="imp-resumen" oninput="impRegenerarBloque(false)" />
+            </div>
+            <div class="imp-field">
+              <label for="imp-pa-texto">Próxima acción</label>
+              <input id="imp-pa-texto" oninput="impRegenerarBloque(false)" placeholder="p. ej. contestarle con la oferta" />
+            </div>
+            <div class="imp-field">
+              <label for="imp-pa-fecha">Fecha de la próxima acción</label>
+              <input id="imp-pa-fecha" type="date" onchange="impRegenerarBloque(false)" />
+            </div>
+          </div>
+
+          <div class="imp-field">
+            <label for="imp-bloque">Esto se añadirá al final de las notas del contacto (puedes editarlo)</label>
+            <textarea id="imp-bloque" rows="4" spellcheck="true"></textarea>
+          </div>
+
+          <div class="imp-field" id="imp-resp-wrap" style="display:none;">
+            <label for="imp-respuesta">Borrador de respuesta (opcional)</label>
+            <textarea id="imp-respuesta" rows="5" spellcheck="true"></textarea>
+            <div class="imp-row"><button class="btn-secondary" onclick="impCopiarRespuesta()">Copiar respuesta</button><a class="btn-secondary" id="imp-resp-abrir" href="#" target="_blank" rel="noopener" style="text-decoration:none;">Abrir en correo</a></div>
+          </div>
+
+          <hr class="imp-sep" />
+          <div class="imp-row">
+            <button class="btn-primary" style="flex:0 0 auto;padding:9px 18px;" id="imp-btn-guardar" onclick="guardarImportacion()">✓ Guardar en Google Contacts</button>
+            <button class="btn-secondary" onclick="cerrarImportar()">Cancelar</button>
+            <span class="imp-status" id="imp-status-2"></span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -2202,7 +2332,9 @@ function conectarGoogle() {
         // - Con etiqueta "NO EMAILS COMERCIALES" → solo si tienen próxima acción vencida o de hoy
         //   (así Samuel u otros contactos sin email comercial siguen apareciendo cuando hay tarea pendiente)
         const hoyMs = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
-        const filtrados = todosContactos.map(mapContact).filter(c => {
+        const mapeados = todosContactos.map(mapContact);
+        window._todosMapeados = mapeados; // base completa para el importador de emails
+        const filtrados = mapeados.filter(c => {
           const tieneNoEmails = (c.etiquetas||[]).some(et => et.toUpperCase().includes("NO EMAILS COMERCIALES"));
           if (!tieneNoEmails) return true;
           // Tiene "NO EMAILS COMERCIALES" → solo entra si tiene próxima acción vencida/hoy
@@ -2382,7 +2514,9 @@ function mapContact(p) {
     nombre1, nombre2, apellidos,
     cargo: p.organizations?.[0]?.title||"",
     email: p.emailAddresses?.[0]?.value||"",
+    emails: (p.emailAddresses||[]).map(e => e.value).filter(Boolean),   // todas (para importar emails)
     telefono, telefonoFijo, telefonoMovil,
+    telefonos: telefonos.map(t => t.value).filter(Boolean),            // todos (para importar WhatsApp)
     linkedin,
     etiquetas,
     pais, direccion, codPostal, ciudad, provincia,
@@ -2442,6 +2576,514 @@ try {
   const saved = sessionStorage.getItem("motorIA");
   if (saved === "anthropic") setMotorIA("anthropic");
 } catch(e) {}
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// IMPORTAR EMAIL / WHATSAPP (03/10/2026)
+// ══════════════════════════════════════════════════════════════════════════
+// Flujo: el usuario suelta un .eml/.msg o pega el texto del último mensaje de
+// un tema → se leen las cabeceras (De/Para/Fecha/Asunto) sin IA → la IA activa
+// (Claude o Workers AI) resume y propone la próxima acción → se busca el
+// contacto en la base cargada de Google Contacts → el usuario revisa el bloque
+// y se AÑADE al final de las notas con el mismo formato que usa la app:
+//
+//   DD-MM-AAAA
+//   Envío email: <resumen>                       (si el último mensaje es nuestro)
+//   Recibido email de <nombre>: <resumen>        (si el último mensaje es del cliente)
+//   Próxima acción <texto> en DD-MM-AAAA
+//
+// Si el último mensaje es nuestro se respeta el ciclo de la app: con móvil →
+// "Próxima acción enviar Wapp de seguimiento en +2 días hábiles"; sin móvil o
+// por WhatsApp → "Próxima acción llamarle en +3 meses". Si es del cliente, la
+// próxima acción es manual ("contestarle …") con fecha de hoy, para que el
+// contacto suba al Grupo 1 (acción hoy).
+// Nada se escribe en Google sin pulsar "Guardar".
+
+// Dominios propios: cualquier dirección de estos dominios cuenta como "nosotros".
+const DOMINIOS_PROPIOS = ["mtte-spain.com"];
+const IMP_MAX_TEXTO = 14000;
+let _impArchivos = [];      // [{nombre, texto, cab}]
+let _impDatos = null;       // resultado del análisis
+let _impNuevoId = "__nuevo__";
+
+const _sinAcentos = s => (s || "").toString().normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const _escHtml = s => String(s == null ? "" : s).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+const _isoAhoy = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
+const _isoADmy = iso => { const m = (iso || "").match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? `${m[3]}-${m[2]}-${m[1]}` : ""; };
+const _dmyAIso = dmy => { const m = (dmy || "").match(/^(\d{1,2})[\-\/\.](\d{1,2})[\-\/\.](\d{4})$/); return m ? `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}` : ""; };
+const _dmyAFecha = dmy => { const iso = _dmyAIso(dmy); return iso ? new Date(+iso.slice(0,4), +iso.slice(5,7)-1, +iso.slice(8,10)) : null; };
+
+// ¿Esta dirección o nombre es nuestro (Miguel Ángel, Ramón, dominio propio, cuenta conectada)?
+function esNuestro(emailOrNombre) {
+  const v = _sinAcentos(emailOrNombre).trim();
+  if (!v) return false;
+  const miEmail = _sinAcentos(window._currentUser?.email || "");
+  if (miEmail && v.includes(miEmail)) return true;
+  if (DOMINIOS_PROPIOS.some(d => v.includes("@" + d))) return true;
+  // Solo apellidos y nombres completos: un cliente que se llame "Ramón" no es nosotros.
+  const claves = ["mezquiriz", "estrela", ...USUARIOS_CONOCIDOS.map(u => _sinAcentos(u.nombre))];
+  return claves.some(k => v.includes(k));
+}
+
+// ── Lectura de archivos ─────────────────────────────────────────────────────
+function _decodePalabras(s) { // RFC 2047 en cabeceras (=?utf-8?B?...?=)
+  return String(s || "").replace(/\?=\s+=\?/g, "?==?").replace(/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/g, (m, cs, enc, txt) => {
+    try {
+      let bytes;
+      if (enc.toUpperCase() === "B") bytes = Uint8Array.from(atob(txt), c => c.charCodeAt(0));
+      else bytes = _qpBytes(txt.replace(/_/g, " "));
+      return new TextDecoder(cs).decode(bytes);
+    } catch(e) { return txt; }
+  });
+}
+function _qpBytes(t) {
+  const arr = [];
+  for (let i = 0; i < t.length; i++) {
+    if (t[i] === "=" && /^[0-9A-Fa-f]{2}$/.test(t.substr(i+1, 2))) { arr.push(parseInt(t.substr(i+1, 2), 16)); i += 2; }
+    else arr.push(t.charCodeAt(i) & 255);
+  }
+  return new Uint8Array(arr);
+}
+function _decodificar(bytes, cs) { try { return new TextDecoder(cs || "utf-8").decode(bytes); } catch(e) { return new TextDecoder("utf-8").decode(bytes); } }
+function _quitarHtml(h) {
+  const d = document.createElement("div");
+  d.innerHTML = String(h).replace(/<(style|script|head)[\s\S]*?<\/\1>/gi, "").replace(/<br\s*\/?>/gi, "\n").replace(/<\/(p|div|tr|li|h\d|blockquote)>/gi, "\n");
+  return (d.textContent || "").replace(/ /g, " ").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+function _partir(raw) { const i = raw.search(/\r?\n\r?\n/); return i < 0 ? { head: raw, body: "" } : { head: raw.slice(0, i), body: raw.slice(i).replace(/^\r?\n\r?\n/, "") }; }
+function _cabeceras(head) {
+  const out = {};
+  head.replace(/\r?\n[ \t]+/g, " ").split(/\r?\n/).forEach(l => { const k = l.indexOf(":"); if (k > 0) { const n = l.slice(0, k).trim().toLowerCase(); if (!(n in out)) out[n] = l.slice(k + 1).trim(); } });
+  return out;
+}
+function _textoParte(raw, prof) {
+  if (prof > 6) return { plain: "", html: "" };
+  const { head, body } = _partir(raw); const h = _cabeceras(head);
+  const ct = h["content-type"] || "text/plain";
+  const cs = (ct.match(/charset="?([^";\s]+)"?/i) || [])[1];
+  const cte = (h["content-transfer-encoding"] || "").toLowerCase();
+  if (/^multipart\//i.test(ct)) {
+    const b = (ct.match(/boundary="?([^";]+)"?/i) || [])[1]; if (!b) return { plain: "", html: "" };
+    let plain = "", html = "";
+    body.split("--" + b).slice(1).filter(p => !/^--/.test(p)).forEach(p => { const r = _textoParte(p.replace(/^\r?\n/, ""), prof + 1); plain = plain || r.plain; html = html || r.html; });
+    return { plain, html };
+  }
+  if (/^message\/rfc822/i.test(ct)) return _textoParte(body, prof + 1);
+  let txt;
+  if (cte === "base64") { try { txt = _decodificar(Uint8Array.from(atob(body.replace(/\s+/g, "")), c => c.charCodeAt(0)), cs); } catch(e) { txt = ""; } }
+  else if (cte === "quoted-printable") txt = _decodificar(_qpBytes(body.replace(/=\r?\n/g, "")), cs);
+  else txt = body;
+  if (/^text\/html/i.test(ct)) return { plain: "", html: txt };
+  if (/^text\//i.test(ct)) return { plain: txt, html: "" };
+  return { plain: "", html: "" };
+}
+function leerEml(raw) {
+  const { head } = _partir(raw); const h = _cabeceras(head); const t = _textoParte(raw, 0);
+  const cuerpo = (t.plain || _quitarHtml(t.html || "")).trim();
+  const cab = { de: _decodePalabras(h["from"] || ""), para: _decodePalabras(h["to"] || ""), cc: _decodePalabras(h["cc"] || ""), fecha: h["date"] || "", asunto: _decodePalabras(h["subject"] || "") };
+  const texto = [`De: ${cab.de}`, `Para: ${cab.para}`, cab.cc ? `CC: ${cab.cc}` : "", `Fecha: ${cab.fecha}`, `Asunto: ${cab.asunto}`].filter(Boolean).join("\n") + "\n\n" + cuerpo;
+  return { texto, cab };
+}
+// .msg de Outlook (formato binario OLE): extraemos los textos legibles (UTF-16).
+// No es perfecto pero suele traer remitente, asunto y cuerpo para que la IA los ordene.
+function leerMsg(buf) {
+  const u8 = new Uint8Array(buf); const trozos = []; let cur = "";
+  for (let i = 0; i + 1 < u8.length; i += 2) {
+    const c = u8[i] | (u8[i+1] << 8);
+    if ((c >= 32 && c < 0xD800 && c !== 0xFFFD) || c === 10 || c === 13 || c === 9) cur += String.fromCharCode(c);
+    else { if (cur.trim().length >= 6) trozos.push(cur.trim()); cur = ""; }
+  }
+  if (cur.trim().length >= 6) trozos.push(cur.trim());
+  const vistos = new Set(); const utiles = [];
+  trozos.forEach(t => { if (!vistos.has(t) && /[A-Za-zÁÉÍÓÚáéíóúñÑ]{3}/.test(t)) { vistos.add(t); utiles.push(t); } });
+  const texto = utiles.join("\n");
+  const correos = texto.match(/[\w.+\-]+@[\w\-]+\.[\w.\-]+/g) || [];
+  return { texto: "[Texto extraído de un archivo .msg de Outlook; puede venir desordenado]\n" + texto, cab: { correos } };
+}
+// Cabeceras de un email pegado como texto ("De: … / Enviado: … / Para: … / Asunto: …")
+function cabecerasDeTextoPegado(t) {
+  const linea = re => { const m = t.match(re); return m ? m[1].trim() : ""; };
+  return {
+    de:     linea(/^(?:De|From)\s*:\s*(.+)$/im),
+    para:   linea(/^(?:Para|To)\s*:\s*(.+)$/im),
+    fecha:  linea(/^(?:Enviado|Fecha|Date|Sent)\s*:\s*(.+)$/im),
+    asunto: linea(/^(?:Asunto|Subject)\s*:\s*(.+)$/im)
+  };
+}
+const _correosDe = s => (String(s || "").match(/[\w.+\-]+@[\w\-]+\.[\w.\-]+/g) || []).map(e => e.toLowerCase());
+const _nombreDe = s => { const m = String(s || "").match(/^\s*"?([^"<]+?)"?\s*</); return m ? m[1].trim() : ""; };
+function _fechaCabeceraADmy(f) {
+  if (!f) return "";
+  const d = new Date(f);
+  if (!isNaN(d)) return `${String(d.getDate()).padStart(2,"0")}-${String(d.getMonth()+1).padStart(2,"0")}-${d.getFullYear()}`;
+  const m = f.match(/(\d{1,2})[\-\/\.](\d{1,2})[\-\/\.](\d{4})/);
+  return m ? `${m[1].padStart(2,"0")}-${m[2].padStart(2,"0")}-${m[3]}` : "";
+}
+
+async function impAnadirArchivos(lista) {
+  for (const f of Array.from(lista || [])) {
+    const nombre = f.name || "archivo"; const n = nombre.toLowerCase();
+    try {
+      if (n.endsWith(".msg")) _impArchivos.push({ nombre, ...leerMsg(await f.arrayBuffer()) });
+      else if (n.endsWith(".eml") || f.type === "message/rfc822") _impArchivos.push({ nombre, ...leerEml(await f.text()) });
+      else if (f.type && f.type.startsWith("image/")) impEstado("Las capturas no se pueden leer aquí: copia y pega el texto del chat.", "err");
+      else _impArchivos.push({ nombre, texto: await f.text(), cab: null });
+    } catch(e) { impEstado("No pude leer " + nombre, "err"); }
+  }
+  impPintarArchivos();
+}
+function impPintarArchivos() {
+  document.getElementById("imp-files").innerHTML = _impArchivos.map(a => `<span class="imp-file">📎 ${_escHtml(a.nombre)}</span>`).join("");
+}
+function impEstado(msg, tipo, cual) {
+  const el = document.getElementById(cual === 2 ? "imp-status-2" : "imp-status");
+  el.textContent = msg || ""; el.className = "imp-status" + (tipo ? " " + tipo : "");
+}
+function impLimpiar() {
+  _impArchivos = []; _impDatos = null;
+  document.getElementById("imp-texto").value = "";
+  document.getElementById("imp-resultado").style.display = "none";
+  impPintarArchivos(); impEstado(""); impEstado("", null, 2);
+}
+function abrirImportar() {
+  document.getElementById("imp-overlay").classList.add("visible");
+  if (!window._gToken) impEstado("Aún no estás conectado a Google: puedes analizar, pero para guardar pulsa antes «Conectar Google Contacts».", "err");
+  setTimeout(() => document.getElementById("imp-texto").focus(), 50);
+}
+function cerrarImportar() { document.getElementById("imp-overlay").classList.remove("visible"); }
+
+// Arrastrar un archivo sobre cualquier parte del CRM abre el importador.
+document.addEventListener("dragenter", ev => {
+  if (ev.dataTransfer && Array.from(ev.dataTransfer.types || []).includes("Files")) abrirImportar();
+});
+(function prepararZonaImportar() {
+  const zona = document.getElementById("imp-drop");
+  if (!zona) return;
+  ["dragenter", "dragover"].forEach(t => zona.addEventListener(t, ev => { ev.preventDefault(); zona.classList.add("over"); }));
+  zona.addEventListener("dragleave", ev => { if (ev.target === zona) zona.classList.remove("over"); });
+  zona.addEventListener("drop", async ev => {
+    ev.preventDefault(); zona.classList.remove("over");
+    const dt = ev.dataTransfer; if (!dt) return;
+    if (dt.files && dt.files.length) { await impAnadirArchivos(dt.files); return; }
+    const txt = dt.getData("text/plain") || _quitarHtml(dt.getData("text/html") || "");
+    if (txt) { const ta = document.getElementById("imp-texto"); ta.value = (ta.value ? ta.value + "\n\n" : "") + txt; }
+    else impEstado("Ese arrastre no trae texto. Descarga el email como .eml o copia y pega su contenido.", "err");
+  });
+  // Evitar que soltar un archivo fuera de la zona haga que el navegador lo abra y salga del CRM
+  window.addEventListener("dragover", ev => ev.preventDefault());
+  window.addEventListener("drop", ev => { if (!zona.contains(ev.target)) ev.preventDefault(); });
+  document.addEventListener("keydown", ev => { if (ev.key === "Escape") cerrarImportar(); });
+})();
+
+// ── IA ──────────────────────────────────────────────────────────────────────
+async function _llamarIA(prompt, maxTokens) {
+  const res = await fetch(PROXY_URL, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: maxTokens, messages: [{ role: "user", content: prompt }] })
+  });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const data = await res.json();
+  return (data.content || []).map(b => b.text || "").join("").trim();
+}
+function _jsonDeTexto(t) {
+  if (!t) return null;
+  const f = t.match(/```(?:json)?\s*([\s\S]*?)```/); if (f) t = f[1];
+  const a = t.indexOf("{"), b = t.lastIndexOf("}");
+  if (a < 0 || b <= a) return null;
+  try { return JSON.parse(t.slice(a, b + 1)); } catch(e) { return null; }
+}
+
+async function analizarImportacion() {
+  const pegado = document.getElementById("imp-texto").value.trim();
+  if (!pegado && !_impArchivos.length) { impEstado("Pega un texto o suelta un archivo primero.", "err"); return; }
+  const btn = document.getElementById("imp-btn-analizar");
+  btn.disabled = true; impEstado("Analizando con " + (_motorActivo === "workersai" ? "Workers AI" : "Claude") + "…");
+
+  // 1. Cabeceras sin IA (del primer .eml/.msg, o del texto pegado)
+  const conCab = _impArchivos.find(a => a.cab && (a.cab.de || a.cab.correos));
+  const cab = conCab ? conCab.cab : cabecerasDeTextoPegado(pegado);
+  let contenido = _impArchivos.map(a => `--- ${a.nombre} ---\n${a.texto}`).join("\n\n");
+  if (pegado) contenido += (contenido ? "\n\n--- Texto pegado ---\n" : "") + pegado;
+  if (contenido.length > IMP_MAX_TEXTO) contenido = contenido.slice(0, IMP_MAX_TEXTO) + "\n[…recortado]";
+
+  const deNuestro = cab.de ? esNuestro(cab.de) : null;
+  const fechaCab = _fechaCabeceraADmy(cab.fecha);
+  const nosotros = USUARIOS_CONOCIDOS.map(u => u.nombre).join(", ");
+  const hoyDmy = _isoADmy(_isoAhoy());
+
+  const prompt =
+`Trabajas para el equipo comercial de Mitsubishi Equipos Frigoríficos en España (${nosotros}). Te paso el último email o la conversación de WhatsApp de un tema con un cliente o contacto. Hoy es ${hoyDmy}.
+
+"Nosotros" somos: ${nosotros}${window._currentUser?.email ? ` (cuenta ${window._currentUser.email})` : ""}, y cualquier dirección del dominio ${DOMINIOS_PROPIOS.join(", ")} o que contenga "mezquiriz" o "estrela". El "cliente" es la otra parte.
+
+Responde SOLO con un objeto JSON, sin texto antes ni después, con estas claves:
+{"canal": "email" o "whatsapp",
+ "ultimoMensajeDe": "nosotros" o "cliente" (quién escribió el ÚLTIMO mensaje, el más reciente),
+ "fecha": "DD-MM-AAAA" del último mensaje,
+ "cliente": {"nombre": "nombre y apellido", "email": "", "telefono": "", "empresa": ""},
+ "resumen": "UNA frase de 10-25 palabras con lo concreto del último mensaje: qué se pide, se ofrece o se acuerda (modelos, cantidades, fechas si aparecen)",
+ "proximaAccion": {"texto": "verbo + objeto en infinitivo, p. ej. 'contestarle con precio de 3 TU-85' o 'llamarle para cerrar la visita'", "fecha": "DD-MM-AAAA"},
+ "borradorRespuesta": "solo si el último mensaje es del cliente: respuesta breve y cordial en su idioma, firmada por quien de nosotros lleve el hilo, sin inventar precios ni datos; si no, cadena vacía"}
+
+Reglas: no inventes datos que no estén en el texto; deja "" si no lo sabes. Si el último mensaje es del cliente, la fecha de la próxima acción es hoy salvo que el propio mensaje fije otra.
+
+CONTENIDO:
+${contenido}`;
+
+  let ia = null, errorIA = "";
+  try { ia = _jsonDeTexto(await _llamarIA(prompt, 900)); if (!ia) errorIA = "La IA no devolvió datos legibles."; }
+  catch(e) { errorIA = "No se pudo contactar con la IA (" + e.message + ")."; }
+  btn.disabled = false;
+
+  // 2. Combinar: las cabeceras mandan sobre la IA cuando existen
+  ia = ia || {};
+  const cli = ia.cliente || {};
+  let quien = ia.ultimoMensajeDe === "cliente" ? "cliente" : (ia.ultimoMensajeDe === "nosotros" ? "nosotros" : null);
+  if (deNuestro !== null && cab.de) quien = deNuestro ? "nosotros" : "cliente";
+  if (!quien) quien = "cliente";
+  const correosCab = [...new Set([..._correosDe(cab.de), ..._correosDe(cab.para), ..._correosDe(cab.cc), ...((cab.correos || []).map(e => e.toLowerCase()))])].filter(e => !esNuestro(e));
+  const emailCliente = (quien === "cliente" ? _correosDe(cab.de).find(e => !esNuestro(e)) : null) || correosCab[0] || (cli.email || "").toLowerCase();
+  const nombreCliente = (quien === "cliente" ? _nombreDe(cab.de) : _nombreDe((String(cab.para || "").split(",").find(p => !esNuestro(p))) || "")) || cli.nombre || "";
+  const esWapp = ia.canal === "whatsapp" || (!cab.de && !conCab && /\[\d{1,2}:\d{2},\s*\d{1,2}\/\d{1,2}\/\d{2,4}\]/.test(pegado));
+  _impDatos = {
+    quien, canal: esWapp ? "whatsapp" : "email",
+    fecha: fechaCab || (/^\d{1,2}-\d{1,2}-\d{4}$/.test(ia.fecha || "") ? ia.fecha : hoyDmy),
+    cliente: { nombre: nombreCliente, email: emailCliente, telefono: cli.telefono || "", empresa: cli.empresa || "" },
+    resumen: (ia.resumen || cab.asunto || "").replace(/\s+/g, " ").trim(),
+    paTexto: (ia.proximaAccion?.texto || "").trim(),
+    paFecha: /^\d{1,2}-\d{1,2}-\d{4}$/.test(ia.proximaAccion?.fecha || "") ? ia.proximaAccion.fecha : "",
+    respuesta: (ia.borradorRespuesta || "").trim(),
+    asunto: cab.asunto || ""
+  };
+
+  // 3. Rellenar formulario
+  document.getElementById("imp-quien").value = _impDatos.quien;
+  document.getElementById("imp-canal").value = _impDatos.canal;
+  document.getElementById("imp-fecha").value = _dmyAIso(_impDatos.fecha) || _isoAhoy();
+  document.getElementById("imp-resumen").value = _impDatos.resumen;
+  document.getElementById("imp-n-nombre").value = _impDatos.cliente.nombre;
+  document.getElementById("imp-n-empresa").value = _impDatos.cliente.empresa;
+  document.getElementById("imp-n-email").value = _impDatos.cliente.email;
+  document.getElementById("imp-n-tel").value = _impDatos.cliente.telefono;
+  document.getElementById("imp-respuesta").value = _impDatos.respuesta;
+  document.getElementById("imp-buscar").value = "";
+  impRellenarSelect("");
+  impRegenerarBloque(true);
+  document.getElementById("imp-resultado").style.display = "flex";
+
+  const c = impContactoElegido();
+  document.getElementById("imp-sum").innerHTML =
+    `<span class="imp-pill ${quien === "cliente" ? "cli" : "yo"}">${quien === "cliente" ? "Nos toca contestar" : "Esperamos respuesta"}</span>` +
+    `<strong>${_escHtml(_impDatos.cliente.nombre || "Contacto sin identificar")}</strong>${_impDatos.cliente.empresa ? " · " + _escHtml(_impDatos.cliente.empresa) : ""}` +
+    (_impDatos.cliente.email ? ` · <span style="color:#60a5fa">${_escHtml(_impDatos.cliente.email)}</span>` : "") +
+    (_impDatos.asunto ? `<br><span style="color:#6b7280">Asunto:</span> ${_escHtml(_impDatos.asunto)}` : "") +
+    (c ? "" : `<br><span style="color:#fbbf24">No lo encuentro en tus contactos cargados: elige uno en el buscador o crea uno nuevo.</span>`);
+  impEstado(errorIA ? errorIA + " Rellena el resumen a mano." : "Revisa los datos y pulsa Guardar.", errorIA ? "err" : "ok");
+}
+
+// ── Emparejar con Google Contacts ───────────────────────────────────────────
+function _baseContactos() {
+  const base = (window._todosMapeados && window._todosMapeados.length) ? window._todosMapeados : _todosLosContactos;
+  return base || [];
+}
+function _puntuar(c, d) {
+  let p = 0;
+  const em = (d.cliente.email || "").toLowerCase();
+  const emails = (c.emails && c.emails.length ? c.emails : [c.email]).filter(Boolean).map(e => e.toLowerCase());
+  if (em && emails.includes(em)) p += 100;
+  const dom = em.split("@")[1] || "";
+  const genericos = ["gmail.com","hotmail.com","outlook.com","yahoo.com","yahoo.es","hotmail.es","live.com","icloud.com","msn.com","telefonica.net"];
+  if (dom && !genericos.includes(dom) && emails.some(e => e.endsWith("@" + dom))) p += 30;
+  const tel = (d.cliente.telefono || "").replace(/\D/g, "").slice(-9);
+  const tels = (c.telefonos && c.telefonos.length ? c.telefonos : [c.telefono]).filter(Boolean).map(t => t.replace(/\D/g, "").slice(-9));
+  if (tel.length === 9 && tels.includes(tel)) p += 90;
+  const tokens = s => _sinAcentos(s).split(/[^a-z0-9ñ]+/).filter(t => t.length >= 3);
+  const tn = tokens(d.cliente.nombre), cn = tokens(c.contacto);
+  if (tn.length) p += Math.round(25 * tn.filter(t => cn.includes(t)).length / tn.length) * (tn.length > 1 ? 2 : 1);
+  const te = tokens(d.cliente.empresa).filter(t => !["sl","sa","slu","transportes","grupo","logistica"].includes(t)), ce = tokens(c.empresa);
+  if (te.length) p += Math.round(40 * te.filter(t => ce.includes(t)).length / te.length);
+  return p;
+}
+function impRellenarSelect(busqueda) {
+  const sel = document.getElementById("imp-contacto");
+  const base = _baseContactos().filter(c => c.fuenteG);
+  let lista;
+  const q = _sinAcentos(busqueda).trim();
+  if (q) {
+    lista = base.filter(c => _sinAcentos(`${c.contacto} ${c.empresa} ${c.email}`).includes(q)).slice(0, 30).map(c => ({ c, p: 0 }));
+  } else if (_impDatos) {
+    lista = base.map(c => ({ c, p: _puntuar(c, _impDatos) })).filter(x => x.p >= 25).sort((a, b) => b.p - a.p).slice(0, 8);
+  } else lista = [];
+  const opciones = lista.map(({ c, p }) =>
+    `<option value="${_escHtml(c.id)}">${_escHtml(c.contacto)} · ${_escHtml(c.empresa)}${c.email ? " (" + _escHtml(c.email) + ")" : ""}${p >= 100 ? " ✓" : ""}</option>`);
+  opciones.push(`<option value="${_impNuevoId}">➕ Crear contacto nuevo en Google Contacts</option>`);
+  if (!base.length) opciones.unshift(`<option value="" disabled>Conecta Google Contacts para buscar el contacto</option>`);
+  sel.innerHTML = opciones.join("");
+  sel.selectedIndex = (!base.length) ? (opciones.length > 1 ? 1 : 0) : 0;
+  impCambioContacto();
+}
+function impContactoElegido() {
+  const id = document.getElementById("imp-contacto").value;
+  if (!id || id === _impNuevoId) return null;
+  return _baseContactos().find(c => c.id === id) || null;
+}
+function impCambioContacto() {
+  const nuevo = document.getElementById("imp-contacto").value === _impNuevoId;
+  document.getElementById("imp-nuevo").style.display = nuevo ? "grid" : "none";
+  impRegenerarBloque(true);
+}
+
+// ── Construir el bloque de notas ────────────────────────────────────────────
+// Igual que calcularFechaProximaAccion pero partiendo de una fecha dada (ISO).
+function _fechaProximaDesde(iso, cierraCiclo) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const f = new Date(y, m - 1, d);
+  if (cierraCiclo) f.setMonth(f.getMonth() + 3);
+  else { let n = 2; while (n > 0) { f.setDate(f.getDate() + 1); const w = f.getDay(); if (w !== 0 && w !== 6) n--; } }
+  return `${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,"0")}-${String(f.getDate()).padStart(2,"0")}`;
+}
+function impRegenerarBloque(recalcularPA) {
+  if (!_impDatos) return;
+  const quien = document.getElementById("imp-quien").value;
+  const canal = document.getElementById("imp-canal").value;
+  const c = impContactoElegido();
+  const tieneMovil = c ? !!c.telefonoMovil : !!document.getElementById("imp-n-tel").value.trim();
+  const nombre = (c ? c.contacto : document.getElementById("imp-n-nombre").value.trim()) || _impDatos.cliente.nombre || "el cliente";
+  const nombreCorto = nombre.split(/\s+/)[0];
+  const paTxt = document.getElementById("imp-pa-texto");
+  const paFecha = document.getElementById("imp-pa-fecha");
+
+  if (recalcularPA) {
+    if (quien === "nosotros") {
+      // Mismo ciclo que "Marcar enviado": email con móvil → WApp en 2 días hábiles; si no → llamada en 3 meses
+      // Contado desde la fecha del mensaje (no desde hoy): si el email se envió
+      // hace días, el WhatsApp de seguimiento ya puede tocar hoy.
+      const cierra = canal === "whatsapp" || !tieneMovil;
+      paTxt.value = cierra ? "llamarle" : "enviar Wapp de seguimiento";
+      paFecha.value = _fechaProximaDesde(document.getElementById("imp-fecha").value || _isoAhoy(), cierra);
+    } else {
+      let t = _impDatos.paTexto || `contestar a ${nombreCorto}`;
+      // Evitar que coincida con los formatos automáticos (cerrarían el ciclo como llamada)
+      if (/^llamarle$/i.test(t.trim())) t = "llamarle para contestar";
+      paTxt.value = t.replace(/\s+en\s+\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}\.?$/i, "");
+      paFecha.value = _dmyAIso(_impDatos.paFecha) || _isoAhoy();
+    }
+  }
+  const fechaBloque = _isoADmy(document.getElementById("imp-fecha").value) || _isoADmy(_isoAhoy());
+  const resumen = document.getElementById("imp-resumen").value.trim().replace(/\s+/g, " ").replace(/\.$/, "");
+  const tipo = canal === "whatsapp" ? "WhatsApp" : "email";
+  const linea1 = quien === "nosotros"
+    ? `Envío ${tipo}: ${resumen || "seguimiento"}`
+    : `Recibido ${tipo} de ${nombre}: ${resumen || "respuesta del cliente"}`;
+  const pa = (paTxt.value || "").trim().replace(/^pr[oó]xima\s+acci[oó]n\s*/i, "");
+  const paF = _isoADmy(paFecha.value);
+  const linea2 = pa && paF ? `Próxima acción ${pa} en ${paF}` : "";
+  document.getElementById("imp-bloque").value = [fechaBloque, linea1, linea2].filter(Boolean).join("\n");
+
+  // Borrador de respuesta solo cuando nos toca contestar
+  const wrap = document.getElementById("imp-resp-wrap");
+  wrap.style.display = quien === "cliente" ? "flex" : "none";
+  // Responder a la dirección desde la que escribió, si es una de las del contacto
+  const emDatos = (_impDatos.cliente.email || "").toLowerCase();
+  const email = c ? (((c.emails || []).map(e => e.toLowerCase()).includes(emDatos)) ? emDatos : c.email) : document.getElementById("imp-n-email").value.trim();
+  const asunto = _impDatos.asunto ? (/^re:/i.test(_impDatos.asunto) ? _impDatos.asunto : "Re: " + _impDatos.asunto) : "";
+  const a = document.getElementById("imp-resp-abrir");
+  if (canal === "whatsapp") {
+    const tel = (c ? (c.telefonoMovil || c.telefono) : document.getElementById("imp-n-tel").value).replace(/\D/g, "");
+    a.href = tel ? `https://wa.me/${tel}?text=${encodeURIComponent(document.getElementById("imp-respuesta").value)}` : "#";
+    a.textContent = "Abrir en WhatsApp";
+  } else {
+    a.href = email ? `mailto:${email}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(document.getElementById("imp-respuesta").value)}` : "#";
+    a.textContent = "Abrir en correo";
+  }
+}
+function impCopiarRespuesta() {
+  const ta = document.getElementById("imp-respuesta");
+  navigator.clipboard.writeText(ta.value).then(() => impEstado("Respuesta copiada.", "ok", 2)).catch(() => { ta.select(); });
+}
+
+// ── Guardar ─────────────────────────────────────────────────────────────────
+async function _crearContactoGoogle(datos, notas) {
+  const persona = {
+    names: [{ unstructuredName: datos.nombre || datos.email || "Contacto nuevo" }],
+    biographies: [{ value: notas, contentType: "TEXT_PLAIN" }]
+  };
+  if (datos.email) persona.emailAddresses = [{ value: datos.email }];
+  if (datos.telefono) persona.phoneNumbers = [{ value: datos.telefono, type: "mobile" }];
+  if (datos.empresa) persona.organizations = [{ name: datos.empresa }];
+  const campos = "names,emailAddresses,phoneNumbers,organizations,biographies,metadata,memberships,urls,addresses";
+  for (let intento = 0; intento < 2; intento++) {
+    const res = await fetch(`https://people.googleapis.com/v1/people:createContact?personFields=${campos}`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${window._gToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify(persona)
+    });
+    if (res.status === 401 && intento === 0) {
+      const ok = await renovarTokenGoogle();
+      if (!ok) throw new Error("SESION_EXPIRADA: no se pudo renovar el token automáticamente");
+      continue;
+    }
+    if (!res.ok) throw new Error(`Error creando contacto: HTTP ${res.status} ${(await res.text()).slice(0, 160)}`);
+    return await res.json();
+  }
+  throw new Error("No se pudo crear el contacto tras renovar el token");
+}
+
+let _impGuardando = false;
+async function guardarImportacion() {
+  if (_impGuardando) return;
+  if (!window._gToken) { impEstado("⚠️ Conecta Google Contacts (botón de arriba) y vuelve a pulsar Guardar.", "err", 2); return; }
+  const bloque = document.getElementById("imp-bloque").value.trim();
+  const lineas = bloque.split("\n").map(l => l.trim()).filter(Boolean);
+  if (!/^\d{1,2}-\d{1,2}-\d{4}:?$/.test(lineas[0] || "")) { impEstado("La primera línea del bloque debe ser la fecha (DD-MM-AAAA).", "err", 2); return; }
+  if (lineas.length < 2) { impEstado("Añade al menos una línea de resumen.", "err", 2); return; }
+  const esNuevo = document.getElementById("imp-contacto").value === _impNuevoId;
+  const c = impContactoElegido();
+  if (!esNuevo && !c) { impEstado("Elige el contacto en el desplegable.", "err", 2); return; }
+
+  _impGuardando = true;
+  const btn = document.getElementById("imp-btn-guardar"); btn.disabled = true;
+  impEstado("Guardando en Google Contacts…", null, 2);
+  try {
+    let contacto;
+    if (esNuevo) {
+      const datos = {
+        nombre: document.getElementById("imp-n-nombre").value.trim(),
+        empresa: document.getElementById("imp-n-empresa").value.trim(),
+        email: document.getElementById("imp-n-email").value.trim(),
+        telefono: document.getElementById("imp-n-tel").value.trim()
+      };
+      if (!datos.nombre && !datos.email) { impEstado("Para crear el contacto pon al menos nombre o email.", "err", 2); return; }
+      const p = await _crearContactoGoogle(datos, lineas.join("\n"));
+      contacto = mapContact(p);
+      (window._todosMapeados = window._todosMapeados || []).push(contacto);
+      _todosLosContactos.push(contacto);
+    } else {
+      const nuevaLinea = "\n" + lineas.join("\n");
+      await actualizarNotasGoogle(c.id, nuevaLinea);
+      contacto = c;
+      contacto.historial = ((contacto.historial && contacto.historial !== "Sin historial.") ? contacto.historial : "") + nuevaLinea;
+      contacto.proximaAccion = extraerProximaAccion(contacto.historial) || null;
+      contacto.ultimoContacto = extraerFechas(contacto.historial) || contacto.ultimoContacto;
+      if (!_todosLosContactos.includes(contacto)) _todosLosContactos.push(contacto);
+    }
+    // Recalcular su estado de ciclo desde las notas (misma lógica que al cargar)
+    delete estado[contacto.id];
+    reconstruirEstado(contacto);
+    // Registro en la hoja "Acciones Comerciales" (best-effort, como en los envíos)
+    try { await escribirEnSheets(contacto); } catch(e) { console.warn("[importar] Sheets falló (no crítico):", e.message); }
+    recalcularClientes(); renderChips(); renderLista();
+    impEstado(`✓ Guardado en las notas de ${contacto.contacto}.`, "ok", 2);
+    setTimeout(() => { cerrarImportar(); impLimpiar(); }, 1200);
+  } catch(e) {
+    console.error("[importar] ❌", e);
+    impEstado(/SESION_EXPIRADA/i.test(e.message)
+      ? "⚠️ Sesión de Google expirada. Pulsa «Conectar Google Contacts» arriba y vuelve a Guardar."
+      : "⚠️ No se pudo guardar: " + e.message, "err", 2);
+  } finally {
+    _impGuardando = false; btn.disabled = false;
+  }
+}
 
 // Render inicial: muestra los contactos demo en la lista al cargar la página.
 // Sin esto, la lista queda vacía hasta que el usuario conecta Google o
