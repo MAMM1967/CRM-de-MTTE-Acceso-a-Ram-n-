@@ -160,7 +160,7 @@
         <div class="logo-box">M</div>
         <div>
           <div style="font-size:15px;font-weight:700;letter-spacing:-0.3px;display:flex;align-items:center;gap:8px;">Mitsubishi Frigoríficos<!-- Badge de versión estático (07/07/2026): refleja el nombre del archivo entregado. Sin lógica ni red — se fija manualmente en cada entrega. -->
-            <span id="version-badge" style="font-size:10px;font-weight:600;color:#6b7280;background:#161b22;border:1px solid #1e2535;padding:1px 7px;border-radius:7px;letter-spacing:0.3px;">crm_2026_10_06_wapp</span></div>
+            <span id="version-badge" style="font-size:10px;font-weight:600;color:#6b7280;background:#161b22;border:1px solid #1e2535;padding:1px 7px;border-radius:7px;letter-spacing:0.3px;">crm_2026_10_06b_wapp</span></div>
           <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Seguimiento Comercial · IA</div>
         </div>
       </div>
@@ -342,9 +342,9 @@
               <label for="imp-fecha">Fecha del mensaje</label>
               <input id="imp-fecha" type="date" onchange="impRegenerarBloque(document.getElementById('imp-quien').value === 'nosotros')" />
             </div>
-            <div class="imp-field">
+            <div class="imp-field" style="grid-column:1/-1;">
               <label for="imp-resumen">Resumen para las notas</label>
-              <input id="imp-resumen" oninput="impRegenerarBloque(false)" />
+              <textarea id="imp-resumen" rows="3" oninput="impRegenerarBloque(false)" spellcheck="true" style="width:100%;background:#0d1117;border:1px solid #1e2535;border-radius:7px;padding:8px 10px;color:#e8eaf0;font-size:12.5px;line-height:1.5;font-family:inherit;outline:none;resize:vertical;"></textarea>
             </div>
             <div class="imp-field">
               <label for="imp-pa-texto">Próxima acción</label>
@@ -2952,11 +2952,14 @@ Responde SOLO con un objeto JSON, sin texto antes ni después, con estas claves:
  "ultimoMensajeDe": "nosotros" o "cliente" (quién escribió el ÚLTIMO mensaje, el más reciente),
  "fecha": "DD-MM-AAAA" del último mensaje,
  "cliente": {"nombre": "nombre y apellido", "email": "", "telefono": "", "empresa": ""},
- "resumen": "UNA frase de 10-25 palabras con lo concreto del último mensaje: qué se pide, se ofrece o se acuerda (modelos, cantidades, fechas si aparecen)",
- "proximaAccion": {"texto": "verbo + objeto en infinitivo, p. ej. 'contestarle con precio de 3 TU-85' o 'llamarle para cerrar la visita'", "fecha": "DD-MM-AAAA"},
+ "resumen": "resumen del HILO COMPLETO (no solo del último mensaje) tal como lo apuntaría ${window._currentUser?.nombreCorto || "Miguel Ángel"} en su libreta: en primera persona, 2-4 frases cortas, 30-70 palabras. Cuenta qué pedí o envié y para qué (equipo o modelo, cliente final o carrocero implicado, cantidades), qué me han contestado o mandado (documentos, precios, plazos, y si encaja o no con lo pedido) y qué les he pedido o qué queda pendiente. Verbos en presente ('Le solicito…', 'Me manda…', 'Le pido…'). Sin saludos, sin relleno y sin repetir el asunto",
+ "proximaAccion": {"texto": "verbo en infinitivo; normalmente 'llamarle' o algo concreto como 'enviarle la oferta con montaje'", "fecha": "DD-MM-AAAA"},
  "borradorRespuesta": "solo si el último mensaje es del cliente: ${canalPreferente() === "wapp" ? "respuesta para enviar por WhatsApp (máximo 4 líneas, texto plano, sin asteriscos), en su idioma" : "respuesta breve y cordial en su idioma, firmada por quien de nosotros lleve el hilo"}, sin inventar precios ni datos; si no, cadena vacía"}
 
-Reglas: no inventes datos que no estén en el texto; deja "" si no lo sabes. Si el último mensaje es del cliente, la fecha de la próxima acción es hoy salvo que el propio mensaje fije otra.
+EJEMPLO DE RESUMEN (caso ficticio, solo para el estilo):
+"Le pido precio de 3 equipos TU-85 para Transportes Ejemplo, con montaje en Carrocerías Ejemplo. Me manda solo el precio del equipo sin montaje; le pido la oferta completa con montaje y plazo de entrega."
+
+Reglas: no inventes datos que no estén en el texto; deja "" si no lo sabes. Próxima acción: si quedamos a la espera de su respuesta, lo normal es "llamarle" el día hábil siguiente al último mensaje, salvo que el hilo marque otra fecha. Si el último mensaje es del cliente, la próxima acción es contestarle hoy salvo que el propio mensaje fije otra fecha.
 
 CONTENIDO:
 ${contenido}`;
@@ -2987,6 +2990,7 @@ ${contenido}`;
     cliente: { nombre: nombreCliente, email: emailCliente, telefono: cli.telefono || "", empresa: cli.empresa || "" },
     resumen: (ia.resumen || cab.asunto || "").replace(/\s+/g, " ").trim(),
     paTexto: (ia.proximaAccion?.texto || "").trim(),
+    quienIA: quien,
     paFecha: /^\d{1,2}-\d{1,2}-\d{4}$/.test(ia.proximaAccion?.fecha || "") ? ia.proximaAccion.fecha : "",
     respuesta: (ia.borradorRespuesta || "").trim(),
     asunto: cab.asunto || ""
@@ -3070,6 +3074,11 @@ function impCambioContacto() {
 }
 
 // ── Construir el bloque de notas ────────────────────────────────────────────
+function _diaHabilSiguiente(iso) {
+  const [y, m, d] = iso.split("-").map(Number); const f = new Date(y, m - 1, d);
+  do { f.setDate(f.getDate() + 1); } while (f.getDay() === 0 || f.getDay() === 6);
+  return `${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,"0")}-${String(f.getDate()).padStart(2,"0")}`;
+}
 // Igual que calcularFechaProximaAccion pero partiendo de una fecha dada (ISO).
 function _fechaProximaDesde(iso, cierraCiclo) {
   const [y, m, d] = iso.split("-").map(Number);
@@ -3090,7 +3099,11 @@ function impRegenerarBloque(recalcularPA) {
   const paFecha = document.getElementById("imp-pa-fecha");
 
   if (recalcularPA) {
-    if (quien === "nosotros") {
+    if (quien === "nosotros" && _impDatos.paTexto && _impDatos.quienIA === "nosotros") {
+      // Propuesta de la IA (por defecto "llamarle" el día hábil siguiente al último mensaje)
+      paTxt.value = _impDatos.paTexto.replace(/\s+en\s+\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}\.?$/i, "");
+      paFecha.value = _dmyAIso(_impDatos.paFecha) || _diaHabilSiguiente(document.getElementById("imp-fecha").value || _isoAhoy());
+    } else if (quien === "nosotros") {
       // Mismo ciclo que "Marcar enviado": email con móvil → WApp en 2 días hábiles; si no → llamada en 3 meses
       // Contado desde la fecha del mensaje (no desde hoy): si el email se envió
       // hace días, el WhatsApp de seguimiento ya puede tocar hoy.
@@ -3108,9 +3121,12 @@ function impRegenerarBloque(recalcularPA) {
   const fechaBloque = _isoADmy(document.getElementById("imp-fecha").value) || _isoADmy(_isoAhoy());
   const resumen = document.getElementById("imp-resumen").value.trim().replace(/\s+/g, " ").replace(/\.$/, "");
   const tipo = canal === "whatsapp" ? "WhatsApp" : "email";
+  // Con el asunto delante, como en las notas de siempre: "Envío email: RV: Asunto. Resumen…"
+  const asuntoNota = (canal === "email" && _impDatos.asunto) ? _impDatos.asunto.trim().replace(/\.$/, "") : "";
+  const conAsunto = txt => (asuntoNota && txt && !_sinAcentos(txt).includes(_sinAcentos(asuntoNota))) ? `${asuntoNota}. ${txt}` : (txt || asuntoNota);
   const linea1 = quien === "nosotros"
-    ? `Envío ${tipo}: ${resumen || "seguimiento"}`
-    : `Recibido ${tipo} de ${nombre}: ${resumen || "respuesta del cliente"}`;
+    ? `Envío ${tipo}: ${conAsunto(resumen) || "seguimiento"}`
+    : `Recibido ${tipo} de ${nombre}: ${conAsunto(resumen) || "respuesta del cliente"}`;
   const pa = (paTxt.value || "").trim().replace(/^pr[oó]xima\s+acci[oó]n\s*/i, "");
   const paF = _isoADmy(paFecha.value);
   const linea2 = pa && paF ? `Próxima acción ${pa} en ${paF}` : "";
