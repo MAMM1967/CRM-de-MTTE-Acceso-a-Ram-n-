@@ -160,7 +160,7 @@
         <div class="logo-box">M</div>
         <div>
           <div style="font-size:15px;font-weight:700;letter-spacing:-0.3px;display:flex;align-items:center;gap:8px;">Mitsubishi Frigoríficos<!-- Badge de versión estático (07/07/2026): refleja el nombre del archivo entregado. Sin lógica ni red — se fija manualmente en cada entrega. -->
-            <span id="version-badge" style="font-size:10px;font-weight:600;color:#6b7280;background:#161b22;border:1px solid #1e2535;padding:1px 7px;border-radius:7px;letter-spacing:0.3px;">crm_2026_10_06b_wapp</span></div>
+            <span id="version-badge" style="font-size:10px;font-weight:600;color:#6b7280;background:#161b22;border:1px solid #1e2535;padding:1px 7px;border-radius:7px;letter-spacing:0.3px;">crm_2026_10_06c_wapp</span></div>
           <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Seguimiento Comercial · IA</div>
         </div>
       </div>
@@ -2882,6 +2882,10 @@ document.addEventListener("dragenter", ev => {
 })();
 
 // ── IA ──────────────────────────────────────────────────────────────────────
+// OJO (06/10/2026): el Worker de Workers AI devuelve HTTP 500 "text.trim is not
+// a function" cuando el modelo responde SOLO con JSON (Workers AI lo entrega ya
+// parseado como objeto). Por eso el prompt del importador pide "DATOS {…}".
+// Arreglo definitivo en el Worker: usar typeof r.response === "string" ? … : JSON.stringify(…).
 // Una llamada al proxy. Lanza error con detalle si HTTP falla o si el proxy
 // devuelve 200 con un error de la API dentro ({type:"error"}).
 async function _llamarProxy(url, prompt, maxTokens) {
@@ -2947,7 +2951,7 @@ async function analizarImportacion() {
 
 "Nosotros" somos: ${nosotros}${window._currentUser?.email ? ` (cuenta ${window._currentUser.email})` : ""}, y cualquier dirección del dominio ${DOMINIOS_PROPIOS.join(", ")} o que contenga "mezquiriz" o "estrela". El "cliente" es la otra parte.
 
-Responde SOLO con un objeto JSON, sin texto antes ni después, con estas claves:
+Responde escribiendo primero la palabra DATOS y a continuación un objeto JSON con estas claves (nada más después del JSON):
 {"canal": "email" o "whatsapp",
  "ultimoMensajeDe": "nosotros" o "cliente" (quién escribió el ÚLTIMO mensaje, el más reciente),
  "fecha": "DD-MM-AAAA" del último mensaje,
@@ -3101,7 +3105,9 @@ function impRegenerarBloque(recalcularPA) {
   if (recalcularPA) {
     if (quien === "nosotros" && _impDatos.paTexto && _impDatos.quienIA === "nosotros") {
       // Propuesta de la IA (por defecto "llamarle" el día hábil siguiente al último mensaje)
-      paTxt.value = _impDatos.paTexto.replace(/\s+en\s+\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}\.?$/i, "");
+      // "esperar respuesta" no es una acción: en las notas se apunta "llamarle"
+      paTxt.value = /^esperar/i.test(_impDatos.paTexto) ? "llamarle"
+        : _impDatos.paTexto.replace(/\s+en\s+\d{1,2}[\-\/\.]\d{1,2}[\-\/\.]\d{4}\.?$/i, "");
       paFecha.value = _dmyAIso(_impDatos.paFecha) || _diaHabilSiguiente(document.getElementById("imp-fecha").value || _isoAhoy());
     } else if (quien === "nosotros") {
       // Mismo ciclo que "Marcar enviado": email con móvil → WApp en 2 días hábiles; si no → llamada en 3 meses
